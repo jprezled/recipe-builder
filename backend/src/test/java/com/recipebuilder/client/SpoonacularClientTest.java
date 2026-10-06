@@ -28,6 +28,17 @@ import static org.springframework.test.web.client.response.MockRestResponseCreat
  * unexpected call fails the test, and the suite needs no API key and burns no
  * quota. The deliberately fake base-url below means a real network call would
  * fail loudly rather than quietly succeed.
+ *
+ * The stub in src/test/resources/stubs/ is a REAL response captured from
+ * Spoonacular on 2026-10-05 (ingredients=apple, number=2), not a hand-written
+ * guess. Recapture it with:
+ *
+ *   curl -s "https://api.spoonacular.com/recipes/findByIngredients\
+ *     ?ingredients=apple&number=2&apiKey=$KEY" | python3 -m json.tool \
+ *     > src/test/resources/stubs/find-by-ingredients.json
+ *
+ * Doing so changes the ids and titles below, which is the point: the
+ * assertions are tied to data we actually received.
  */
 @RestClientTest(
         value = SpoonacularClient.class,
@@ -56,18 +67,18 @@ class SpoonacularClientTest {
         assertThat(results).hasSize(2);
 
         SpoonacularSearchResult first = results.get(0);
-        assertThat(first.id()).isEqualTo(73420L);
-        assertThat(first.title()).isEqualTo("Apple Or Peach Strudel");
+        assertThat(first.id()).isEqualTo(716433L);
+        assertThat(first.title()).isEqualTo("Easiest Breakfast Ever: Sunny Fruit Parfait");
         assertThat(first.usedIngredientCount()).isEqualTo(1);
-        assertThat(first.missedIngredientCount()).isEqualTo(7);
+        assertThat(first.missedIngredientCount()).isEqualTo(3);
         assertThat(first.usedIngredients())
                 .extracting(SpoonacularSearchResult.Ingredient::name)
                 .containsExactly("apple");
         assertThat(first.missedIngredients())
                 .extracting(SpoonacularSearchResult.Ingredient::name)
-                .containsExactly("egg", "sugar");
+                .containsExactly("raisins", "sunflower seeds", "yogurt");
 
-        assertThat(results.get(1).title()).isEqualTo("Jewelled Fruitcake");
+        assertThat(results.get(1).title()).isEqualTo("Swiss Bircher Muesli");
 
         // Fails if the expected request was never made.
         server.verify();
