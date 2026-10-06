@@ -2,23 +2,6 @@
 
 This document describes the baseline PostgreSQL schema for the recipe-builder
 application.
-
-> **Important:** The project workspace did not contain an existing schema when
-> this document was created. These columns are a consistent starter design
-> based on the five tables required by the assignment. Compare them with the
-> team's actual migration before merging. The data dictionary and SQL migration
-> must always describe the same schema.
-
-## Relationship overview
-
-```text
-users 1 ───< saved_recipes >─── 1 recipes
-                                      │
-                                      │
-                                      v
-                             recipe_ingredients >─── 1 ingredients
-```
-
 - A user can save many recipes.
 - A recipe can be saved by many users.
 - A recipe can contain many ingredients.
@@ -110,13 +93,3 @@ prevents duplicate saved-recipe rows.
 | `recipe_ingredients.ingredient_id` → `ingredients.ingredient_id` | `RESTRICT` | Prevents deleting an ingredient that is still referenced by a recipe. |
 | `saved_recipes.user_id` → `users.user_id` | `CASCADE` | A deleted user should not leave saved records behind. |
 | `saved_recipes.recipe_id` → `recipes.recipe_id` | `CASCADE` | A deleted recipe should not leave saved records behind. |
-
-## Constraint summary
-
-- `PRIMARY KEY` values uniquely identify rows and cannot be null.
-- `NOT NULL` is used for values required for a valid record.
-- `UNIQUE` prevents duplicate usernames, emails, and ingredient names.
-- `CHECK` constraints reject invalid values at the database level, even if an
-  application accidentally sends bad data.
-- Foreign keys preserve relationships and prevent references to nonexistent
-  users, recipes, or ingredients.
