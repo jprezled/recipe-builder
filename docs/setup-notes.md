@@ -28,3 +28,10 @@ Add your own section below when you set up the project.
 - Node version: 24.14.0
 - PostgresSQL version: 17.11 (Homebrew, postgresql@17)
 - Problems hit and how i fixed them:
+
+## Jose Antonio Perez Ledesma
+- OS: Windows 11
+- JDK version: 
+- Node version: 
+- PostgresSQL version: 
+- Problems hit and how i fixed them:
