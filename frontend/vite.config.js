@@ -15,4 +15,11 @@ export default defineConfig({
       '/api': 'http://localhost:8080',
     },
   },
+
+  test: {
+    // src/api/ holds plain async functions, so no browser environment is
+    // needed. RB-40 will add jsdom when there are components to render.
+    environment: 'node',
+    globals: true,
+  },
 })
