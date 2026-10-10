@@ -26,8 +26,9 @@ Add your own section below when you set up the project.
 - OS: macOS 26.3
 - JDK version: 25.0.2
 - Node version: 24.14.0
-- PostgresSQL version: 17.11 (Homebrew, postgresql@17)
+- PostgresSQL version: 18.6 (Homebrew, postgresql@18)
 - Problems hit and how i fixed them:
+- i had postgresSQL version 17, updated to version 18.6
 
 ## Jose Antonio Perez Ledesma
 - OS: Windows 11
