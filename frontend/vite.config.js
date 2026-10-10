@@ -17,9 +17,10 @@ export default defineConfig({
   },
 
   test: {
-    // src/api/ holds plain async functions, so no browser environment is
-    // needed. RB-40 will add jsdom when there are components to render.
-    environment: 'node',
+    // jsdom gives the tests a fake DOM, so components can be rendered and
+    // queried without a real browser.
+    environment: 'jsdom',
     globals: true,
+    setupFiles: './src/setupTests.js',
   },
 })
