@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html>
+  
+  <head>
+    <title> Recipe Builder </title>  
+
+    <link rel ="stylesheet" href="style.css">
+
+    <style>
+       
+    </style>
+  
+  </head>
+  
+  
+  <!--  -->
+  <!-- Above is my placeholder for comments -->
+  
+  
+  <body>
+
+
+
+  <h1> Recipe Builder </h1>
+  
+  <h2> Make the best of the ingredients you have. </h2>
+  
+  <h3> Input whatever you have in your pantry. We'll search for the best recipes that suit
+    what you have available to you. </h3>
+  
+  <p> Type in your ingredients. Afterwards, press Enter or click the (->) arrow. </p>
+  <!--<button> Enter </button>--> 
+
+  <!-- begin-->
+   <form id="userForm">
+        <input type="text" id="myText" placeholder="Type something and press Enter..." required>
+        <button type="submit">Submit</button>
+    </form>
+  
+    <!--begin-->
+    <!--
+    <script>
+        const form = document.getElementById('userForm');
+        form.addEventListener('submit', function(event) {
+            event.preventDefault(); // Prevents page reload
+            const textValue = document.getElementById('myText').value;
+            alert("You entered: " + textValue);
+        });
+    
+    </script>
+    -->
+    <!--end-->
+    
+  <!--end-->
+
+  <h2> Find Recipes </h2>
+  <ul>
+    <li>Common Recipes</li>
+    <li>Daily Favorites</li>
+    <li>Saved Recipes</li>
+  </ul>
+  

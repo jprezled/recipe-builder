@@ -4,9 +4,11 @@ about: A new feature or task
 labels: enhancement
 ---
 
-Goal
-Tasks
-[ ]
+## Goal
 
-Done when
-Files I expect to touch
+## Tasks
+- [ ]
+
+## Done when
+
+## Files I expect to touch
