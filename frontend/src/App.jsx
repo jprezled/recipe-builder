@@ -1,5 +1,5 @@
-import IngredientSearch from './IngredientSearch'
+import RecipeDetailPage from './pages/RecipeDetailPage';
 
 export default function App() {
-  return <IngredientSearch />
+  return <RecipeDetailPage />
 }
