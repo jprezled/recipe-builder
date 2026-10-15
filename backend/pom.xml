@@ -32,6 +32,20 @@
             <artifactId>spring-boot-starter-web</artifactId>
         </dependency>
 
+        <!-- Caching, so a repeated search is served from memory instead of
+             spending one of our 150 daily Spoonacular points. -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-cache</artifactId>
+        </dependency>
+
+        <!-- Caffeine is the cache itself. Spring's built-in cache has no expiry
+             and no size cap, so it cannot meet RB-74's requirements. -->
+        <dependency>
+            <groupId>com.github.ben-manes.caffeine</groupId>
+            <artifactId>caffeine</artifactId>
+        </dependency>
+
         <!-- JUnit 5, AssertJ, Mockito and MockRestServiceServer.
              Test scope = never shipped in the application. -->
         <dependency>
