@@ -3,6 +3,7 @@ package com.recipebuilder.service;
 import com.recipebuilder.client.SpoonacularClient;
 import com.recipebuilder.client.dto.SpoonacularSearchResult;
 import com.recipebuilder.dto.RecipeSummaryDto;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -30,9 +31,22 @@ public class RecipeService {
     /**
      * Finds recipes using one ingredient.
      *
+     * The result is cached for an hour, so searching the same thing twice costs
+     * one Spoonacular point rather than two. 150 points a day is shared across
+     * the whole team.
+     *
+     * The key is trimmed and lowercased, so "Tomato", "tomato" and " tomato "
+     * are one entry rather than three. Without that the cache would miss
+     * constantly and the quota would still drain.
+     *
+     * Note: @Cacheable works through a Spring proxy, so this only takes effect
+     * when the method is called from OUTSIDE the class. A call from another
+     * method in RecipeService would bypass it.
+     *
      * @param ingredient what the user typed, e.g. "apple"
      * @return recipes in our shape, or an empty list if nothing matched
      */
+    @Cacheable(cacheNames = "recipeSearches", key = "#ingredient.trim().toLowerCase()")
     public List<RecipeSummaryDto> searchByIngredient(String ingredient) {
 
         // STEP 1: ask Spoonacular. What comes back is in THEIR shape.
