@@ -3,6 +3,7 @@ package com.recipebuilder.service;
 import com.recipebuilder.client.SpoonacularClient;
 import com.recipebuilder.client.dto.SpoonacularSearchResult;
 import com.recipebuilder.dto.RecipeSummaryDto;
+import com.recipebuilder.exception.InvalidInputException;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
@@ -48,6 +49,13 @@ public class RecipeService {
      */
     @Cacheable(cacheNames = "recipeSearches", key = "#ingredient.trim().toLowerCase()")
     public List<RecipeSummaryDto> searchByIngredient(String ingredient) {
+
+        // STEP 0: refuse an empty search before spending one of our 150 daily
+        // points on it. Checked here rather than in the browser, because the
+        // rule has to hold for anything calling our API, not just our screen.
+        if (ingredient == null || ingredient.isBlank()) {
+            throw new InvalidInputException("Please enter at least one ingredient.");
+        }
 
         // STEP 1: ask Spoonacular. What comes back is in THEIR shape.
         List<SpoonacularSearchResult> theirResults =

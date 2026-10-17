@@ -1,9 +1,14 @@
 package com.recipebuilder.client;
 
 import com.recipebuilder.client.dto.SpoonacularSearchResult;
+import com.recipebuilder.exception.ApiKeyMissingException;
+import com.recipebuilder.exception.ApiLimitReachedException;
+import com.recipebuilder.exception.ExternalApiException;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.stereotype.Component;
+import org.springframework.web.client.HttpStatusCodeException;
+import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 
 import java.util.Arrays;
@@ -45,6 +50,13 @@ public class SpoonacularClient {
      */
     public List<SpoonacularSearchResult> searchByIngredients(String ingredients, int number) {
 
+        // STEP 0: refuse to call Spoonacular without a key. Sending an empty one
+        // comes back as a confusing 401 rather than telling us what is wrong.
+        if (apiKey == null || apiKey.isBlank()) {
+            throw new ApiKeyMissingException(
+                    "SPOONACULAR_API_KEY is not set. Add it to the .env file at the repo root.");
+        }
+
         // STEP 1: build the web address we are going to call.
         //
         // The {words} in braces are placeholders, filled in at step 2. We do not
@@ -64,12 +76,21 @@ public class SpoonacularClient {
         //
         // We ask for an array - that is the [] in the type - because Spoonacular
         // replies with a JSON list of recipes.
-        SpoonacularSearchResult[] recipes = restTemplate.getForObject(
-                url,
-                SpoonacularSearchResult[].class,
-                ingredients,
-                number,
-                apiKey);
+        SpoonacularSearchResult[] recipes;
+        try {
+            recipes = restTemplate.getForObject(
+                    url,
+                    SpoonacularSearchResult[].class,
+                    ingredients,
+                    number,
+                    apiKey);
+        } catch (HttpStatusCodeException failure) {
+            // Spoonacular answered, but with an error status.
+            throw translate(failure.getStatusCode().value(), failure);
+        } catch (RestClientException failure) {
+            // No answer at all: no network, DNS failed, or a timeout.
+            throw new ExternalApiException("Could not reach Spoonacular.", failure);
+        }
 
         // STEP 3: hand back a List instead of an array.
         //
@@ -79,5 +100,24 @@ public class SpoonacularClient {
             return List.of();
         }
         return Arrays.asList(recipes);
+    }
+
+    /**
+     * Turns Spoonacular's HTTP status into one of our own errors, so nothing
+     * above this class has to know what status codes they use.
+     *
+     * Plain if/else on purpose - one branch per status, so adding a case later
+     * means three obvious lines.
+     */
+    private RuntimeException translate(int status, Exception cause) {
+        if (status == 402) {
+            // 402 Payment Required is how Spoonacular reports a spent quota.
+            return new ApiLimitReachedException();
+        }
+        if (status == 401 || status == 403) {
+            return new ApiKeyMissingException(
+                    "Spoonacular rejected our API key. Check SPOONACULAR_API_KEY in .env.");
+        }
+        return new ExternalApiException("Spoonacular returned HTTP " + status + ".", cause);
     }
 }

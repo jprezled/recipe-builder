@@ -3,6 +3,7 @@ package com.recipebuilder.service;
 import com.recipebuilder.client.SpoonacularClient;
 import com.recipebuilder.client.dto.SpoonacularSearchResult;
 import com.recipebuilder.dto.RecipeSummaryDto;
+import com.recipebuilder.exception.InvalidInputException;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -15,7 +16,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 /**
@@ -79,5 +82,24 @@ class RecipeServiceTest {
         when(client.searchByIngredients(anyString(), anyInt())).thenReturn(List.of());
 
         assertThat(service.searchByIngredient("unobtanium")).isNotNull().isEmpty();
+    }
+
+    // ---- RB-85: refuse input we cannot search with -----------------------
+
+    @Test
+    void blankIngredientIsRejectedWithoutSpendingAPoint() {
+        assertThatExceptionOfType(InvalidInputException.class)
+                .isThrownBy(() -> service.searchByIngredient("   "));
+
+        // The point of the test: no quota is spent on a meaningless search.
+        verifyNoInteractions(client);
+    }
+
+    @Test
+    void emptyIngredientIsRejectedWithoutSpendingAPoint() {
+        assertThatExceptionOfType(InvalidInputException.class)
+                .isThrownBy(() -> service.searchByIngredient(""));
+
+        verifyNoInteractions(client);
     }
 }
