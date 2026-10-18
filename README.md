@@ -66,7 +66,11 @@ npm install
 npm run dev
 ```
 
-`npm install` is only needed the first time.
+Run `npm install` the first time, and again whenever a `git pull` changes
+`package.json`. The file only lists which libraries the project needs — the
+libraries themselves are not in git, so `npm install` is how a new one actually
+reaches your machine. If nothing is missing it finishes in a second and changes
+nothing, so running it after a pull is never wrong.
 
 ### 4. Open the app
 
@@ -127,7 +131,11 @@ npm install
 npm run dev
 ```
 
-`npm install` is only needed the first time.
+Run `npm install` the first time, and again whenever a `git pull` changes
+`package.json`. The file only lists which libraries the project needs — the
+libraries themselves are not in git, so `npm install` is how a new one actually
+reaches your machine. If nothing is missing it finishes in a second and changes
+nothing, so running it after a pull is never wrong.
 
 ### 4. Open the app
 
