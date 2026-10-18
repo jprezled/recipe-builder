@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <!-- Spring Boot's parent POM pins compatible versions of every library below,
+         so individual dependencies carry no <version> tag of their own. -->
+    <parent>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-parent</artifactId>
+        <version>3.5.16</version>
+        <relativePath/>
+    </parent>
+
+    <groupId>com.recipebuilder</groupId>
+    <artifactId>recipe-builder</artifactId>
+    <version>0.0.1-SNAPSHOT</version>
+    <name>recipe-builder</name>
+    <description>Find recipes from the ingredients you already have</description>
+
+    <properties>
+        <!-- Target 17 so the build works on any JDK 17 or newer, whatever each
+             teammate has installed. -->
+        <java.version>17</java.version>
+    </properties>
+
+    <dependencies>
+        <!-- Spring MVC plus an embedded Tomcat, and RestClient for outbound calls. -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+        </dependency>
+
+        <!-- Caching, so a repeated search is served from memory instead of
+             spending one of our 150 daily Spoonacular points. -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-cache</artifactId>
+        </dependency>
+
+        <!-- Caffeine is the cache itself. Spring's built-in cache has no expiry
+             and no size cap, so it cannot meet RB-74's requirements. -->
+        <dependency>
+            <groupId>com.github.ben-manes.caffeine</groupId>
+            <artifactId>caffeine</artifactId>
+        </dependency>
+
+        <!-- Plain JDBC for Postgres. Deliberately NOT spring-boot-starter-data-jpa:
+             the SQL in database/migrations owns the schema, and with no JPA
+             nothing in the app is even capable of generating or dropping a
+             table. See docs/superpowers/specs for the full reasoning. -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-jdbc</artifactId>
+        </dependency>
+
+        <!-- The Postgres driver itself. Runtime scope: our code never imports
+             it, Spring loads it by name from the datasource URL. -->
+        <dependency>
+            <groupId>org.postgresql</groupId>
+            <artifactId>postgresql</artifactId>
+            <scope>runtime</scope>
+        </dependency>
+
+        <!-- JUnit 5, AssertJ, Mockito and MockRestServiceServer.
+             Test scope = never shipped in the application. -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+            </plugin>
+        </plugins>
+    </build>
+</project>
