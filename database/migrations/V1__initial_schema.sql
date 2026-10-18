@@ -1,4 +1,3 @@
-$sql = @"
 DROP TABLE IF EXISTS saved_recipes CASCADE;
 DROP TABLE IF EXISTS recipe_ingredients CASCADE;
 DROP TABLE IF EXISTS recipes CASCADE;
@@ -47,6 +46,3 @@ CREATE TABLE saved_recipes (
 CREATE INDEX idx_recipe_ingredients_ingredient ON recipe_ingredients(ingredient_id);
 CREATE INDEX idx_saved_recipes_user ON saved_recipes(user_id);
 CREATE INDEX idx_recipes_spoonacular ON recipes(spoonacular_id);
-"@
-
-$env:PGPASSWORD="postgres"; $sql | & "C:\Program Files\PostgreSQL\18\bin\psql.exe" -U postgres -d recipe_builder_db
