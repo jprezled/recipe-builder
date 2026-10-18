@@ -1,29 +1,44 @@
-import { describe, expect, it, vi } from 'vitest'
+import { describe, expect, it } from 'vitest'
 import { render, screen } from '@testing-library/react'
+import { BrowserRouter } from 'react-router-dom'
 import App from './App'
 
-vi.mock('./api/recipes')
-
 /**
- * What the app actually puts on screen.
+ * The route table, wired the way main.jsx wires it.
  *
- * Nothing tested this before, which is how the app spent a whole sprint
- * rendering a hardcoded mockup while 14 tests stayed green. A test here is the
- * only thing that notices when App.jsx is pointed at a static page.
+ * Nothing tested App.jsx before, which is how this app spent a sprint showing
+ * one hardcoded page while every other test stayed green. These tests are what
+ * notice if a page stops being reachable.
+ *
+ * BrowserRouter on purpose rather than MemoryRouter: that is what main.jsx
+ * uses, and a mistake there produces a blank browser page that MemoryRouter
+ * tests would never see.
  */
-describe('App', () => {
-  it('puts a working search box on screen', () => {
-    render(<App />)
+function renderAt(path) {
+  window.history.pushState({}, '', path)
+  return render(<BrowserRouter><App /></BrowserRouter>)
+}
 
-    expect(screen.getByLabelText('Ingredient')).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Search' })).toBeInTheDocument()
+describe('App routes', () => {
+  it('shows the home page at /', () => {
+    renderAt('/')
+
+    expect(screen.getByRole('heading', { name: 'Recipe Builder' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Add' })).toBeInTheDocument()
   })
 
-  it('does not render a hardcoded mockup', () => {
-    // The two static pages that used to be wired here.
-    render(<App />)
+  it('shows the results page at /results', () => {
+    renderAt('/results')
+    expect(screen.getByRole('heading', { name: 'Your Recipes' })).toBeInTheDocument()
+  })
 
-    expect(screen.queryByText(/Swiss Bircher Muesli/)).not.toBeInTheDocument()
-    expect(screen.queryByText(/No favorites yet/)).not.toBeInTheDocument()
+  it('shows the favorites page at /favorites', () => {
+    renderAt('/favorites')
+    expect(screen.getByRole('heading', { name: 'Your Favorites' })).toBeInTheDocument()
+  })
+
+  it('shows the detail page at /recipe/:id', () => {
+    renderAt('/recipe/716429')
+    expect(screen.getByRole('button', { name: 'Back to Recipes' })).toBeInTheDocument()
   })
 })
