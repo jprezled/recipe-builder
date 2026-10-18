@@ -57,26 +57,38 @@ class RecipeServiceCacheTest {
 
     @Test
     void searchingTheSameIngredientTwiceOnlyCallsSpoonacularOnce() {
-        service.searchByIngredient("tomato");
-        service.searchByIngredient("tomato");
+        service.searchByIngredients("tomato");
+        service.searchByIngredients("tomato");
 
         verify(client, times(1)).searchByIngredients(anyString(), anyInt());
     }
 
     @Test
     void theSecondSearchStillReturnsTheResults() {
-        List<?> first = service.searchByIngredient("tomato");
-        List<?> second = service.searchByIngredient("tomato");
+        List<?> first = service.searchByIngredients("tomato");
+        List<?> second = service.searchByIngredients("tomato");
 
         assertThat(second).hasSize(1).isEqualTo(first);
     }
 
     @Test
     void differentIngredientsAreCachedSeparately() {
-        service.searchByIngredient("tomato");
-        service.searchByIngredient("apple");
+        service.searchByIngredients("tomato");
+        service.searchByIngredients("apple");
 
         verify(client, times(2)).searchByIngredients(anyString(), anyInt());
+    }
+
+    @Test
+    void ingredientOrderDoesNotCreateASecondCacheEntry() {
+        // The sprint 2 version of the test below. "eggs,milk" and "milk,eggs"
+        // are the same search, and charging two of our 150 daily points for it
+        // would pass the letter of RB-74 while defeating its purpose.
+        service.searchByIngredients("eggs,milk");
+        service.searchByIngredients("milk,eggs");
+        service.searchByIngredients(" MILK , eggs ");
+
+        verify(client, times(1)).searchByIngredients(anyString(), anyInt());
     }
 
     @Test
@@ -84,9 +96,9 @@ class RecipeServiceCacheTest {
         // Without normalising the key these would be three separate entries and
         // three API points, which passes the letter of the story and fails its
         // point.
-        service.searchByIngredient("tomato");
-        service.searchByIngredient("Tomato");
-        service.searchByIngredient("  tomato  ");
+        service.searchByIngredients("tomato");
+        service.searchByIngredients("Tomato");
+        service.searchByIngredients("  tomato  ");
 
         verify(client, times(1)).searchByIngredients(anyString(), anyInt());
     }

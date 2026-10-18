@@ -36,11 +36,11 @@ class RecipeControllerTest {
 
     @Test
     void returnsOurRecipesAsJson() throws Exception {
-        when(service.searchByIngredient(anyString())).thenReturn(List.of(
+        when(service.searchByIngredients(anyString())).thenReturn(List.of(
                 new RecipeSummaryDto(716433L, "Easiest Breakfast Ever: Sunny Fruit Parfait",
                         "https://img.spoonacular.com/recipes/716433-312x231.jpg", 1, 3)));
 
-        mockMvc.perform(get("/api/recipes/search").param("ingredient", "apple"))
+        mockMvc.perform(get("/api/recipes/search").param("ingredients", "apple"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].id").value(716433))
                 .andExpect(jsonPath("$[0].title").value("Easiest Breakfast Ever: Sunny Fruit Parfait"))
@@ -51,19 +51,19 @@ class RecipeControllerTest {
 
     @Test
     void passesTheIngredientFromTheQueryStringToTheService() throws Exception {
-        when(service.searchByIngredient(anyString())).thenReturn(List.of());
+        when(service.searchByIngredients(anyString())).thenReturn(List.of());
 
-        mockMvc.perform(get("/api/recipes/search").param("ingredient", "tomato"))
+        mockMvc.perform(get("/api/recipes/search").param("ingredients", "tomato"))
                 .andExpect(status().isOk());
 
-        verify(service).searchByIngredient(eq("tomato"));
+        verify(service).searchByIngredients(eq("tomato"));
     }
 
     @Test
     void noMatchesReturnsAnEmptyJsonArray() throws Exception {
-        when(service.searchByIngredient(anyString())).thenReturn(List.of());
+        when(service.searchByIngredients(anyString())).thenReturn(List.of());
 
-        mockMvc.perform(get("/api/recipes/search").param("ingredient", "unobtanium"))
+        mockMvc.perform(get("/api/recipes/search").param("ingredients", "unobtanium"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(0));
     }

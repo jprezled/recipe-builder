@@ -55,7 +55,7 @@ class RecipeServiceTest {
         when(client.searchByIngredients(anyString(), anyInt()))
                 .thenReturn(List.of(theirResult()));
 
-        List<RecipeSummaryDto> ours = service.searchByIngredient("apple");
+        List<RecipeSummaryDto> ours = service.searchByIngredients("apple");
 
         assertThat(ours).hasSize(1);
         RecipeSummaryDto recipe = ours.get(0);
@@ -72,7 +72,7 @@ class RecipeServiceTest {
     void weAskSpoonacularForTheIngredientTheUserTyped() {
         when(client.searchByIngredients(anyString(), anyInt())).thenReturn(List.of());
 
-        service.searchByIngredient("apple");
+        service.searchByIngredients("apple");
 
         verify(client).searchByIngredients(eq("apple"), anyInt());
     }
@@ -81,7 +81,7 @@ class RecipeServiceTest {
     void noMatchesGivesAnEmptyListNotNull() {
         when(client.searchByIngredients(anyString(), anyInt())).thenReturn(List.of());
 
-        assertThat(service.searchByIngredient("unobtanium")).isNotNull().isEmpty();
+        assertThat(service.searchByIngredients("unobtanium")).isNotNull().isEmpty();
     }
 
     // ---- RB-85: refuse input we cannot search with -----------------------
@@ -89,7 +89,7 @@ class RecipeServiceTest {
     @Test
     void blankIngredientIsRejectedWithoutSpendingAPoint() {
         assertThatExceptionOfType(InvalidInputException.class)
-                .isThrownBy(() -> service.searchByIngredient("   "));
+                .isThrownBy(() -> service.searchByIngredients("   "));
 
         // The point of the test: no quota is spent on a meaningless search.
         verifyNoInteractions(client);
@@ -98,7 +98,7 @@ class RecipeServiceTest {
     @Test
     void emptyIngredientIsRejectedWithoutSpendingAPoint() {
         assertThatExceptionOfType(InvalidInputException.class)
-                .isThrownBy(() -> service.searchByIngredient(""));
+                .isThrownBy(() -> service.searchByIngredients(""));
 
         verifyNoInteractions(client);
     }

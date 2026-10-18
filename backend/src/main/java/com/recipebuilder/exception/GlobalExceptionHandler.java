@@ -25,7 +25,7 @@ public class GlobalExceptionHandler {
         return build(HttpStatus.BAD_REQUEST, failure.getMessage());
     }
 
-    /** ?ingredient= was left off the address entirely. */
+    /** ?ingredients= was left off the address entirely. */
     @ExceptionHandler(MissingServletRequestParameterException.class)
     public ResponseEntity<ApiErrorResponse> onMissingParameter(
             MissingServletRequestParameterException failure) {
