@@ -265,3 +265,54 @@ a.button {
   cursor: wait;
   opacity: 0.5;
 }
+
+
+/* Change margin, padding, border, and background to style the box around the
+   embedded Results page. */
+.home-results-box {
+  margin-top: 2rem;
+  padding: 1.25rem;
+  border: 1px solid #d7d7d7;
+  border-radius: 0.75rem;
+  background: #fff;
+}
+
+/* Remove standalone page spacing when ResultsPage is inside Home's box. */
+.results-page-embedded {
+  margin: 0;
+  padding: 0;
+}
+
+/* Align the Results heading on the left and the Expand button on the right. */
+.results-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+/* Set the embedded recipe cards to two columns. Change the 2 to 3, for
+   example, if you want three columns on wider screens. */
+.recipe-grid-embedded {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+/* On narrow screens, use one column so cards have enough room to read. */
+@media (max-width: 600px) {
+  .recipe-grid-embedded {
+    grid-template-columns: 1fr;
+  }
+
+  .home-results-box {
+    padding: 0.75rem;
+  }
+
+  .results-heading {
+    align-items: flex-start;
+  }
+}
+
+
+

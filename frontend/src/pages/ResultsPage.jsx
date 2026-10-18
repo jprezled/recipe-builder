@@ -4,109 +4,187 @@ import { getFavorites, searchRecipes } from '../api/recipes'
 import RecipeCard from '../components/RecipeCard'
 
 /**
- * The recipes you can make, read from the address bar.
+ * Displays recipes for the ingredients supplied to the page.
  *
- * Andrew's page - his heading, his tagline, his grid, his Back button - with
- * the three hardcoded cards replaced by whatever the search returned.
+ * This component has two uses:
+ * - On its own at /results, it reads ingredients from the address bar.
+ * - Inside HomePage, it receives ingredients as props and renders in a box.
  *
- * His RecipeCard keeps the prop names he gave it (title, description,
- * imageUrl) rather than being changed to take a recipe object. That matters:
- * his FavoritesPage passes those same props, so changing the signature here
- * would break his page for no gain.
- *
- * The ingredients come from the address rather than from state handed over by
- * the home page, which is what lets this page be refreshed, bookmarked or
- * shared and still work.
+ * Both uses share the same search, favorite buttons, and recipe cards. This
+ * avoids having one version of results for Home and another for /results.
  */
-export default function ResultsPage() {
+export default function ResultsPage({
+  embedded = false,
+  ingredients: suppliedIngredients,
+  resultsUrl,
+}) {
+  // The standalone page gets its ingredients from the query string.
+  // When this component is inside HomePage, Home passes the ingredients
+  // directly as a prop instead.
   const [searchParams] = useSearchParams()
-  const ingredients = searchParams.get('ingredients') || ''
+  const ingredients =
+    suppliedIngredients ?? searchParams.get('ingredients') ?? ''
 
+  // Store the recipes and favorite IDs separately. Recipes supply the card
+  // content; favorite IDs tell each card whether its star should be selected.
   const [recipes, setRecipes] = useState([])
   const [favoriteIds, setFavoriteIds] = useState([])
+
+  // Keep errors separate from results so a failed request is not mistaken for
+  // a successful search that simply found no recipes.
   const [errorMessage, setErrorMessage] = useState('')
+
+  // Start in the loading state so the page can display "Searching..." while
+  // its first request is running.
   const [isSearching, setIsSearching] = useState(true)
 
+  // Search again when the ingredient list changes. This happens if the
+  // standalone page's query string changes, or if Home passes a new list.
   useEffect(() => {
-    // If this page is left while the request is still in flight, React would
-    // warn about setting state on something no longer on screen. This flag is
-    // how a reply that arrives too late gets ignored.
+    // This flag prevents an older request from changing the screen after the
+    // component has been removed or has started a search for different inputs.
     let stillOnThisPage = true
 
-    async function load() {
+    async function loadResults() {
+      // Clear old results and errors before starting a new search. This avoids
+      // briefly showing recipes from the previous ingredient list.
       setIsSearching(true)
       setErrorMessage('')
+      setRecipes([])
+      setFavoriteIds([])
+
+      // An empty list should not be sent to the recipe service.
+      if (!ingredients.trim()) {
+        setIsSearching(false)
+        return
+      }
 
       try {
-        // Two requests, not one per card. They do not depend on each other, so
-        // they go out together: the search (which may cost a Spoonacular point,
-        // or nothing if the backend has it cached) and the saved list (Postgres
-        // only, always free).
-        const [found, saved] = await Promise.all([
+        // Recipe search and favorite lookup are independent, so run them at
+        // the same time. A favorites-service failure should not prevent the
+        // recipe search from succeeding.
+        const [foundRecipes, savedFavorites] = await Promise.all([
           searchRecipes(ingredients),
-          // A database problem must not hide the recipes. If the saved list
-          // cannot be read, every star simply starts empty and search works.
           getFavorites().catch(() => []),
         ])
 
+        // Ignore results if this component has since unmounted or started a
+        // newer search.
         if (stillOnThisPage) {
-          setRecipes(found)
-          setFavoriteIds(saved.map((one) => one.id))
+          setRecipes(foundRecipes)
+          setFavoriteIds(savedFavorites.map((favorite) => favorite.id))
         }
       } catch (failure) {
+        // A recipe-search error is shown to the user. Favorite lookup errors
+        // are handled above and instead leave the stars unselected.
         if (stillOnThisPage) {
-          // The message came from our own backend, or from src/api/recipes.js
-          // when it could not be reached. Either way it is written for a
-          // person, so it is shown unchanged - see docs/error-shape.md.
-          setErrorMessage(failure.message)
-          setRecipes([])
+          setErrorMessage(
+            failure.message || 'Could not load recipes. Please try again.',
+          )
         }
       } finally {
+        // Stop the loading message once both requests have settled.
         if (stillOnThisPage) {
           setIsSearching(false)
         }
       }
     }
 
-    load()
+    loadResults()
 
-    return () => { stillOnThisPage = false }
+    // Mark this request as outdated if the component unmounts or ingredients
+    // change before it finishes.
+    return () => {
+      stillOnThisPage = false
+    }
   }, [ingredients])
 
-  /** Keeps the stars in step as they are tapped. */
+  /**
+   * Keep the star state in sync after a favorite button is clicked.
+   *
+   * FavoriteButton handles saving or removing the favorite through the API.
+   * This callback updates the IDs used to display the stars on this page.
+   */
   function handleFavoriteChange(id, isNowFavorite) {
-    setFavoriteIds((current) => {
+    setFavoriteIds((currentIds) => {
       if (isNowFavorite) {
-        return current.includes(id) ? current : current.concat(id)
+        // Avoid adding the same ID twice if the callback is repeated.
+        return currentIds.includes(id) ? currentIds : [...currentIds, id]
       }
-      return current.filter((one) => one !== id)
+
+      // Remove this recipe's ID after it is unfavorited.
+      return currentIds.filter((favoriteId) => favoriteId !== id)
     })
   }
 
-  const foundNothing = !isSearching && !errorMessage && recipes.length === 0
+  // Show the empty-results message only after a successful search has finished.
+  const foundNothing =
+    !isSearching && !errorMessage && recipes.length === 0
+
+  // Use a section when embedded inside Home's main landmark. Use main when
+  // this component is the full, standalone Results page.
+  const PageWrapper = embedded ? 'section' : 'main'
+
+  // Home passes the URL to use for Expand. The fallback also supports using
+  // this component in another embedded location later.
+  const expandUrl =
+    resultsUrl ||
+    '/results?ingredients=' + encodeURIComponent(ingredients)
 
   return (
-    <main className="results-page">
-      <h1>Your Recipes</h1>
-      <p className="tagline">Here is what you can make with the ingredients you have added.</p>
+    <PageWrapper
+      className={
+        embedded
+          ? 'results-page results-page-embedded'
+          : 'results-page'
+      }
+    >
+      <div className="results-heading">
+        <div>
+          <h1>Your Recipes</h1>
+          <p className="tagline">
+            Here is what you can make with the ingredients you have added.
+          </p>
+        </div>
 
+        {/* Expand is only needed in the embedded version. It opens the same
+            results as a dedicated page, using the current ingredient list. */}
+        {embedded && (
+          <Link className="button button-secondary" to={expandUrl}>
+            Expand
+          </Link>
+        )}
+      </div>
+
+      {/* Keep the user informed while the recipe search is running. */}
       {isSearching && <p>Searching...</p>}
 
-      {/* role="alert" so screen readers announce it, and so the test can find
-          it without depending on the wording. */}
+      {/* role="alert" helps assistive technology announce an error promptly. */}
       {errorMessage && <p role="alert">{errorMessage}</p>}
 
+      {/* Only show this after a successful search has completed with no hits. */}
       {foundNothing && <p>No recipes found for those ingredients.</p>}
 
-      <div className="recipe-grid">
+      {/* Each recipe becomes one card. The ID is its stable React key and is
+          also used to determine whether its favorite star is selected. */}
+      <div
+        className={
+          embedded
+            ? 'recipe-grid recipe-grid-embedded'
+            : 'recipe-grid'
+        }
+      >
         {recipes.map((recipe) => (
           <RecipeCard
             key={recipe.id}
             id={recipe.id}
             title={recipe.title}
             description={
-              'Uses ' + recipe.ingredientsYouHave + ' of yours, needs '
-              + recipe.ingredientsYouNeed + ' more.'
+              'Uses ' +
+              recipe.ingredientsYouHave +
+              ' of yours, needs ' +
+              recipe.ingredientsYouNeed +
+              ' more.'
             }
             imageUrl={recipe.imageUrl}
             isFavorite={favoriteIds.includes(recipe.id)}
@@ -115,17 +193,18 @@ export default function ResultsPage() {
         ))}
       </div>
 
-      <div className="button-group">
-        {/* Carries the ingredients back, so the pantry list is still there
-            rather than being retyped. They are already in this page's own
-            address, so there is nothing extra to remember. */}
-        <Link
-          className="button button-secondary"
-          to={'/?ingredients=' + encodeURIComponent(ingredients)}
-        >
-          Back to Ingredients
-        </Link>
-      </div>
-    </main>
+      {/* The embedded version has Expand instead of a Back button. The
+          standalone Results page keeps the existing route back to Home. */}
+      {!embedded && (
+        <div className="button-group">
+          <Link
+            className="button button-secondary"
+            to={'/?ingredients=' + encodeURIComponent(ingredients)}
+          >
+            Back to Ingredients
+          </Link>
+        </div>
+      )}
+    </PageWrapper>
   )
 }
