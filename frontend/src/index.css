@@ -223,3 +223,27 @@ input[type="text"] {
   font-weight: bold;
   color: var(--color-heading);
 }
+/* ---------------------------------------------------------------------------
+   Sprint 2 additions. THE FRONTEND TEAM OWNS THESE - they are deliberately
+   plain, just enough that the wired pages are usable. None of Andrew's rules
+   above were changed or removed.
+   --------------------------------------------------------------------------- */
+
+/* Some of his buttons became links, because they navigate rather than act
+   (View Favorites). A link carrying .button has to be told not to underline
+   itself - his rule never needed to say so when they were all <button>. */
+a.button {
+  text-decoration: none;
+  display: inline-block;
+}
+
+/* The small x that takes an ingredient back off the list. */
+.remove-ingredient {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #a33;
+  font-size: 1rem;
+  line-height: 1;
+  padding: 0 0.25rem;
+}
