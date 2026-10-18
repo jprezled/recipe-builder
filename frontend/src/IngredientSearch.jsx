@@ -52,7 +52,7 @@ export default function IngredientSearch() {
           id="ingredient"
           value={ingredient}
           onChange={(event) => setIngredient(event.target.value)}
-          placeholder="apple"
+          placeholder="chicken, garlic, pasta"
         />{' '}
         <button type="submit" disabled={isSearching}>
           {isSearching ? 'Searching...' : 'Search'}

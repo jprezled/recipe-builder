@@ -30,36 +30,43 @@ public class RecipeService {
     }
 
     /**
-     * Finds recipes using one ingredient.
+     * Finds recipes using one or more ingredients.
      *
      * The result is cached for an hour, so searching the same thing twice costs
      * one Spoonacular point rather than two. 150 points a day is shared across
      * the whole team.
      *
-     * The key is trimmed and lowercased, so "Tomato", "tomato" and " tomato "
-     * are one entry rather than three. Without that the cache would miss
-     * constantly and the quota would still drain.
+     * The cache key comes from IngredientsCacheKeyGenerator, which cleans and
+     * SORTS the list first - so "eggs,milk" and "milk,eggs" are one entry
+     * rather than two. See IngredientList.normalise for why that matters.
      *
      * Note: @Cacheable works through a Spring proxy, so this only takes effect
      * when the method is called from OUTSIDE the class. A call from another
      * method in RecipeService would bypass it.
      *
-     * @param ingredient what the user typed, e.g. "apple"
+     * @param ingredients what the user typed, e.g. "eggs, milk, flour"
      * @return recipes in our shape, or an empty list if nothing matched
      */
-    @Cacheable(cacheNames = "recipeSearches", key = "#ingredient.trim().toLowerCase()")
-    public List<RecipeSummaryDto> searchByIngredient(String ingredient) {
+    @Cacheable(cacheNames = "recipeSearches", keyGenerator = "ingredientsCacheKey")
+    public List<RecipeSummaryDto> searchByIngredients(String ingredients) {
 
-        // STEP 0: refuse an empty search before spending one of our 150 daily
-        // points on it. Checked here rather than in the browser, because the
-        // rule has to hold for anything calling our API, not just our screen.
-        if (ingredient == null || ingredient.isBlank()) {
+        // STEP 0: clean the text up before doing anything with it, and refuse
+        // an empty search before spending one of our 150 daily points on it.
+        //
+        // Checked here rather than in the browser, because the rule has to hold
+        // for anything calling our API, not just our own screen.
+        String cleaned = IngredientList.normalise(ingredients);
+
+        if (cleaned.isEmpty()) {
             throw new InvalidInputException("Please enter at least one ingredient.");
         }
 
         // STEP 1: ask Spoonacular. What comes back is in THEIR shape.
+        //
+        // We send the cleaned list, not the raw text, so the thing we searched
+        // for is exactly the thing the cache key was built from.
         List<SpoonacularSearchResult> theirResults =
-                client.searchByIngredients(ingredient, HOW_MANY_RECIPES);
+                client.searchByIngredients(cleaned, HOW_MANY_RECIPES);
 
         // STEP 2: copy each one into OUR shape, one at a time.
         //

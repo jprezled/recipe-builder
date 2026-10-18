@@ -25,7 +25,7 @@ public class GlobalExceptionHandler {
         return build(HttpStatus.BAD_REQUEST, failure.getMessage());
     }
 
-    /** ?ingredient= was left off the address entirely. */
+    /** ?ingredients= was left off the address entirely. */
     @ExceptionHandler(MissingServletRequestParameterException.class)
     public ResponseEntity<ApiErrorResponse> onMissingParameter(
             MissingServletRequestParameterException failure) {
@@ -53,6 +53,30 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ApiErrorResponse> onExternalFailure(ExternalApiException failure) {
         return build(HttpStatus.BAD_GATEWAY,
                 "Recipe search is unavailable right now. Please try again shortly.");
+    }
+
+    /**
+     * The database is not reachable, or refused what we asked of it.
+     *
+     * 503 rather than 500: nothing is wrong with the request, the thing we
+     * depend on is simply not there right now.
+     */
+    @ExceptionHandler(DatabaseUnavailableException.class)
+    public ResponseEntity<ApiErrorResponse> onDatabaseDown(DatabaseUnavailableException failure) {
+        return build(HttpStatus.SERVICE_UNAVAILABLE,
+                "Could not save your favorite right now. Please try again shortly.");
+    }
+
+    /**
+     * Favorites have nothing to hang off because the demo user row is missing.
+     *
+     * The message names the setup step on purpose. This is what a teammate hits
+     * after applying V1 and skipping V2, and without this sentence it looks
+     * like the favorites feature is broken.
+     */
+    @ExceptionHandler(DemoUserMissingException.class)
+    public ResponseEntity<ApiErrorResponse> onDemoUserMissing(DemoUserMissingException failure) {
+        return build(HttpStatus.INTERNAL_SERVER_ERROR, failure.getMessage());
     }
 
     private ResponseEntity<ApiErrorResponse> build(HttpStatus status, String message) {

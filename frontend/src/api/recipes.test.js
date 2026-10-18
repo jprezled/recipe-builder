@@ -35,7 +35,7 @@ describe('searchRecipes', () => {
     await searchRecipes('apple')
 
     const url = fetchSpy.mock.calls[0][0]
-    expect(url).toBe('/api/recipes/search?ingredient=apple')
+    expect(url).toBe('/api/recipes/search?ingredients=apple')
     // A full URL would bypass the Vite proxy and trigger CORS.
     expect(url).not.toContain('localhost:8080')
   })
@@ -46,7 +46,7 @@ describe('searchRecipes', () => {
 
     await searchRecipes('green onion')
 
-    expect(fetchSpy.mock.calls[0][0]).toBe('/api/recipes/search?ingredient=green%20onion')
+    expect(fetchSpy.mock.calls[0][0]).toBe('/api/recipes/search?ingredients=green%20onion')
   })
 
   // ---- failure -----------------------------------------------------------

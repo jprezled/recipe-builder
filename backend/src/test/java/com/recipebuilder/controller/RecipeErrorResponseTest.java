@@ -36,17 +36,17 @@ class RecipeErrorResponseTest {
 
     @Test
     void blankIngredientIsABadRequest() throws Exception {
-        when(service.searchByIngredient(anyString()))
+        when(service.searchByIngredients(anyString()))
                 .thenThrow(new InvalidInputException("Please enter at least one ingredient."));
 
-        mockMvc.perform(get("/api/recipes/search").param("ingredient", " "))
+        mockMvc.perform(get("/api/recipes/search").param("ingredients", " "))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.message").value("Please enter at least one ingredient."));
     }
 
     @Test
     void missingIngredientParameterIsAlsoABadRequest() throws Exception {
-        // ?ingredient= left off the address entirely.
+        // ?ingredients= left off the address entirely.
         mockMvc.perform(get("/api/recipes/search"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.message").value("Please enter at least one ingredient."));
@@ -54,9 +54,9 @@ class RecipeErrorResponseTest {
 
     @Test
     void quotaExhaustedIsTooManyRequests() throws Exception {
-        when(service.searchByIngredient(anyString())).thenThrow(new ApiLimitReachedException());
+        when(service.searchByIngredients(anyString())).thenThrow(new ApiLimitReachedException());
 
-        mockMvc.perform(get("/api/recipes/search").param("ingredient", "apple"))
+        mockMvc.perform(get("/api/recipes/search").param("ingredients", "apple"))
                 .andExpect(status().isTooManyRequests())
                 .andExpect(jsonPath("$.message")
                         .value("Daily recipe search limit reached. Please try again tomorrow."));
@@ -64,10 +64,10 @@ class RecipeErrorResponseTest {
 
     @Test
     void aRejectedKeyIsOurProblemNotTheUsers() throws Exception {
-        when(service.searchByIngredient(anyString()))
+        when(service.searchByIngredients(anyString()))
                 .thenThrow(new ApiKeyMissingException("Spoonacular rejected our API key."));
 
-        mockMvc.perform(get("/api/recipes/search").param("ingredient", "apple"))
+        mockMvc.perform(get("/api/recipes/search").param("ingredients", "apple"))
                 .andExpect(status().isInternalServerError())
                 .andExpect(jsonPath("$.message")
                         .value("Recipe search is not configured correctly. Please tell the team."));
@@ -75,10 +75,10 @@ class RecipeErrorResponseTest {
 
     @Test
     void spoonacularBeingUnreachableIsABadGateway() throws Exception {
-        when(service.searchByIngredient(anyString()))
+        when(service.searchByIngredients(anyString()))
                 .thenThrow(new ExternalApiException("Could not reach Spoonacular.", null));
 
-        mockMvc.perform(get("/api/recipes/search").param("ingredient", "apple"))
+        mockMvc.perform(get("/api/recipes/search").param("ingredients", "apple"))
                 .andExpect(status().isBadGateway())
                 .andExpect(jsonPath("$.message")
                         .value("Recipe search is unavailable right now. Please try again shortly."));
@@ -86,9 +86,9 @@ class RecipeErrorResponseTest {
 
     @Test
     void noFailureEverLeaksAStackTraceOrAStatusCode() throws Exception {
-        when(service.searchByIngredient(anyString())).thenThrow(new ApiLimitReachedException());
+        when(service.searchByIngredients(anyString())).thenThrow(new ApiLimitReachedException());
 
-        mockMvc.perform(get("/api/recipes/search").param("ingredient", "apple"))
+        mockMvc.perform(get("/api/recipes/search").param("ingredients", "apple"))
                 .andExpect(content().string(org.hamcrest.Matchers.not(
                         org.hamcrest.Matchers.containsString("Exception"))))
                 .andExpect(content().string(org.hamcrest.Matchers.not(

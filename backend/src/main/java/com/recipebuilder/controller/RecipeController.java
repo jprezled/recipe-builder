@@ -9,9 +9,9 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.List;
 
 /**
- * Our own web address: GET /api/recipes/search?ingredient=apple
+ * Our own web address: GET /api/recipes/search?ingredients=eggs,milk,flour
  *
- * Deliberately thin. It takes the word out of the web request, hands it to the
+ * Deliberately thin. It takes the words out of the web request, hands it to the
  * service, and returns whatever comes back. No rules live here - that is the
  * service's job, and keeping them apart is what lets both be tested on their
  * own.
@@ -30,13 +30,14 @@ public class RecipeController {
     }
 
     /**
-     * Finds recipes using one ingredient.
+     * Finds recipes using one or more ingredients.
      *
-     * @param ingredient the ?ingredient=... part of the address
+     * @param ingredients the ?ingredients=... part of the address, comma
+     *                    separated, e.g. "eggs,milk,flour"
      * @return recipes in our own shape, which Spring serialises to JSON
      */
     @GetMapping("/api/recipes/search")
-    public List<RecipeSummaryDto> search(@RequestParam String ingredient) {
-        return service.searchByIngredient(ingredient);
+    public List<RecipeSummaryDto> search(@RequestParam String ingredients) {
+        return service.searchByIngredients(ingredients);
     }
 }

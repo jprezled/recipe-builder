@@ -119,6 +119,38 @@ Both are worth rehearsing. Stop the backend, search, and read what appears.
 
 ---
 
+## Sprint 2 additions — database failures
+
+Two new cases, both the same `{"message": "..."}` as everything else.
+
+### The database cannot be reached
+
+`503 Service Unavailable`
+
+> Could not save your favorite right now. Please try again shortly.
+
+Raised as `DatabaseUnavailableException` by `FavoriteRepository`, the only class
+that touches Postgres. 503 rather than 500 on purpose: nothing is wrong with the
+request, the thing we depend on is simply not there.
+
+Searching is deliberately unaffected — it needs no database, and
+`ContextStartsWithoutDatabaseTest` is what keeps it that way. A teammate with no
+Postgres running can still search; only favorites fail.
+
+### The demo user row is missing
+
+`500 Internal Server Error`
+
+> The database is missing its setup data. Apply
+> database/migrations/V2__demo_user.sql and try again.
+
+`saved_recipes.user_id` is a foreign key to `users(user_id)`. Until accounts
+ship that row comes from `V2__demo_user.sql`, so this almost always means a
+teammate applied V1 and skipped V2.
+
+The message names the file on purpose. Without it this reads as "favorites are
+broken" when the fix is one `psql` command.
+
 ## Status
 
 - **RB-82** — this document. Done when both sides have read it.

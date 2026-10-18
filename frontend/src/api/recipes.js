@@ -15,13 +15,35 @@ const CANNOT_REACH = 'Could not reach the recipe service. Is the backend running
 const UNKNOWN_PROBLEM = 'Something went wrong loading recipes. Please try again.'
 
 /**
- * Searches for recipes using one ingredient.
+ * Reads the one sentence out of a failed response.
  *
- * @param {string} ingredient what the user typed, e.g. "apple"
+ * Our backend sends every error as {"message": "..."}, so we read that and pass
+ * it straight on. We do not rewrite it, shorten it, or decide anything from the
+ * status code - the sentence is already written for a person.
+ *
+ * @param {Response} response a response whose ok is false
+ * @returns {Promise<string>} the message to show
+ */
+async function readErrorMessage(response) {
+  try {
+    const body = await response.json()
+    if (body && typeof body.message === 'string' && body.message.length > 0) {
+      return body.message
+    }
+  } catch {
+    // The body was not JSON. Fall through to the generic message.
+  }
+  return UNKNOWN_PROBLEM
+}
+
+/**
+ * Searches for recipes using one or more ingredients.
+ *
+ * @param {string} ingredients what the user typed, e.g. "eggs, milk, flour"
  * @returns {Promise<Array>} the recipes, or an empty array if none matched
  * @throws {Error} with a message that can be displayed as-is
  */
-export async function searchRecipes(ingredient) {
+export async function searchRecipes(ingredients) {
   // STEP 1: build a RELATIVE address.
   //
   // Vite forwards /api to the backend on 8080, so the browser only ever talks
@@ -30,7 +52,7 @@ export async function searchRecipes(ingredient) {
   //
   // encodeURIComponent escapes the value - "green onion" has a space, and a
   // space is not legal in a URL.
-  const address = '/api/recipes/search?ingredient=' + encodeURIComponent(ingredient)
+  const address = '/api/recipes/search?ingredients=' + encodeURIComponent(ingredients)
 
   // STEP 2: send the request.
   //
@@ -46,23 +68,99 @@ export async function searchRecipes(ingredient) {
   }
 
   // STEP 3: a reply arrived, but it may be a failure.
-  //
-  // Our backend sends every error as {"message": "..."}, so we read that and
-  // pass it straight on. We do not rewrite it, shorten it, or decide anything
-  // from the status code - the sentence is already written for a person.
   if (!response.ok) {
-    let message = UNKNOWN_PROBLEM
-    try {
-      const body = await response.json()
-      if (body && typeof body.message === 'string' && body.message.length > 0) {
-        message = body.message
-      }
-    } catch {
-      // The body was not JSON. Keep the generic message.
-    }
-    throw new Error(message)
+    throw new Error(await readErrorMessage(response))
   }
 
   // STEP 4: success. Hand back the recipes exactly as the backend sent them.
   return response.json()
+}
+
+/**
+ * Lists the recipes that have been saved as favorites.
+ *
+ * This never reaches Spoonacular - the backend answers it from Postgres alone,
+ * so it costs none of our 150 daily points however often it is called. That is
+ * also why the favorites page proves the database works: it has no other
+ * source the data could be coming from.
+ *
+ * @returns {Promise<Array>} the saved recipes: { id, title, imageUrl }
+ * @throws {Error} with a message that can be displayed as-is
+ */
+export async function getFavorites() {
+  let response
+  try {
+    response = await fetch('/api/favorites')
+  } catch {
+    throw new Error(CANNOT_REACH)
+  }
+
+  if (!response.ok) {
+    throw new Error(await readErrorMessage(response))
+  }
+
+  return response.json()
+}
+
+/**
+ * Saves one recipe as a favorite.
+ *
+ * The recipe's id, title and image are sent, not just the id, and that is
+ * deliberate: if the backend only received an id it would have to ask
+ * Spoonacular for the title - one of our 150 daily points spent per favorite.
+ * We already have it on screen, so saving costs nothing.
+ *
+ * The search-only counts are left out on purpose. "ingredientsYouHave"
+ * describes what the cook typed, not the recipe, so it is meaningless on
+ * something saved last week and the backend has no column for it.
+ *
+ * Saving the same recipe twice is not an error, so a double-tapped button is
+ * harmless.
+ *
+ * @param {{id: number, title: string, imageUrl: string}} recipe from a search
+ * @throws {Error} with a message that can be displayed as-is
+ */
+export async function addFavorite(recipe) {
+  let response
+  try {
+    response = await fetch('/api/favorites', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        id: recipe.id,
+        title: recipe.title,
+        imageUrl: recipe.imageUrl,
+      }),
+    })
+  } catch {
+    throw new Error(CANNOT_REACH)
+  }
+
+  if (!response.ok) {
+    throw new Error(await readErrorMessage(response))
+  }
+}
+
+/**
+ * Removes one recipe from the favorites.
+ *
+ * Removing something that was never saved is not an error, for the same reason
+ * as above: the browser can retry without having to check first.
+ *
+ * @param {number} id Spoonacular's recipe id
+ * @throws {Error} with a message that can be displayed as-is
+ */
+export async function removeFavorite(id) {
+  let response
+  try {
+    response = await fetch('/api/favorites/' + encodeURIComponent(id), {
+      method: 'DELETE',
+    })
+  } catch {
+    throw new Error(CANNOT_REACH)
+  }
+
+  if (!response.ok) {
+    throw new Error(await readErrorMessage(response))
+  }
 }
