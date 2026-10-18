@@ -1,0 +1,66 @@
+package com.recipebuilder.repository;
+
+import com.recipebuilder.model.Recipe;
+import com.recipebuilder.exception.DatabaseUnavailableException;
+import org.springframework.dao.DataAccessException;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.RowMapper;
+import org.springframework.stereotype.Repository;
+
+import java.sql.ResultSet;
+import java.util.List;
+import java.util.Optional;
+
+/**
+ * Repository for managing recipes in Postgres, mirroring the style of FavoriteRepository.
+ */
+@Repository
+public class RecipeRepository {
+
+    private final JdbcTemplate db;
+
+    public RecipeRepository(JdbcTemplate db) {
+        this.db = db;
+    }
+
+    private final RowMapper<Recipe> recipeRowMapper = (ResultSet rs, int rowNum) -> {
+        Recipe recipe = new Recipe();
+        recipe.setId(rs.getLong("recipe_id"));
+        recipe.setName(rs.getString("title")); // Matching team's column naming conventions
+        recipe.setInstructions(rs.getString("instructions"));
+        return recipe;
+    };
+
+    /**
+     * Finds a recipe by its primary key ID.
+     */
+    public Optional<Recipe> findById(long recipeId) {
+        String sql = "SELECT recipe_id, title, instructions FROM recipes WHERE recipe_id = ?";
+        try {
+            List<Recipe> results = db.query(sql, recipeRowMapper, recipeId);
+            return results.stream().findFirst();
+        } catch (DataAccessException failure) {
+            throw asOurs(failure);
+        }
+    }
+
+    /**
+     * Lists all recipes stored in the database.
+     */
+    public List<Recipe> findAll() {
+        String sql = "SELECT recipe_id, title, instructions FROM recipes";
+        try {
+            return db.query(sql, recipeRowMapper);
+        } catch (DataAccessException failure) {
+            throw asOurs(failure);
+        }
+    }
+
+    /**
+     * Translates Spring database exceptions into custom application exceptions,
+     * matching FavoriteRepository's error handling.
+     */
+    private RuntimeException asOurs(DataAccessException failure) {
+        return new DatabaseUnavailableException("Could not reach the database.", failure);
+    }
+}
