@@ -1,5 +1,5 @@
-import RecipeDetailPage from './pages/RecipeDetailPage';
+import FavoritesPage from './pages/FavoritesPage';
 
 export default function App() {
-  return <RecipeDetailPage />
+  return <FavoritesPage />
 }

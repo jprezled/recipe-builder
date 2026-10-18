@@ -157,3 +157,69 @@ input[type="text"] {
 .button-secondary {
   background-color: var(--color-heading);
 }
+
+/* ---------- Recipe Detail Page ---------- */
+.detail-page {
+  max-width: 720px;
+  margin: 2rem auto;
+  padding: 2.5rem 2rem;
+  background-color: var(--color-card);
+  border-radius: 12px;
+}
+
+.detail-page > .button-secondary { 
+  margin-bottom: 1.5rem;
+}
+
+.detail-image { 
+  display: block;
+  width: 100%;
+  max-height: 360px;
+  margin: 1rem 0;
+  object-fit: cover;
+  border-radius: 10px;
+}
+
+.detail-description {
+  margin: 0 0 1rem;
+  font-size: 1.1rem;
+}
+
+.detail-page .button-group { 
+  justify-content: flex-start;
+  margin-top: 1rem;
+}
+
+.detail-section { 
+  margin-top: 1.5rem;
+  padding: 1rem 1.5rem;
+  background-color: white;
+  border-radius: 10px;
+}
+
+.detail-section h2 { 
+  margin-top: 0;
+}
+
+.detail-section li { 
+  margin-bottom: 0.4rem;
+}
+                     /* ---------- Empty state ---------- */
+.empty-state {
+  max-width: 420px;
+  margin: 2rem auto;
+  padding: 2rem;
+  background-color: white;
+  border-radius: 10px;
+}
+
+.empty-state p {
+  margin: 0 0 1.25rem;
+}
+
+.empty-state .empty-title {
+  margin-bottom: 0.5rem;
+  font-size: 1.4rem;
+  font-weight: bold;
+  color: var(--color-heading);
+}
