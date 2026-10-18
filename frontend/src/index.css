@@ -247,3 +247,21 @@ a.button {
   line-height: 1;
   padding: 0 0.25rem;
 }
+
+/* The star on a recipe card. Frontend team's to restyle - see the comment at
+   the top of components/FavoriteButton.jsx for the two attributes that have to
+   survive it. */
+.favorite-button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 1.75rem;
+  line-height: 1;
+  padding: 0 0.25rem;
+  color: #d4a017;
+}
+
+.favorite-button:disabled {
+  cursor: wait;
+  opacity: 0.5;
+}

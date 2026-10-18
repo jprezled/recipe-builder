@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
-import { searchRecipes } from '../api/recipes'
+import { getFavorites, searchRecipes } from '../api/recipes'
 import RecipeCard from '../components/RecipeCard'
 
 /**
@@ -23,6 +23,7 @@ export default function ResultsPage() {
   const ingredients = searchParams.get('ingredients') || ''
 
   const [recipes, setRecipes] = useState([])
+  const [favoriteIds, setFavoriteIds] = useState([])
   const [errorMessage, setErrorMessage] = useState('')
   const [isSearching, setIsSearching] = useState(true)
 
@@ -37,9 +38,20 @@ export default function ResultsPage() {
       setErrorMessage('')
 
       try {
-        const found = await searchRecipes(ingredients)
+        // Two requests, not one per card. They do not depend on each other, so
+        // they go out together: the search (which may cost a Spoonacular point,
+        // or nothing if the backend has it cached) and the saved list (Postgres
+        // only, always free).
+        const [found, saved] = await Promise.all([
+          searchRecipes(ingredients),
+          // A database problem must not hide the recipes. If the saved list
+          // cannot be read, every star simply starts empty and search works.
+          getFavorites().catch(() => []),
+        ])
+
         if (stillOnThisPage) {
           setRecipes(found)
+          setFavoriteIds(saved.map((one) => one.id))
         }
       } catch (failure) {
         if (stillOnThisPage) {
@@ -61,6 +73,16 @@ export default function ResultsPage() {
     return () => { stillOnThisPage = false }
   }, [ingredients])
 
+  /** Keeps the stars in step as they are tapped. */
+  function handleFavoriteChange(id, isNowFavorite) {
+    setFavoriteIds((current) => {
+      if (isNowFavorite) {
+        return current.includes(id) ? current : current.concat(id)
+      }
+      return current.filter((one) => one !== id)
+    })
+  }
+
   const foundNothing = !isSearching && !errorMessage && recipes.length === 0
 
   return (
@@ -80,12 +102,15 @@ export default function ResultsPage() {
         {recipes.map((recipe) => (
           <RecipeCard
             key={recipe.id}
+            id={recipe.id}
             title={recipe.title}
             description={
               'Uses ' + recipe.ingredientsYouHave + ' of yours, needs '
               + recipe.ingredientsYouNeed + ' more.'
             }
             imageUrl={recipe.imageUrl}
+            isFavorite={favoriteIds.includes(recipe.id)}
+            onFavoriteChange={handleFavoriteChange}
           />
         ))}
       </div>

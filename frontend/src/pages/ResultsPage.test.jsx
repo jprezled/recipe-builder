@@ -1,8 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 import ResultsPage from './ResultsPage'
-import { searchRecipes } from '../api/recipes'
+import { addFavorite, getFavorites, searchRecipes } from '../api/recipes'
 
 vi.mock('../api/recipes')
 
@@ -31,6 +32,7 @@ function renderResults(query = '?ingredients=eggs,milk') {
 describe('ResultsPage', () => {
   beforeEach(() => {
     vi.resetAllMocks()
+    getFavorites.mockResolvedValue([])
   })
 
   it('searches for the ingredients in the address', async () => {
@@ -97,5 +99,49 @@ describe('ResultsPage', () => {
 
     const back = await screen.findByRole('link', { name: 'Back to Ingredients' })
     expect(back.getAttribute('href')).toContain('ingredients=eggs')
+  })
+
+  it('starts the star filled for a recipe already saved', async () => {
+    searchRecipes.mockResolvedValue([PASTA, PARFAIT])
+    getFavorites.mockResolvedValue([{ id: 716429, title: 'Garlic Chicken Pasta', imageUrl: 'x' }])
+
+    renderResults()
+
+    expect(await screen.findByRole('button',
+      { name: 'Remove Garlic Chicken Pasta from favorites' })).toBeInTheDocument()
+    expect(screen.getByRole('button',
+      { name: 'Save Berry Parfait to favorites' })).toBeInTheDocument()
+  })
+
+  it('fills the star once a recipe is saved', async () => {
+    searchRecipes.mockResolvedValue([PASTA])
+    addFavorite.mockResolvedValue(undefined)
+
+    renderResults()
+    await userEvent.click(await screen.findByRole('button',
+      { name: 'Save Garlic Chicken Pasta to favorites' }))
+
+    expect(await screen.findByRole('button',
+      { name: 'Remove Garlic Chicken Pasta from favorites' })).toBeInTheDocument()
+  })
+
+  it('makes two requests, not one per recipe', async () => {
+    searchRecipes.mockResolvedValue([PASTA, PARFAIT])
+    renderResults()
+    await screen.findByText('Garlic Chicken Pasta')
+
+    expect(searchRecipes).toHaveBeenCalledTimes(1)
+    expect(getFavorites).toHaveBeenCalledTimes(1)
+  })
+
+  it('still shows recipes when favorites cannot be read', async () => {
+    // A database problem must not hide the recipes. The stars just start empty.
+    searchRecipes.mockResolvedValue([PASTA])
+    getFavorites.mockRejectedValue(new Error('Could not reach the database.'))
+
+    renderResults()
+
+    expect(await screen.findByText('Garlic Chicken Pasta')).toBeInTheDocument()
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
   })
 })
