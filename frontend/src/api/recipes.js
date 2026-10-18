@@ -15,13 +15,13 @@ const CANNOT_REACH = 'Could not reach the recipe service. Is the backend running
 const UNKNOWN_PROBLEM = 'Something went wrong loading recipes. Please try again.'
 
 /**
- * Searches for recipes using one ingredient.
+ * Searches for recipes using one or more ingredients.
  *
- * @param {string} ingredient what the user typed, e.g. "apple"
+ * @param {string} ingredients what the user typed, e.g. "eggs, milk, flour"
  * @returns {Promise<Array>} the recipes, or an empty array if none matched
  * @throws {Error} with a message that can be displayed as-is
  */
-export async function searchRecipes(ingredient) {
+export async function searchRecipes(ingredients) {
   // STEP 1: build a RELATIVE address.
   //
   // Vite forwards /api to the backend on 8080, so the browser only ever talks
@@ -30,7 +30,7 @@ export async function searchRecipes(ingredient) {
   //
   // encodeURIComponent escapes the value - "green onion" has a space, and a
   // space is not legal in a URL.
-  const address = '/api/recipes/search?ingredient=' + encodeURIComponent(ingredient)
+  const address = '/api/recipes/search?ingredients=' + encodeURIComponent(ingredients)
 
   // STEP 2: send the request.
   //
