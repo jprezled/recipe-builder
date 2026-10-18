@@ -11,6 +11,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.mock;
@@ -42,7 +43,7 @@ class FavoriteRepositoryErrorsTest {
 
     @Test
     void anUnreachableDatabaseBecomesOurOwnException() {
-        when(db.queryForObject(anyString(), any(Class.class), any(), any(), any()))
+        when(db.queryForObject(anyString(), eq(Long.class), any(), any(), any()))
                 .thenThrow(new DataAccessResourceFailureException("connection refused"));
 
         assertThatExceptionOfType(DatabaseUnavailableException.class)
@@ -53,7 +54,7 @@ class FavoriteRepositoryErrorsTest {
     void aConstraintViolationOnSaveBecomesTheMissingDemoUser() {
         // In sprint 2 an integrity violation here is nearly always the foreign
         // key on saved_recipes.user_id, because V2__demo_user.sql was skipped.
-        when(db.queryForObject(anyString(), any(Class.class), any(), any(), any()))
+        when(db.queryForObject(anyString(), eq(Long.class), any(), any(), any()))
                 .thenThrow(new DataIntegrityViolationException("fk violation"));
 
         assertThatExceptionOfType(DemoUserMissingException.class)
