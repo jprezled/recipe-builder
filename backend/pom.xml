@@ -47,7 +47,7 @@
         </dependency>
 
         <!-- Plain JDBC for Postgres. Deliberately NOT spring-boot-starter-data-jpa:
-             the SQL in Database/migrations owns the schema, and with no JPA
+             the SQL in database/migrations owns the schema, and with no JPA
              nothing in the app is even capable of generating or dropping a
              table. See docs/superpowers/specs for the full reasoning. -->
         <dependency>

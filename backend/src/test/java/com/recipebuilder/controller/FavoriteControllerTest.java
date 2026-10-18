@@ -119,7 +119,7 @@ class FavoriteControllerTest {
     void aMissingDemoUserNamesTheSetupStep() throws Exception {
         doThrow(new DemoUserMissingException(
                 "The database is missing its setup data. Apply "
-                        + "Database/migrations/V2__demo_user.sql and try again.",
+                        + "database/migrations/V2__demo_user.sql and try again.",
                 new RuntimeException()))
                 .when(service).add(any(FavoriteRequest.class));
 

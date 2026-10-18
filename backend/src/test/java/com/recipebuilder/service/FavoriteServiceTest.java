@@ -27,7 +27,7 @@ import static org.mockito.Mockito.when;
  */
 class FavoriteServiceTest {
 
-    /** The id Database/migrations/V2__demo_user.sql creates. */
+    /** The id database/migrations/V2__demo_user.sql creates. */
     private static final long DEMO_USER_ID = 1L;
 
     private FavoriteRepository repository;

@@ -142,7 +142,7 @@ Postgres running can still search; only favorites fail.
 `500 Internal Server Error`
 
 > The database is missing its setup data. Apply
-> Database/migrations/V2__demo_user.sql and try again.
+> database/migrations/V2__demo_user.sql and try again.
 
 `saved_recipes.user_id` is a foreign key to `users(user_id)`. Until accounts
 ship that row comes from `V2__demo_user.sql`, so this almost always means a

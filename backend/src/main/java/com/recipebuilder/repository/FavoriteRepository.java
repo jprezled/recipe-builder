@@ -158,7 +158,7 @@ public class FavoriteRepository {
             // bug in this code.
             return new DemoUserMissingException(
                     "The database is missing its setup data. Apply "
-                            + "Database/migrations/V2__demo_user.sql and try again.",
+                            + "database/migrations/V2__demo_user.sql and try again.",
                     failure);
         }
 

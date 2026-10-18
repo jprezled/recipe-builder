@@ -23,7 +23,7 @@ public class FavoriteService {
      * The one user every favorite belongs to for now.
      *
      * User accounts are a later sprint. Until then every saved recipe hangs off
-     * this single row, which Database/migrations/V2__demo_user.sql creates with
+     * this single row, which database/migrations/V2__demo_user.sql creates with
      * exactly this id. When accounts arrive, this constant is what gets
      * replaced by the signed-in user - and it being in ONE place is the point.
      */
