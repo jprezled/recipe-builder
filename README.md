@@ -11,9 +11,13 @@ Install these, whichever computer you are on:
 
 - **JDK 17 or newer** — <https://adoptium.net>
 - **Node.js 20.19+ or 22.12+** — <https://nodejs.org>
+- **PostgreSQL 16 or newer** — <https://www.postgresql.org/download/>
 - **Your own free Spoonacular key** — <https://spoonacular.com/food-api>
 
-**PostgreSQL is not needed to run the app.**
+**PostgreSQL is needed for saving favorites.** Searching works without it,
+and the app still starts when it is not running — only the favorites page and
+the save button fail. That makes a missing database easy to misdiagnose, so
+set it up before you decide something is broken.
 
 **Everyone needs their own API key.** The free tier allows 150 searches a day
 per key, so a shared one runs out before everyone has finished testing.
@@ -32,13 +36,28 @@ From the repo root:
 cp .env.example .env
 ```
 
-Open `.env` and replace the placeholder with your key. **No spaces after it:**
+Open `.env` and replace the placeholders. **No spaces after any value:**
 
 ```
 SPOONACULAR_API_KEY=your_key_here
+DATABASE_USER=your_postgres_user
+DATABASE_PASSWORD=your_postgres_password
 ```
 
-### 2. Start the backend
+`DATABASE_USER` is your Postgres role, not your project username — usually your
+own macOS username on a Homebrew install, or `postgres` on the Windows
+installer. Leave the password empty if your server trusts local connections.
+
+### 2. Set up the database
+
+Create the two databases and apply both migration files, following
+[`database/README.md`](database/README.md). It has a Mac/Git Bash block and a
+Windows block.
+
+Four commands, once per machine. Skip it and the app will still run and still
+search — saving a favorite is what fails.
+
+### 3. Start the backend
 
 ```bash
 cd backend
@@ -50,7 +69,7 @@ cd backend
 
 Leave this terminal open. Wait until it stops printing — that means it started.
 
-### 3. Start the frontend
+### 4. Start the frontend
 
 Open a **second terminal window** with `Cmd+N`:
 
@@ -72,7 +91,7 @@ libraries themselves are not in git, so `npm install` is how a new one actually
 reaches your machine. If nothing is missing it finishes in a second and changes
 nothing, so running it after a pull is never wrong.
 
-### 4. Open the app
+### 5. Open the app
 
 <http://localhost:5173>
 
@@ -97,13 +116,28 @@ From the repo root:
 cp .env.example .env
 ```
 
-Open `.env` and replace the placeholder with your key. **No spaces after it:**
+Open `.env` and replace the placeholders. **No spaces after any value:**
 
 ```
 SPOONACULAR_API_KEY=your_key_here
+DATABASE_USER=your_postgres_user
+DATABASE_PASSWORD=your_postgres_password
 ```
 
-### 2. Start the backend
+`DATABASE_USER` is your Postgres role, not your project username — usually your
+own macOS username on a Homebrew install, or `postgres` on the Windows
+installer. Leave the password empty if your server trusts local connections.
+
+### 2. Set up the database
+
+Create the two databases and apply both migration files, following
+[`database/README.md`](database/README.md). It has a Mac/Git Bash block and a
+Windows block.
+
+Four commands, once per machine. Skip it and the app will still run and still
+search — saving a favorite is what fails.
+
+### 3. Start the backend
 
 ```bash
 cd backend
@@ -115,7 +149,7 @@ cd backend
 
 Leave this window open. Wait until it stops printing — that means it started.
 
-### 3. Start the frontend
+### 4. Start the frontend
 
 Open a **second Git Bash window**:
 
@@ -137,7 +171,7 @@ libraries themselves are not in git, so `npm install` is how a new one actually
 reaches your machine. If nothing is missing it finishes in a second and changes
 nothing, so running it after a pull is never wrong.
 
-### 4. Open the app
+### 5. Open the app
 
 <http://localhost:5173>
 
@@ -189,4 +223,4 @@ On Windows PowerShell, `./mvnw` becomes `.\mvnw.cmd`.
 | `no such file or directory` | run `pwd` — you are in the wrong folder |
 
 More commands and troubleshooting: [`docs/commands.md`](docs/commands.md)
-Database setup, for later: [`database/README.md`](database/README.md)
+Database setup: [`database/README.md`](database/README.md)
