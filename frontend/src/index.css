@@ -1,6 +1,6 @@
 /* ---------- Theme: change colors and fonts here, everywhere updates ---------- */
 :root {
-  --color-bg: rgb(148, 199, 186);
+  --color-bg: hsl(165, 31%, 68%);
   --color-title: rgb(6, 76, 69);
   --color-heading: rgb(12, 34, 64);
   --color-primary: rgb(22, 125, 90);
@@ -314,5 +314,93 @@ a.button {
   }
 }
 
+/*=== Below is the Styling for the Navigation Bar ===*/
+/* Keep the shared navigation at the top while allowing it to slide away. */
+.site-header {
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  background: #94c7ba;
+  border-bottom: 1px solid #94c7ba;
+  transform: translateY(0);
+  visibility: visible;
+  transition: transform 220ms ease, visibility 0s linear;
+}
 
+/* Move the bar above the viewport when the visitor scrolls down. */
+.site-header-hidden {
+  transform: translateY(-100%);
+  visibility: hidden;
+  transition: transform 220ms ease, visibility 0s linear 220ms;
+}
+
+/* Keep the site name and page links on opposite sides of the bar. */
+.site-header-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  max-width: 1200px;
+  min-height: 64px;
+  margin: 0 auto;
+  padding: 0 1.25rem;
+}
+
+/* Make the site name visually distinct from the page links. */
+.site-name {
+  color: inherit;
+  font-size: 1.2rem;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+/* Arrange the page links from left to right on the right side. */
+.site-navigation {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+}
+
+.site-nav-link {
+  color: inherit;
+  text-decoration: none;
+}
+
+/* Make the current page clear without changing the link order. */
+.site-nav-link.active {
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 0.25rem;
+}
+
+/* Keep keyboard users able to see which navigation link is focused. */
+.site-name:focus-visible,
+.site-nav-link:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 4px;
+}
+
+/* Respect visitors who prefer less motion. */
+@media (prefers-reduced-motion: reduce) {
+  .site-header,
+  .site-header-hidden {
+    transition: none;
+  }
+}
+
+/* Allow the navigation to fit comfortably on narrow screens. */
+@media (max-width: 480px) {
+  .site-header-inner {
+    gap: 0.75rem;
+    padding: 0 0.75rem;
+  }
+
+  .site-navigation {
+    gap: 0.75rem;
+  }
+
+  .site-name {
+    font-size: 1rem;
+  }
+}
 
