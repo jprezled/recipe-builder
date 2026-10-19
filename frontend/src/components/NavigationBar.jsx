@@ -73,7 +73,7 @@ export default function NavigationBar() {
             Home
           </NavLink>
           <NavLink className="site-nav-link" to="/results">
-            Saved
+            Results
           </NavLink>
           <NavLink className="site-nav-link" to="/favorites">
             Favorites
