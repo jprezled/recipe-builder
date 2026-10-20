@@ -8,6 +8,7 @@ import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 
 /**
@@ -75,15 +76,23 @@ public class RecipeService {
         List<RecipeSummaryDto> ourResults = new ArrayList<>();
 
         for (SpoonacularSearchResult theirRecipe : theirResults) {
+            int have = theirRecipe.usedIngredientCount();
+            int need = theirRecipe.missedIngredientCount();
+
             RecipeSummaryDto ourRecipe = new RecipeSummaryDto(
                     theirRecipe.id(),
                     theirRecipe.title(),
                     theirRecipe.image(),                      // their "image" is our "imageUrl"
-                    theirRecipe.usedIngredientCount(),        // -> "ingredientsYouHave"
-                    theirRecipe.missedIngredientCount());     // -> "ingredientsYouNeed"
+                    have,                                     // -> "ingredientsYouHave"
+                    need,                                     // -> "ingredientsYouNeed"
+                    MatchPercentageCalculator.calculate(have, need));
 
             ourResults.add(ourRecipe);
         }
+
+        // Closest match first, so the cook reads the best option rather than
+        // whatever order Spoonacular happened to return.
+        ourResults.sort(Comparator.comparingInt(RecipeSummaryDto::matchPercent).reversed());
 
         // STEP 3: always a list, never null. An empty search result is not an
         // error, and returning null would force every caller to check for it.

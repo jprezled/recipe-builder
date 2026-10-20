@@ -18,5 +18,7 @@ public record RecipeSummaryDto(
         String title,
         String imageUrl,
         int ingredientsYouHave,
-        int ingredientsYouNeed) {
+        int ingredientsYouNeed,
+        /** How much of this recipe's ingredient list you already have, 0-100. */
+        int matchPercent) {
 }

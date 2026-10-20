@@ -1,21 +1,27 @@
-import { describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { MemoryRouter, Route, Routes, useSearchParams } from 'react-router-dom'
+import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import HomePage from './HomePage'
+import { getFavorites, searchRecipes } from '../api/recipes'
 
-/** Stands in for the results page, and shows what it was asked for. */
-function FakeResults() {
-  const [searchParams] = useSearchParams()
-  return <p>asked for: {searchParams.get('ingredients')}</p>
-}
+// Peter's HomePage renders the real ResultsPage inside itself, and that page
+// does the searching. Stubbing the api layer keeps these tests about the
+// pantry list while still proving the list reaches the search.
+vi.mock('../api/recipes', () => ({
+  searchRecipes: vi.fn(() => Promise.resolve([])),
+  getFavorites: vi.fn(() => Promise.resolve([])),
+}))
+
+beforeEach(() => {
+  vi.clearAllMocks()
+})
 
 function renderHome(entry = '/') {
   return render(
     <MemoryRouter initialEntries={[entry]}>
       <Routes>
         <Route path="/" element={<HomePage />} />
-        <Route path="/results" element={<FakeResults />} />
       </Routes>
     </MemoryRouter>,
   )
@@ -31,9 +37,9 @@ async function add(name) {
  * ingredients" heading, his wording and his CSS classes all stay; only the
  * hardcoded Eggs / Milk / Flour becomes state.
  *
- * Adding one at a time is also what removes the comma problem: typing
- * "green onion" into a single comma-separated box is ambiguous, but pressing
- * Add makes it unambiguously one ingredient.
+ * Add splits on commas but never on spaces, so one box handles both cases:
+ * "green onion" stays one ingredient, and a pasted "eggs, milk, cheese"
+ * becomes three separate rows that can be removed individually.
  */
 describe('HomePage', () => {
   it('adds a typed ingredient to the list', async () => {
@@ -61,12 +67,24 @@ describe('HomePage', () => {
     expect(screen.getByRole('listitem')).toHaveTextContent('green onion')
   })
 
-  it('sends the whole list to the results page', async () => {
+  it('searches for the whole list when Generate Recipes is pressed', async () => {
+    // Asserted on the search call rather than on a URL, because the results
+    // are embedded here rather than navigated to. The list reaching the
+    // search is the behaviour that matters either way.
     renderHome()
     await add('eggs')
     await add('milk')
     await userEvent.click(screen.getByRole('button', { name: 'Generate Recipes' }))
-    expect(await screen.findByText('asked for: eggs,milk')).toBeInTheDocument()
+    await vi.waitFor(() => expect(searchRecipes).toHaveBeenCalledWith('eggs,milk'))
+  })
+
+  it('does not search until Generate Recipes is pressed', async () => {
+    // Adding ingredients must not cost a Spoonacular point. The free tier is
+    // 150 a day, and a search per keystroke would burn it before lunch.
+    renderHome()
+    await add('eggs')
+    expect(searchRecipes).not.toHaveBeenCalled()
+    expect(getFavorites).not.toHaveBeenCalled()
   })
 
   it('splits a comma list typed in one go into separate rows', async () => {
