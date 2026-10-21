@@ -13,6 +13,26 @@ each one depends on the one before it.
 > `backend/`, `frontend/` and `database/`. The file paths are relative, so
 > running them from inside `database/` gives "No such file or directory".
 
+## Check your setup at any point
+
+```bash
+bash database/check-setup.sh
+```
+
+Reports what is and is not set up: whether `psql` is on your PATH, whether the
+server is running, which Postgres roles you can log in as, whether both
+databases exist with their five tables and the demo user, and whether the values
+in your `.env` actually connect.
+
+It changes nothing and never prints your password - only whether one is set. If
+something is wrong it prints the fix underneath. Paste the whole output into the
+team chat if you get stuck.
+
+Run it before following the steps below to see what you already have, and again
+afterwards to confirm.
+
+---
+
 ## Create the databases
 
 Two of them. The second exists only for tests, which truncate tables to clean

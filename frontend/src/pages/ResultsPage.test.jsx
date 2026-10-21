@@ -9,11 +9,11 @@ vi.mock('../api/recipes')
 
 const PASTA = {
   id: 716429, title: 'Garlic Chicken Pasta', imageUrl: 'http://img/1.jpg',
-  ingredientsYouHave: 2, ingredientsYouNeed: 3,
+  ingredientsYouHave: 2, ingredientsYouNeed: 3, matchPercent: 40,
 }
 const PARFAIT = {
   id: 716433, title: 'Berry Parfait', imageUrl: 'http://img/2.jpg',
-  ingredientsYouHave: 1, ingredientsYouNeed: 4,
+  ingredientsYouHave: 1, ingredientsYouNeed: 4, matchPercent: 20,
 }
 
 function renderResults(query = '?ingredients=eggs,milk') {
@@ -65,7 +65,14 @@ describe('ResultsPage', () => {
     searchRecipes.mockResolvedValue([PASTA])
     renderResults()
 
-    expect(await screen.findByText(/Uses 2 of yours, needs 3 more/)).toBeInTheDocument()
+    expect(await screen.findByText(/uses 2 of yours, needs 3 more/)).toBeInTheDocument()
+  })
+
+  it('shows the match percentage on each card', async () => {
+    searchRecipes.mockResolvedValue([PASTA])
+    renderResults()
+
+    expect(await screen.findByText(/40% match/)).toBeInTheDocument()
   })
 
   it('says so while it is searching', () => {

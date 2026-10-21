@@ -1,99 +1,131 @@
 import { useState } from 'react'
-import { Link, useNavigate, useSearchParams } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
+import ResultsPage from './ResultsPage'
 
 /**
- * Where you say what is in your pantry.
+ * The Add page is where the user enters ingredients.
  *
- * The layout, the wording, the CSS classes and the add-to-a-list idea are all
- * Andrew's, from the page skeletons he committed on 2026-10-13. This change
- * only makes them work: the list is real state instead of a hardcoded
- * Eggs / Milk / Flour, and Generate Recipes actually goes somewhere.
- *
- * Adding one ingredient at a time is not just his preference - it is what
- * makes the input unambiguous. A single comma-separated box cannot tell
- * "green onion" (one ingredient) from two, and splitting on spaces would
- * break "olive oil" and "sour cream" too. Pressing Add settles it.
- *
- * This page does NO fetching. It collects the ingredients and sends the
- * browser to /results, which does the asking - so that address carries
- * everything needed to reproduce the results, and can be refreshed or shared.
+ * After the user selects Generate Recipes, this page renders ResultsPage
+ * inside a box below the ingredient list. ResultsPage is the same component
+ * used by the separate /results route, so recipe loading and recipe cards
+ * have one implementation rather than a separate preview implementation.
  */
 export default function HomePage() {
+  // Read ingredients from the address if the user returns here from Results.
+  // This lets them continue from their existing list instead of starting over.
   const [searchParams] = useSearchParams()
+
+  // `typed` is only the text currently in the input. It does not become part
+  // of the pantry list until the user presses Add or submits with Enter.
   const [typed, setTyped] = useState('')
 
-  // Start from whatever the address carries, so coming back from the results
-  // page finds the pantry list as it was left. Written as a function so it is
-  // worked out once, on first render, not on every keystroke after.
+  // Convert a URL value such as ?ingredients=eggs%2Cmilk into a list that can
+  // be displayed and edited. This initializer runs when HomePage first loads.
   const [ingredients, setIngredients] = useState(() => {
     const fromAddress = searchParams.get('ingredients')
+
     if (!fromAddress) {
       return []
     }
-    return fromAddress.split(',').map((one) => one.trim()).filter((one) => one !== '')
+
+    return fromAddress
+      .split(',')
+      .map((ingredient) => ingredient.trim())
+      .filter(Boolean)
   })
 
-  const navigate = useNavigate()
+  // This controls whether the embedded Results page is shown. Clicking
+  // Generate Recipes changes this to true; ResultsPage then performs the
+  // search and displays its own loading, error, and result states.
+  const [showResults, setShowResults] = useState(false)
 
-  /** The Add button, and pressing Enter in the box. */
+  /**
+   * Add the typed entry to the pantry list.
+   *
+   * Splits on commas only, never on spaces. That is what lets both of these
+   * work from the same box: "green onion" is one ingredient because it has no
+   * comma, and a pasted "eggs, milk, cheese" becomes three rows rather than
+   * one row holding three things - which would otherwise make the remove
+   * button take out all three at once.
+   */
   function handleAdd(event) {
-    // Stop the browser reloading the page, which is a form's default.
+    // Stop the browser from reloading the page when the form is submitted.
     event.preventDefault()
 
-    // Usually one ingredient. But people paste, so a comma-separated list
-    // pasted in one go becomes separate rows rather than a single row holding
-    // three things - otherwise the remove button would take out all of them.
-    const pieces = typed.split(',').map((one) => one.trim()).filter((one) => one !== '')
+    // One entry usually, but people paste. Trim each piece and drop the empty
+    // ones, so a trailing comma does not add a blank row.
+    const pieces = typed
+      .split(',')
+      .map((piece) => piece.trim())
+      .filter((piece) => piece !== '')
 
     if (pieces.length === 0) {
       return
     }
 
-    setIngredients((current) => {
-      const next = current.slice()
+    setIngredients((currentIngredients) => {
+      // Build on a copy rather than changing React's state array in place.
+      const next = currentIngredients.slice()
 
-      for (const one of pieces) {
-        // Case-insensitive, so "Eggs" is not added on top of "eggs". Checked
+      for (const piece of pieces) {
+        // Treat entries with different capitalization as the same ingredient,
+        // so adding "Eggs" after "eggs" does not create a duplicate. Checked
         // against the list being built, so a repeat inside pasted text is
         // caught too.
-        const alreadyThere = next.some(
-          (existing) => existing.toLowerCase() === one.toLowerCase(),
+        const alreadyAdded = next.some(
+          (existing) => existing.toLowerCase() === piece.toLowerCase(),
         )
-        if (!alreadyThere) {
-          next.push(one)
+
+        if (!alreadyAdded) {
+          next.push(piece)
         }
       }
 
       return next
     })
 
+    // Clear the input after adding. Hide old results because they were
+    // generated for the previous ingredient list.
     setTyped('')
+    setShowResults(false)
   }
 
-  function handleRemove(one) {
-    setIngredients(ingredients.filter((existing) => existing !== one))
+  /**
+   * Remove an ingredient from the pantry.
+   *
+   * The embedded results are hidden because they no longer match the updated
+   * ingredient list. The user can generate a new set of results afterward.
+   */
+  function handleRemove(ingredientToRemove) {
+    setIngredients((currentIngredients) =>
+      currentIngredients.filter(
+        (ingredient) => ingredient !== ingredientToRemove,
+      ),
+    )
+
+    setShowResults(false)
   }
 
-  function handleGenerate() {
-    if (ingredients.length === 0) {
-      return
-    }
+  // ResultsPage expects a comma-separated string. Passing the current
+  // ingredients this way lets the embedded page search for this exact list.
+  const ingredientsForResults = ingredients.join(',')
 
-    // The backend trims, lowercases, de-duplicates and SORTS this before
-    // searching, so the order here does not matter - see IngredientList.
-    navigate('/results?ingredients=' + encodeURIComponent(ingredients.join(',')))
-  }
+  // The standalone Results page reads its ingredients from the URL. The
+  // Expand link uses this address to open that full-page version.
+  const resultsUrl =
+    '/results?ingredients=' + encodeURIComponent(ingredientsForResults)
 
   return (
     <main className="home-page">
       <h1 className="home-title">Recipe Builder</h1>
       <p className="tagline">Make the best of the ingredients you have.</p>
       <p>
-        Tell us what is in your pantry and we&apos;ll search for recipes that best fit
-        what you already have, so you can waste less food and spend less time deciding
-        what to cook.
+        Tell us what is in your pantry and we&apos;ll search for recipes that best
+        fit what you already have, so you can waste less food and spend less time
+        deciding what to cook.
       </p>
 
+      {/* Submitting this form adds an ingredient without leaving the page. */}
       <form onSubmit={handleAdd}>
         <div className="ingredient-entry">
           <label htmlFor="ingredient">Ingredient</label>{' '}
@@ -103,24 +135,27 @@ export default function HomePage() {
             onChange={(event) => setTyped(event.target.value)}
             placeholder="Type an ingredient, e.g. eggs"
           />{' '}
-          <button type="submit" className="button">Add</button>
+          <button type="submit" className="button">
+            Add
+          </button>
         </div>
       </form>
 
       <h2>Your ingredients</h2>
 
+      {/* Show instructions before the user has added their first ingredient. */}
       {ingredients.length === 0 ? (
         <p>Nothing added yet. Type an ingredient above and press Add.</p>
       ) : (
         <ul className="ingredient-list">
-          {ingredients.map((one) => (
-            <li key={one}>
-              {one}{' '}
+          {ingredients.map((ingredient) => (
+            <li key={ingredient}>
+              {ingredient}{' '}
               <button
                 type="button"
                 className="remove-ingredient"
-                onClick={() => handleRemove(one)}
-                aria-label={'Remove ' + one}
+                onClick={() => handleRemove(ingredient)}
+                aria-label={'Remove ' + ingredient}
               >
                 &times;
               </button>
@@ -130,16 +165,33 @@ export default function HomePage() {
       )}
 
       <div className="button-group">
+        {/* This reveals ResultsPage below the ingredients. It does not navigate
+            away; the embedded ResultsPage will start its recipe search. */}
         <button
           type="button"
           className="button"
-          onClick={handleGenerate}
+          onClick={() => setShowResults(true)}
           disabled={ingredients.length === 0}
         >
           Generate Recipes
         </button>
-        <Link className="button button-secondary" to="/favorites">View Favorites</Link>
+
+        <Link className="button button-secondary" to="/favorites">
+          View Favorites
+        </Link>
       </div>
+
+      {/* Mount the actual ResultsPage inside this box. Passing the ingredients
+          as a prop lets it work here without relying on Home's URL. */}
+      {showResults && (
+        <div className="home-results-box">
+          <ResultsPage
+            embedded
+            ingredients={ingredientsForResults}
+            resultsUrl={resultsUrl}
+          />
+        </div>
+      )}
     </main>
   )
 }

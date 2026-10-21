@@ -38,10 +38,11 @@ class RecipeControllerTest {
     void returnsOurRecipesAsJson() throws Exception {
         when(service.searchByIngredients(anyString())).thenReturn(List.of(
                 new RecipeSummaryDto(716433L, "Easiest Breakfast Ever: Sunny Fruit Parfait",
-                        "https://img.spoonacular.com/recipes/716433-312x231.jpg", 1, 3)));
+                        "https://img.spoonacular.com/recipes/716433-312x231.jpg", 1, 3, 25)));
 
         mockMvc.perform(get("/api/recipes/search").param("ingredients", "apple"))
                 .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].matchPercent").value(25))
                 .andExpect(jsonPath("$[0].id").value(716433))
                 .andExpect(jsonPath("$[0].title").value("Easiest Breakfast Ever: Sunny Fruit Parfait"))
                 .andExpect(jsonPath("$[0].imageUrl").value("https://img.spoonacular.com/recipes/716433-312x231.jpg"))
