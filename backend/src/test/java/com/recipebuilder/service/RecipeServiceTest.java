@@ -78,6 +78,27 @@ class RecipeServiceTest {
     }
 
     @Test
+    void eachRecipeCarriesItsMatchPercentage() {
+        // 2 of yours, 2 missing -> 2 of 4 -> 50%
+        when(client.searchByIngredients(anyString(), anyInt())).thenReturn(List.of(
+                new SpoonacularSearchResult(1L, "Half", "img", 2, 2, List.of(), List.of())));
+
+        assertThat(service.searchByIngredients("eggs").get(0).matchPercent()).isEqualTo(50);
+    }
+
+    @Test
+    void theClosestMatchComesFirst() {
+        when(client.searchByIngredients(anyString(), anyInt())).thenReturn(List.of(
+                new SpoonacularSearchResult(1L, "Quarter", "img", 1, 3, List.of(), List.of()),
+                new SpoonacularSearchResult(2L, "Whole", "img", 3, 0, List.of(), List.of()),
+                new SpoonacularSearchResult(3L, "Half", "img", 2, 2, List.of(), List.of())));
+
+        assertThat(service.searchByIngredients("eggs"))
+                .extracting(RecipeSummaryDto::title)
+                .containsExactly("Whole", "Half", "Quarter");
+    }
+
+    @Test
     void noMatchesGivesAnEmptyListNotNull() {
         when(client.searchByIngredients(anyString(), anyInt())).thenReturn(List.of());
 
