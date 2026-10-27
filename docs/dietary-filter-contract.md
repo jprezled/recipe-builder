@@ -161,10 +161,12 @@ genuinely reuse.
 
 ## A note on the daily allowance
 
-One key, **150 points a day**, shared by everyone working on the app. This
-measurement cost 14.
+**150 points a day, per key — and everyone has their own.** There is no shared
+pool; see `.env.example`. This measurement cost 14 of mine.
 
 The allowance does **not** reset at local midnight — after today's measuring the
 remaining balance was 36.87, not 136. Plan around what the API reports rather
 than assuming a fresh 150 each morning. Every test in RB-151 runs against saved
-responses and costs nothing; do live checks once, not once per person.
+responses and costs nothing, and the measurement above is already recorded
+here — re-running it spends your own allowance to learn what the table already
+says.
