@@ -46,6 +46,7 @@ Two sources, because some failures mean no response arrives at all.
 | Situation | Status | Message |
 |---|---|---|
 | Empty or blank ingredient | 400 | `Please enter at least one ingredient.` |
+| A dietary filter value we do not offer | 400 | `That dietary filter is not one we support.` |
 | Quota exhausted (Spoonacular 402) | 429 | `Daily recipe search limit reached. Please try again tomorrow.` |
 | Our key missing or rejected (401/403) | 500 | `Recipe search is not configured correctly. Please tell the team.` |
 | Spoonacular unreachable or broken | 502 | `Recipe search is unavailable right now. Please try again shortly.` |
