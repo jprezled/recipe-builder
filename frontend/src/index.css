@@ -404,3 +404,84 @@ a.button {
   }
 }
 
+/* ---------- Dietary filter controls ---------- */
+
+/* Match the filter panel to the existing green theme.
+   Keep its contents left-aligned inside the centered results page. */
+.dietary-filters {
+  margin: 1.5rem 0;
+  padding: 1.25rem;
+  text-align: left;
+  background-color: var(--color-card);
+  border: 1px solid var(--color-primary-dark);
+  border-radius: 10px;
+}
+
+/* Remove the large top margin inherited from the shared h2 rule. */
+.dietary-filters h2 {
+  margin: 0 0 1rem;
+}
+
+/* Arrange options in rows and wrap them when space is limited.
+   min-width prevents the fieldset from forcing a narrow page wider. */
+.dietary-filters fieldset {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+  min-width: 0;
+  margin: 0 0 1rem;
+  padding: 0.75rem;
+  border: 1px solid var(--color-primary-dark);
+  border-radius: 6px;
+}
+
+/* Clearly identify the diet and ingredient exclusion groups. */
+.dietary-filters legend {
+  padding: 0 0.35rem;
+  font-weight: bold;
+  color: var(--color-heading);
+}
+
+/* Keep each input beside its label and provide a larger click area. */
+.dietary-filters label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 44px;
+  padding: 0.25rem;
+  cursor: pointer;
+}
+
+/* Use the existing theme color for selected radios and checkboxes. */
+.dietary-filters input[type="radio"],
+.dietary-filters input[type="checkbox"] {
+  flex-shrink: 0;
+  width: 1.125rem;
+  height: 1.125rem;
+  margin: 0;
+  accent-color: var(--color-primary-dark);
+  cursor: pointer;
+}
+
+/* Show keyboard users which control currently has focus. */
+.dietary-filters input:focus-visible,
+.dietary-filters button:focus-visible {
+  outline: 2px solid var(--color-heading);
+  outline-offset: 3px;
+}
+
+/* Stack options and widen Apply on smaller screens. */
+@media (max-width: 480px) {
+  .dietary-filters {
+    padding: 1rem;
+  }
+
+  .dietary-filters fieldset {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .dietary-filters .button {
+    width: 100%;
+  }
+}

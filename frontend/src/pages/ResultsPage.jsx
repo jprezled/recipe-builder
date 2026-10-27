@@ -3,6 +3,10 @@ import { Link, useSearchParams } from 'react-router-dom'
 import { getFavorites, searchRecipes } from '../api/recipes'
 import RecipeCard from '../components/RecipeCard'
 
+// Temporary preview: uncomment this import and the block below to inspect filter controls.
+//import DietaryFilters from '../components/DietaryFilters'
+
+
 /**
  * Displays recipes for the ingredients supplied to the page.
  *
@@ -155,6 +159,19 @@ export default function ResultsPage({
           </Link>
         )}
       </div>
+
+      
+      {/*
+        Temporary preview: reports choices without filtering recipes. 
+         To enable, uncomment this component and its import.
+
+        <DietaryFilters
+          onApply={(diet, intolerances) => {
+            console.log('Selected diet:', diet)
+            console.log('Selected exclusions:', intolerances)
+        }}
+      />
+      */}
 
       {/* Keep the user informed while the recipe search is running. */}
       {isSearching && <p>Searching...</p>}
