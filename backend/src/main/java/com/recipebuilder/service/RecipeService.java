@@ -1,15 +1,17 @@
 package com.recipebuilder.service;
 
-import com.recipebuilder.client.SpoonacularClient;
-import com.recipebuilder.client.dto.SpoonacularSearchResult;
-import com.recipebuilder.dto.RecipeSummaryDto;
-import com.recipebuilder.exception.InvalidInputException;
-import org.springframework.cache.annotation.Cacheable;
-import org.springframework.stereotype.Service;
-
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.stereotype.Service;
+
+import com.recipebuilder.client.SpoonacularClient;
+import com.recipebuilder.client.dto.SpoonacularSearchResult;
+import com.recipebuilder.dto.DietaryRestrictions;
+import com.recipebuilder.dto.RecipeSummaryDto;
+import com.recipebuilder.exception.InvalidInputException;
 
 /**
  * Turns Spoonacular's data into ours.
@@ -47,9 +49,10 @@ public class RecipeService {
      *
      * @param ingredients what the user typed, e.g. "eggs, milk, flour"
      * @return recipes in our shape, or an empty list if nothing matched
+     * @param choices the user's diet and allergy picks, "none" meaning no filter 
      */
     @Cacheable(cacheNames = "recipeSearches", keyGenerator = "ingredientsCacheKey")
-    public List<RecipeSummaryDto> searchByIngredients(String ingredients) {
+    public List<RecipeSummaryDto> searchByIngredients(String ingredients, DietaryRestrictions choices) {
 
         // STEP 0: clean the text up before doing anything with it, and refuse
         // an empty search before spending one of our 150 daily points on it.
@@ -61,14 +64,20 @@ public class RecipeService {
         if (cleaned.isEmpty()) {
             throw new InvalidInputException("Please enter at least one ingredient.");
         }
+        // Refuse a diet or allergy we do not recognise. Spoonacular would quietly
+        // ignore it, and a silently ignored peanut filter is a safety problem.
+        checkChoice("diet", choices.diet(), DietaryRestrictions.APPROVED_DIETS);
+        checkChoice("allergy", choices.allergies(), DietaryRestrictions.APPROVED_ALLERGIES);
 
         // STEP 1: ask Spoonacular. What comes back is in THEIR shape.
         //
         // We send the cleaned list, not the raw text, so the thing we searched
         // for is exactly the thing the cache key was built from.
         List<SpoonacularSearchResult> theirResults =
-                client.searchByIngredients(cleaned, HOW_MANY_RECIPES);
+                client.searchByIngredients(cleaned, HOW_MANY_RECIPES, choices);
 
+    
+    
         // STEP 2: copy each one into OUR shape, one at a time.
         //
         // A plain loop rather than a stream, so the conversion reads top to
@@ -98,4 +107,15 @@ public class RecipeService {
         // error, and returning null would force every caller to check for it.
         return ourResults;
     }
+        /** Refuses a choice that is not "none" and not on the approved list. */
+    private static void checkChoice(String what, String value, List<String> approved) {
+        if (value == null || value.equals("none")) {
+            return;
+        }
+        if (!approved.contains(value)) {
+            throw new InvalidInputException("We don't recognise the " + what + " \"" + value
+                    + "\". Please choose one of: " + String.join(", ", approved) + ".");
+        }
+    }
 }
+

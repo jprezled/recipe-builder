@@ -1,10 +1,8 @@
 package com.recipebuilder.client;
 
-import com.recipebuilder.client.dto.SpoonacularSearchResponse;
-import com.recipebuilder.client.dto.SpoonacularSearchResult;
-import com.recipebuilder.exception.ApiKeyMissingException;
-import com.recipebuilder.exception.ApiLimitReachedException;
-import com.recipebuilder.exception.ExternalApiException;
+import java.util.ArrayList;
+import java.util.List;
+
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.stereotype.Component;
@@ -12,7 +10,12 @@ import org.springframework.web.client.HttpStatusCodeException;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 
-import java.util.List;
+import com.recipebuilder.client.dto.SpoonacularSearchResponse;
+import com.recipebuilder.client.dto.SpoonacularSearchResult;
+import com.recipebuilder.dto.DietaryRestrictions;
+import com.recipebuilder.exception.ApiKeyMissingException;
+import com.recipebuilder.exception.ApiLimitReachedException;
+import com.recipebuilder.exception.ExternalApiException;
 
 /**
  * The ONLY class that talks to spoonacular.com.
@@ -46,9 +49,11 @@ public class SpoonacularClient {
      *
      * @param ingredients comma-separated names, e.g. "apple" or "apple,flour"
      * @param number      how many recipes to ask for
+     * @param choices     the cook's diet and allergy picks; "none" means no filter
      * @return the recipes Spoonacular sent back, or an empty list if it sent none
      */
-    public List<SpoonacularSearchResult> searchByIngredients(String ingredients, int number) {
+    public List<SpoonacularSearchResult> searchByIngredients(
+            String ingredients, int number, DietaryRestrictions choices) {
 
         // STEP 0: refuse to call Spoonacular without a key. Sending an empty one
         // comes back as a confusing 401 rather than telling us what is wrong.
@@ -66,15 +71,27 @@ public class SpoonacularClient {
                 + "&number={number}"
                 + "&apiKey={apiKey}";
 
+        // The values for the placeholders, in the order they appear in the url.
+        List<Object> values = new ArrayList<>(List.of(ingredients, number, apiKey));
+
+        // Each filter adds its placeholder AND its value in the same step,
+        // so the two can never get out of line.
+        if (hasValue(choices.diet())) {
+            url += "&diet={diet}";
+            values.add(choices.diet());
+        }
+        if (hasValue(choices.allergies())) {
+            url += "&intolerances={intolerances}";
+            values.add(choices.allergies());
+        }
+
         // STEP 2: send the request and convert the reply into Java objects.
         SpoonacularSearchResponse response;
         try {
             response = restTemplate.getForObject(
                     url,
                     SpoonacularSearchResponse.class,
-                    ingredients,
-                    number,
-                    apiKey);
+                    values.toArray());
         } catch (HttpStatusCodeException failure) {
             // Spoonacular answered, but with an error status.
             throw translate(failure.getStatusCode().value(), failure);
@@ -88,6 +105,11 @@ public class SpoonacularClient {
             return List.of();
         }
         return response.results();
+    }
+
+    /** A choice counts only if the cook picked something real. */
+    private static boolean hasValue(String choice) {
+        return choice != null && !choice.isBlank() && !choice.equalsIgnoreCase("none");
     }
 
     /**

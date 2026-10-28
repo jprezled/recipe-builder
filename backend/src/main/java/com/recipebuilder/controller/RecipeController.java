@@ -1,12 +1,14 @@
 package com.recipebuilder.controller;
 
-import com.recipebuilder.dto.RecipeSummaryDto;
-import com.recipebuilder.service.RecipeService;
+import java.util.List;
+
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.util.List;
+import com.recipebuilder.dto.DietaryRestrictions;
+import com.recipebuilder.dto.RecipeSummaryDto;
+import com.recipebuilder.service.RecipeService;
 
 /**
  * Our own web address: GET /api/recipes/search?ingredients=eggs,milk,flour
@@ -35,9 +37,14 @@ public class RecipeController {
      * @param ingredients the ?ingredients=... part of the address, comma
      *                    separated, e.g. "eggs,milk,flour"
      * @return recipes in our own shape, which Spring serialises to JSON
+     * @param diet      optional ?diet=..., e.g "Vegan"; "none" when left out
+     * @param allergies optional ?allergies=.... e.g "Peanut"; "none" when left out
      */
     @GetMapping("/api/recipes/search")
-    public List<RecipeSummaryDto> search(@RequestParam String ingredients) {
-        return service.searchByIngredients(ingredients);
+    public List<RecipeSummaryDto> search(
+                    @RequestParam String ingredients,
+                    @RequestParam(defaultValue = "none") String diet,
+                    @RequestParam(defaultValue = "none") String allergies) { 
+        return service.searchByIngredients(ingredients, new DietaryRestrictions(diet, allergies));
     }
 }

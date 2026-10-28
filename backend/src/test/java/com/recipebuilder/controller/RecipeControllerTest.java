@@ -1,22 +1,24 @@
 package com.recipebuilder.controller;
 
-import com.recipebuilder.dto.RecipeSummaryDto;
-import com.recipebuilder.service.RecipeService;
-import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
-import org.springframework.test.web.servlet.MockMvc;
-
 import java.util.List;
 
+import org.junit.jupiter.api.Test;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.web.servlet.MockMvc;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
+import com.recipebuilder.dto.DietaryRestrictions;
+import com.recipebuilder.dto.RecipeSummaryDto;
+import com.recipebuilder.service.RecipeService;
 
 /**
  * RB-38: expose GET /api/recipes/search
@@ -36,7 +38,7 @@ class RecipeControllerTest {
 
     @Test
     void returnsOurRecipesAsJson() throws Exception {
-        when(service.searchByIngredients(anyString())).thenReturn(List.of(
+        when(service.searchByIngredients(anyString(), any(DietaryRestrictions.class))).thenReturn(List.of(
                 new RecipeSummaryDto(716433L, "Easiest Breakfast Ever: Sunny Fruit Parfait",
                         "https://img.spoonacular.com/recipes/716433-312x231.jpg", 1, 3, 25)));
 
@@ -52,20 +54,47 @@ class RecipeControllerTest {
 
     @Test
     void passesTheIngredientFromTheQueryStringToTheService() throws Exception {
-        when(service.searchByIngredients(anyString())).thenReturn(List.of());
+        when(service.searchByIngredients(anyString(), any(DietaryRestrictions.class))).thenReturn(List.of());
 
         mockMvc.perform(get("/api/recipes/search").param("ingredients", "tomato"))
                 .andExpect(status().isOk());
 
-        verify(service).searchByIngredients(eq("tomato"));
+        verify(service).searchByIngredients(eq("tomato"), eq(new DietaryRestrictions("none", "none")));
     }
 
     @Test
     void noMatchesReturnsAnEmptyJsonArray() throws Exception {
-        when(service.searchByIngredients(anyString())).thenReturn(List.of());
+        when(service.searchByIngredients(anyString(), any(DietaryRestrictions.class))).thenReturn(List.of());
 
         mockMvc.perform(get("/api/recipes/search").param("ingredients", "unobtanium"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(0));
     }
-}
+
+    @Test
+    void passesDietAndAllergiesFromTheQueryStringToTheService() throws Exception { 
+        when(service.searchByIngredients(anyString(), any(DietaryRestrictions.class))).thenReturn(List.of());
+
+        mockMvc.perform(get("/api/recipes/search")
+                            .param("ingredients", "tomato")
+                            .param("diet", "Vegan")
+                            .param("allergies", "Peanut"))
+                         .andExpect(status().isOk());
+
+        verify(service).searchByIngredients(eq("tomato"), eq(new DietaryRestrictions("Vegan", "Peanut")));
+    }
+    @Test
+    void missingDietAndAllergiesBecomeNone() throws Exception { 
+        when(service.searchByIngredients(anyString(), any(DietaryRestrictions.class)))
+                        .thenReturn(List.of());
+
+         mockMvc.perform(get("/api/recipes/search").param("ingredients", "tomato"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(0));
+
+        verify(service).searchByIngredients(eq("tomato"), eq(new DietaryRestrictions("none", "none")));
+        
+            }
+    }
+
+

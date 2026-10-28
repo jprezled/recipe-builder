@@ -1,9 +1,11 @@
 package com.recipebuilder.service;
 
+import java.lang.reflect.Method;
+
 import org.springframework.cache.interceptor.KeyGenerator;
 import org.springframework.stereotype.Component;
 
-import java.lang.reflect.Method;
+import com.recipebuilder.dto.DietaryRestrictions;
 
 /**
  * Decides what the cache calls a search.
@@ -30,8 +32,17 @@ public class IngredientsCacheKeyGenerator implements KeyGenerator {
         if (params.length == 0 || params[0] == null) {
             return "";
         }
+        String ingredients = IngredientList.normalise(String.valueOf(params[0]));
 
-        String raw = String.valueOf(params[0]);
-        return IngredientList.normalise(raw);
+        // The cook's choices are part of the search, so they are part of the key.
+        // Without them a Vegan search would be answered from a saved unfiltered one.
+        String diet = "none";
+        String allergies = "none";
+        if (params.length > 1 && params[1] instanceof DietaryRestrictions choices) {
+            diet = choices.diet();
+            allergies = choices.allergies();
+        }
+
+        return ingredients + "|" + diet + "|" + allergies;
     }
 }

@@ -1,22 +1,24 @@
 package com.recipebuilder.service;
 
-import com.recipebuilder.client.SpoonacularClient;
-import com.recipebuilder.client.dto.SpoonacularSearchResult;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.cache.CacheManager;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
-
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.cache.CacheManager;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
+
+import com.recipebuilder.client.SpoonacularClient;
+import com.recipebuilder.client.dto.SpoonacularSearchResult;
+import com.recipebuilder.dto.DietaryRestrictions;
 
 /**
  * RB-74: a repeated search must not spend another Spoonacular point.
@@ -52,43 +54,44 @@ class RecipeServiceCacheTest {
         // test would see an earlier test's cached entries.
         cacheManager.getCacheNames()
                 .forEach(name -> cacheManager.getCache(name).clear());
-        when(client.searchByIngredients(anyString(), anyInt())).thenReturn(List.of(A_RECIPE));
+        when(client.searchByIngredients(anyString(), anyInt(), any(DietaryRestrictions.class)))
+                                .thenReturn(List.of(A_RECIPE));
     }
 
     @Test
     void searchingTheSameIngredientTwiceOnlyCallsSpoonacularOnce() {
-        service.searchByIngredients("tomato");
-        service.searchByIngredients("tomato");
+        service.searchByIngredients("tomato", new DietaryRestrictions("none", "none"));
+        service.searchByIngredients("tomato", new DietaryRestrictions("none", "none"));
 
-        verify(client, times(1)).searchByIngredients(anyString(), anyInt());
+        verify(client, times(1)).searchByIngredients(anyString(), anyInt(), any(DietaryRestrictions.class));
     }
 
     @Test
     void theSecondSearchStillReturnsTheResults() {
-        List<?> first = service.searchByIngredients("tomato");
-        List<?> second = service.searchByIngredients("tomato");
+        List<?> first = service.searchByIngredients("tomato", new DietaryRestrictions("none", "none"));
+        List<?> second = service.searchByIngredients("tomato", new DietaryRestrictions("none", "none"));
 
         assertThat(second).hasSize(1).isEqualTo(first);
     }
 
     @Test
     void differentIngredientsAreCachedSeparately() {
-        service.searchByIngredients("tomato");
-        service.searchByIngredients("apple");
+        service.searchByIngredients("tomato", new DietaryRestrictions("none", "none"));
+        service.searchByIngredients("apple", new DietaryRestrictions("none", "none"));
 
-        verify(client, times(2)).searchByIngredients(anyString(), anyInt());
-    }
+    verify(client, times(2)).searchByIngredients(anyString(), anyInt(), any(DietaryRestrictions.class));    }
 
+    
     @Test
     void ingredientOrderDoesNotCreateASecondCacheEntry() {
         // The sprint 2 version of the test below. "eggs,milk" and "milk,eggs"
         // are the same search, and charging two of our 150 daily points for it
         // would pass the letter of RB-74 while defeating its purpose.
-        service.searchByIngredients("eggs,milk");
-        service.searchByIngredients("milk,eggs");
-        service.searchByIngredients(" MILK , eggs ");
+        service.searchByIngredients("eggs,milk", new DietaryRestrictions("none", "none"));
+        service.searchByIngredients("milk,eggs", new DietaryRestrictions("none", "none"));
+        service.searchByIngredients(" MILK , eggs ", new DietaryRestrictions("none", "none"));
 
-        verify(client, times(1)).searchByIngredients(anyString(), anyInt());
+        verify(client, times(1)).searchByIngredients(anyString(), anyInt(), any(DietaryRestrictions.class));
     }
 
     @Test
@@ -96,10 +99,34 @@ class RecipeServiceCacheTest {
         // Without normalising the key these would be three separate entries and
         // three API points, which passes the letter of the story and fails its
         // point.
-        service.searchByIngredients("tomato");
-        service.searchByIngredients("Tomato");
-        service.searchByIngredients("  tomato  ");
+        service.searchByIngredients("tomato", new DietaryRestrictions("none", "none"));
+        service.searchByIngredients("Tomato", new DietaryRestrictions("none", "none"));
+        service.searchByIngredients("  tomato  ", new DietaryRestrictions("none", "none"));
 
-        verify(client, times(1)).searchByIngredients(anyString(), anyInt());
+        verify(client, times(1)).searchByIngredients(anyString(), anyInt(), any(DietaryRestrictions.class));
+    }
+
+    @Test
+    void sameIngredientsAndSameChoicesAreCachedOnce() {
+        service.searchByIngredients("tomato", new DietaryRestrictions("Vegan", "Peanut"));
+        service.searchByIngredients("tomato", new DietaryRestrictions("Vegan", "Peanut"));
+
+        verify(client, times(1)).searchByIngredients(anyString(), anyInt(), any(DietaryRestrictions.class));
+    }
+
+    @Test
+    void aDifferentDietIsCachedSeparately() {
+        service.searchByIngredients("tomato", new DietaryRestrictions("none", "none"));
+        service.searchByIngredients("tomato", new DietaryRestrictions("Vegan", "none"));
+
+        verify(client, times(2)).searchByIngredients(anyString(), anyInt(), any(DietaryRestrictions.class));
+    }
+
+    @Test
+    void aDifferentAllergyIsCachedSeparately() {
+        service.searchByIngredients("tomato", new DietaryRestrictions("none", "none"));
+        service.searchByIngredients("tomato", new DietaryRestrictions("none", "Peanut"));
+
+        verify(client, times(2)).searchByIngredients(anyString(), anyInt(), any(DietaryRestrictions.class));
     }
 }
