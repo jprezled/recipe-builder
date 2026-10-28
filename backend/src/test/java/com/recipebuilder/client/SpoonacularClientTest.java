@@ -20,6 +20,30 @@ import static org.springframework.test.web.client.match.MockRestRequestMatchers.
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.requestTo;
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess;
 
+/**
+ * Specifies SpoonacularClient against a stubbed HTTP response.
+ *
+ * MockRestServiceServer replaces the RestTemplate's request factory, so no socket
+ * is ever opened: the response comes from a file on the classpath, an
+ * unexpected call fails the test, and the suite needs no API key and burns no
+ * quota. The deliberately fake base-url below means a real network call would
+ * fail loudly rather than quietly succeed.
+ *
+ * The stub in src/test/resources/stubs/ is a REAL response captured from
+ * Spoonacular, not a hand-written guess. Recapture it with:
+ *
+ *   curl -s "https://api.spoonacular.com/recipes/complexSearch\
+ *     ?includeIngredients=apple&number=2&fillIngredients=true\
+ *     &sort=max-used-ingredients&apiKey=$KEY" | python3 -m json.tool \
+ *     > src/test/resources/stubs/complex-search.json
+ *
+ * Both of those last two parameters are load-bearing: without fillIngredients
+ * the counts this test asserts are absent, and without sort a multi-ingredient
+ * search returns an empty results array.
+ *
+ * Doing so changes the ids and titles below, which is the point: the
+ * assertions are tied to data we actually received.
+ */
 @RestClientTest(
         value = SpoonacularClient.class,
         properties = {
