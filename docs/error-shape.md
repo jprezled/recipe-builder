@@ -152,6 +152,32 @@ teammate applied V1 and skipped V2.
 The message names the file on purpose. Without it this reads as "favorites are
 broken" when the fix is one `psql` command.
 
+## Sprint 3 additions — accounts
+
+Three new cases from RB-124, agreed in `accounts-contract.md`. Same
+`{"message": "..."}` as everything else.
+
+| Situation | Status | Message |
+|---|---|---|
+| Not signed in | 401 | `Please sign in to save favorites.` |
+| Username or email already taken | 409 | `That username is taken. Please pick another.` |
+| Wrong username **or** wrong password | 401 | `Incorrect username or password.` |
+
+### Why the third one is deliberately vague
+
+An unknown username and a wrong password return the **same sentence**. If they
+differed, anyone could discover which usernames exist by trying them and
+reading which message came back. The cost is a less helpful message for someone
+who genuinely mistyped their username; that is the right trade.
+
+### The first one needs no new frontend code
+
+`FavoriteButton` already flips optimistically, rolls back when the request
+fails, and shows the backend's own sentence. So the 401 reaches the cook as
+*"Please sign in to save favorites."* through a path that already exists.
+
+---
+
 ## Status
 
 - **RB-82** — this document. Done when both sides have read it.
