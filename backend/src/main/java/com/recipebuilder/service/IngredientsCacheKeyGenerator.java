@@ -26,7 +26,8 @@ public class IngredientsCacheKeyGenerator implements KeyGenerator {
      * @param target the object whose method was called (unused)
      * @param method the method that was called (unused)
      * @param params params[0] is the ingredient text, params[1] the diet and intolerances
-     * @return the cleaned ingredients plus the cleaned filters, used as the cache key
+     * @return the cleaned ingredients alone when nothing is filtered, otherwise
+     *         the cleaned ingredients plus the cleaned filters
      */
     @Override
     public Object generate(Object target, Method method, Object... params) {
@@ -42,6 +43,13 @@ public class IngredientsCacheKeyGenerator implements KeyGenerator {
             raw = found;
         }
         DietaryRestrictions choices = RestrictionsCleaner.clean(raw);
+
+        // An unfiltered search keys on the ingredients alone, so entries cached
+        // before restrictions existed are still found.
+        if (choices.diet().equals(RestrictionsCleaner.NONE)
+                && choices.intolerances().equals(RestrictionsCleaner.NONE)) {
+            return ingredients;
+        }
 
         return ingredients + "|" + choices.diet() + "|" + choices.intolerances();
     }
