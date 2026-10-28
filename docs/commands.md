@@ -90,7 +90,7 @@ unexplained is happening, not routinely.
 Does my key work?
 
 ```bash
-KEY=$(awk -F= '/SPOONACULAR_API_KEY/{v=$2; gsub(/[ \t\r\n]/,"",v); print v}' .env) && curl -s -o /dev/null -w "HTTP %{http_code}\n" "https://api.spoonacular.com/recipes/findByIngredients?ingredients=apple&number=1&apiKey=${KEY}"
+KEY=$(awk -F= '/SPOONACULAR_API_KEY/{v=$2; gsub(/[ \t\r\n]/,"",v); print v}' .env) && curl -s -o /dev/null -w "HTTP %{http_code}\n" "https://api.spoonacular.com/recipes//complexSearch?ingredients=apple&number=1&apiKey=${KEY}"
 ```
 
 `HTTP 200` means the key is good. `401` means it is wrong or has whitespace
@@ -99,13 +99,13 @@ around it. `402` means today's quota is gone.
 See what they actually return:
 
 ```bash
-KEY=$(awk -F= '/SPOONACULAR_API_KEY/{v=$2; gsub(/[ \t\r\n]/,"",v); print v}' .env) && curl -s "https://api.spoonacular.com/recipes/findByIngredients?ingredients=apple&number=2&apiKey=${KEY}" | python3 -m json.tool | head -30
+KEY=$(awk -F= '/SPOONACULAR_API_KEY/{v=$2; gsub(/[ \t\r\n]/,"",v); print v}' .env) && curl -s "https://api.spoonacular.com/recipes/complexSearch?ingredients=apple&number=2&apiKey=${KEY}" | python3 -m json.tool | head -30
 ```
 
 Recapture the test stub from live data:
 
 ```bash
-KEY=$(awk -F= '/SPOONACULAR_API_KEY/{v=$2; gsub(/[ \t\r\n]/,"",v); print v}' .env) && curl -s "https://api.spoonacular.com/recipes/findByIngredients?ingredients=apple&number=2&apiKey=${KEY}" | python3 -m json.tool > backend/src/test/resources/stubs/find-by-ingredients.json
+KEY=$(awk -F= '/SPOONACULAR_API_KEY/{v=$2; gsub(/[ \t\r\n]/,"",v); print v}' .env) && curl -s "https://api.spoonacular.com/recipes/complexSearch?ingredients=apple&number=2&apiKey=${KEY}" | python3 -m json.tool > backend/src/test/resources/stubs/find-by-ingredients.json
 ```
 
 **This breaks the tests on purpose** — the assertions name specific ids and

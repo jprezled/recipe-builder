@@ -161,7 +161,7 @@ One API point, and the test becomes evidence about reality rather than about
 your assumptions:
 
 ```bash
-curl -s "https://api.spoonacular.com/recipes/findByIngredients?ingredients=apple&number=2&apiKey=$KEY" \
+curl -s "https://api.spoonacular.com/recipes/complexSearch?ingredients=apple&number=2&apiKey=$KEY" \
   | python3 -m json.tool > src/test/resources/stubs/whatever.json
 ```
 
