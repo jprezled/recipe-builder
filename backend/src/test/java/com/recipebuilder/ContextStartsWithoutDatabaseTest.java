@@ -1,19 +1,21 @@
 package com.recipebuilder;
 
-import com.recipebuilder.client.SpoonacularClient;
-import com.recipebuilder.client.dto.SpoonacularSearchResult;
-import com.recipebuilder.service.RecipeService;
+import java.util.List;
+
+import static org.assertj.core.api.Assertions.assertThat;
 import org.junit.jupiter.api.Test;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.when;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
-import java.util.List;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.anyInt;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.when;
+import com.recipebuilder.client.SpoonacularClient;
+import com.recipebuilder.client.dto.SpoonacularSearchResult;
+import com.recipebuilder.dto.DietaryRestrictions;
+import com.recipebuilder.service.RecipeService;
 
 /**
  * Searching must keep working when Postgres is not there.
@@ -45,11 +47,11 @@ class ContextStartsWithoutDatabaseTest {
 
     @Test
     void searchStillWorksWithNoDatabaseBehindIt() {
-        when(client.searchByIngredients(anyString(), anyInt())).thenReturn(List.of(
+        when(client.searchByIngredients(anyString(), anyInt(), any(DietaryRestrictions.class))).thenReturn(List.of(
                 new SpoonacularSearchResult(716429L, "Pasta", "http://img/1.jpg", 1, 2,
                         List.of(), List.of())));
 
-        List<?> found = recipeService.searchByIngredients("eggs");
+        List<?> found = recipeService.searchByIngredients("eggs", new DietaryRestrictions("none", "none"));
 
         assertThat(found).hasSize(1);
     }

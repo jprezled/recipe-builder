@@ -1,11 +1,12 @@
 package com.recipebuilder.client;
 
-import com.recipebuilder.exception.ApiKeyMissingException;
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.client.RestClientTest;
 
-import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
+import com.recipebuilder.dto.DietaryRestrictions;
+import com.recipebuilder.exception.ApiKeyMissingException;
 
 /**
  * RB-85: with no key configured, fail immediately with a clear message rather
@@ -25,7 +26,7 @@ class MissingKeyTest {
     @Test
     void aBlankKeyFailsBeforeAnyNetworkCall() {
         assertThatExceptionOfType(ApiKeyMissingException.class)
-                .isThrownBy(() -> client.searchByIngredients("apple", 10))
+                .isThrownBy(() -> client.searchByIngredients("apple", 10, new DietaryRestrictions("none","none")))
                 .withMessageContaining("SPOONACULAR_API_KEY");
     }
 }

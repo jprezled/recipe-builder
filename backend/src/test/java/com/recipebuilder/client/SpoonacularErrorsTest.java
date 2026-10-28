@@ -1,17 +1,18 @@
 package com.recipebuilder.client;
 
-import com.recipebuilder.exception.ApiKeyMissingException;
-import com.recipebuilder.exception.ApiLimitReachedException;
-import com.recipebuilder.exception.ExternalApiException;
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.client.RestClientTest;
 import org.springframework.http.HttpStatus;
 import org.springframework.test.web.client.MockRestServiceServer;
-
-import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.anything;
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withStatus;
+
+import com.recipebuilder.dto.DietaryRestrictions;
+import com.recipebuilder.exception.ApiKeyMissingException;
+import com.recipebuilder.exception.ApiLimitReachedException;
+import com.recipebuilder.exception.ExternalApiException;
 
 /**
  * RB-85: Spoonacular's failures become our own named errors, so nothing above
@@ -37,7 +38,7 @@ class SpoonacularErrorsTest {
         server.expect(anything()).andRespond(withStatus(HttpStatus.PAYMENT_REQUIRED));
 
         assertThatExceptionOfType(ApiLimitReachedException.class)
-                .isThrownBy(() -> client.searchByIngredients("apple", 10));
+                .isThrownBy(() -> client.searchByIngredients("apple", 10, new DietaryRestrictions("none","none")));
     }
 
     @Test
@@ -45,7 +46,7 @@ class SpoonacularErrorsTest {
         server.expect(anything()).andRespond(withStatus(HttpStatus.UNAUTHORIZED));
 
         assertThatExceptionOfType(ApiKeyMissingException.class)
-                .isThrownBy(() -> client.searchByIngredients("apple", 10));
+                .isThrownBy(() -> client.searchByIngredients("apple", 10, new DietaryRestrictions("none","none")));
     }
 
     @Test
@@ -53,7 +54,7 @@ class SpoonacularErrorsTest {
         server.expect(anything()).andRespond(withStatus(HttpStatus.FORBIDDEN));
 
         assertThatExceptionOfType(ApiKeyMissingException.class)
-                .isThrownBy(() -> client.searchByIngredients("apple", 10));
+                .isThrownBy(() -> client.searchByIngredients("apple", 10, new DietaryRestrictions("none","none")));
     }
 
     @Test
@@ -61,6 +62,6 @@ class SpoonacularErrorsTest {
         server.expect(anything()).andRespond(withStatus(HttpStatus.INTERNAL_SERVER_ERROR));
 
         assertThatExceptionOfType(ExternalApiException.class)
-                .isThrownBy(() -> client.searchByIngredients("apple", 10));
+                .isThrownBy(() -> client.searchByIngredients("apple", 10, new DietaryRestrictions("none","none")));
     }
 }

@@ -1,6 +1,11 @@
 package com.recipebuilder.client;
 
-import com.recipebuilder.client.dto.SpoonacularSearchResult;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.util.List;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.hamcrest.Matchers.startsWith;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.client.RestClientTest;
@@ -8,17 +13,13 @@ import org.springframework.core.io.ClassPathResource;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.client.MockRestServiceServer;
-
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.util.List;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.hamcrest.Matchers.startsWith;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.method;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.queryParam;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.requestTo;
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess;
+
+import com.recipebuilder.client.dto.SpoonacularSearchResult;
+import com.recipebuilder.dto.DietaryRestrictions;
 
 /**
  * Specifies SpoonacularClient against a stubbed HTTP response.
@@ -69,7 +70,7 @@ class SpoonacularClientTest {
                 .andExpect(queryParam("apiKey", "test-key-not-a-real-key"))
                 .andRespond(withSuccess(stubbedResponse(), MediaType.APPLICATION_JSON));
 
-        List<SpoonacularSearchResult> results = client.searchByIngredients("apple", 2);
+        List<SpoonacularSearchResult> results = client.searchByIngredients("apple", 2, new DietaryRestrictions("none", "none"));
 
         assertThat(results).hasSize(2);
 
@@ -94,5 +95,47 @@ class SpoonacularClientTest {
     private String stubbedResponse() throws IOException {
         return new ClassPathResource("stubs/complex-search.json")
                 .getContentAsString(StandardCharsets.UTF_8);
+    }
+
+    @Test
+    void dietAndIntolerancesAreSentToSpoonacular() throws IOException {
+        server.expect(requestTo(startsWith("https://api.spoonacular.invalid/recipes/complexSearch")))
+                .andExpect(queryParam("includeIngredients", "apple"))
+                .andExpect(queryParam("diet", "vegetarian"))
+                .andExpect(queryParam("intolerances", "peanut"))
+                .andExpect(queryParam("apiKey", "test-key-not-a-real-key"))
+                .andRespond(withSuccess(stubbedResponse(), MediaType.APPLICATION_JSON));
+
+        client.searchByIngredients("apple", 2, new DietaryRestrictions("vegetarian", "peanut"));
+
+        server.verify();
+    }
+
+    @Test
+    void noneMeansNeitherFilterIsSent() throws IOException {
+        server.expect(requestTo(startsWith("https://api.spoonacular.invalid/recipes/complexSearch")))
+                .andExpect(request -> assertThat(request.getURI().getQuery())
+                        .doesNotContain("diet=")
+                        .doesNotContain("intolerances="))
+                .andRespond(withSuccess(stubbedResponse(), MediaType.APPLICATION_JSON));
+
+        client.searchByIngredients("apple", 2, new DietaryRestrictions("none", "none"));
+
+        server.verify();
+    }
+
+    @Test
+    void onlyTheChoiceThatIsSetIsSent() throws IOException {
+        server.expect(requestTo(startsWith("https://api.spoonacular.invalid/recipes/complexSearch")))
+                .andExpect(queryParam("includeIngredients", "apple"))
+                .andExpect(queryParam("diet", "vegetarian"))
+                .andExpect(queryParam("apiKey", "test-key-not-a-real-key"))
+                .andExpect(request -> assertThat(request.getURI().getQuery())
+                        .doesNotContain("intolerances="))
+                .andRespond(withSuccess(stubbedResponse(), MediaType.APPLICATION_JSON));
+
+        client.searchByIngredients("apple", 2, new DietaryRestrictions("vegetarian", "none"));
+
+        server.verify();
     }
 }
