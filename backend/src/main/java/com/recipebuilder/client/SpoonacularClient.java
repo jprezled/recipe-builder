@@ -1,5 +1,6 @@
 package com.recipebuilder.client;
 
+import com.recipebuilder.client.dto.SpoonacularSearchResponse;
 import com.recipebuilder.client.dto.SpoonacularSearchResult;
 import com.recipebuilder.exception.ApiKeyMissingException;
 import com.recipebuilder.exception.ApiLimitReachedException;
@@ -11,7 +12,6 @@ import org.springframework.web.client.HttpStatusCodeException;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 
-import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -58,29 +58,20 @@ public class SpoonacularClient {
         }
 
         // STEP 1: build the web address we are going to call.
-        //
-        // The {words} in braces are placeholders, filled in at step 2. We do not
-        // paste the real values in here ourselves, because a value like
-        // "green onion" contains a space and spaces are not legal in a URL.
         String url = baseUrl
-                + "/recipes/findByIngredients"
-                + "?ingredients={ingredients}"
+                + "/recipes/complexSearch"
+                + "?includeIngredients={ingredients}"
+                + "&fillIngredients=true"
+                + "&sort=max-used-ingredients"
                 + "&number={number}"
                 + "&apiKey={apiKey}";
 
         // STEP 2: send the request and convert the reply into Java objects.
-        //
-        // getForObject means "do a GET request, then turn the response into this
-        // type". The last three arguments fill the three placeholders above, in
-        // the order they appear in the URL.
-        //
-        // We ask for an array - that is the [] in the type - because Spoonacular
-        // replies with a JSON list of recipes.
-        SpoonacularSearchResult[] recipes;
+        SpoonacularSearchResponse response;
         try {
-            recipes = restTemplate.getForObject(
+            response = restTemplate.getForObject(
                     url,
-                    SpoonacularSearchResult[].class,
+                    SpoonacularSearchResponse.class,
                     ingredients,
                     number,
                     apiKey);
@@ -92,22 +83,16 @@ public class SpoonacularClient {
             throw new ExternalApiException("Could not reach Spoonacular.", failure);
         }
 
-        // STEP 3: hand back a List instead of an array.
-        //
-        // An empty response would leave recipes as null, and returning null
-        // forces every caller to check for it. An empty list is safer.
-        if (recipes == null) {
+        // STEP 3: extract and hand back the list of results.
+        if (response == null || response.results() == null) {
             return List.of();
         }
-        return Arrays.asList(recipes);
+        return response.results();
     }
 
     /**
      * Turns Spoonacular's HTTP status into one of our own errors, so nothing
      * above this class has to know what status codes they use.
-     *
-     * Plain if/else on purpose - one branch per status, so adding a case later
-     * means three obvious lines.
      */
     private RuntimeException translate(int status, Exception cause) {
         if (status == 402) {

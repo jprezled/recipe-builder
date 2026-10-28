@@ -5,7 +5,7 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import java.util.List;
 
 /**
- * Matches ONE item in Spoonacular's /recipes/findByIngredients response.
+ * Matches ONE item in Spoonacular's /recipes/complexSearch response.
  *
  * This is their JSON shape, not ours. A service layer converts it into our own
  * DTO before anything reaches the frontend, so if Spoonacular renames a field

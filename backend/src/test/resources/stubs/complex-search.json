@@ -1,4 +1,5 @@
-[
+{
+  "results": [
     {
         "id": 716433,
         "title": "Easiest Breakfast Ever: Sunny Fruit Parfait",
@@ -148,4 +149,5 @@
         "unusedIngredients": [],
         "likes": 1
     }
-]
+  ]
+}

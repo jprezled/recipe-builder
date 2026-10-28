@@ -20,26 +20,6 @@ import static org.springframework.test.web.client.match.MockRestRequestMatchers.
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.requestTo;
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess;
 
-/**
- * Specifies SpoonacularClient against a stubbed HTTP response.
- *
- * MockRestServiceServer replaces the RestTemplate's request factory, so no socket
- * is ever opened: the response comes from a file on the classpath, an
- * unexpected call fails the test, and the suite needs no API key and burns no
- * quota. The deliberately fake base-url below means a real network call would
- * fail loudly rather than quietly succeed.
- *
- * The stub in src/test/resources/stubs/ is a REAL response captured from
- * Spoonacular on 2026-10-05 (ingredients=apple, number=2), not a hand-written
- * guess. Recapture it with:
- *
- *   curl -s "https://api.spoonacular.com/recipes/findByIngredients\
- *     ?ingredients=apple&number=2&apiKey=$KEY" | python3 -m json.tool \
- *     > src/test/resources/stubs/find-by-ingredients.json
- *
- * Doing so changes the ids and titles below, which is the point: the
- * assertions are tied to data we actually received.
- */
 @RestClientTest(
         value = SpoonacularClient.class,
         properties = {
@@ -55,10 +35,13 @@ class SpoonacularClientTest {
     private MockRestServiceServer server;
 
     @Test
-    void parsesRecipesFromAStubbedFindByIngredientsResponse() throws IOException {
-        server.expect(requestTo(startsWith("https://api.spoonacular.invalid/recipes/findByIngredients")))
+    void parsesRecipesFromAStubbedComplexSearchResponse() throws IOException {
+        server.expect(requestTo(startsWith("https://api.spoonacular.invalid/recipes/complexSearch")))
                 .andExpect(method(HttpMethod.GET))
-                .andExpect(queryParam("ingredients", "apple"))
+                .andExpect(queryParam("includeIngredients", "apple"))
+                .andExpect(queryParam("fillIngredients", "true"))
+                .andExpect(queryParam("sort", "max-used-ingredients"))
+                .andExpect(queryParam("number", "2"))
                 .andExpect(queryParam("apiKey", "test-key-not-a-real-key"))
                 .andRespond(withSuccess(stubbedResponse(), MediaType.APPLICATION_JSON));
 
@@ -85,7 +68,7 @@ class SpoonacularClientTest {
     }
 
     private String stubbedResponse() throws IOException {
-        return new ClassPathResource("stubs/find-by-ingredients.json")
+        return new ClassPathResource("stubs/complex-search.json")
                 .getContentAsString(StandardCharsets.UTF_8);
     }
 }
