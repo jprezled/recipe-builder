@@ -100,4 +100,15 @@ class RecipeErrorResponseTest {
                 .andExpect(jsonPath("$.status").doesNotExist())
                 .andExpect(jsonPath("$.path").doesNotExist());
     }
+    @Test
+    void anUnsupportedDietaryFilterIsABadRequest() throws Exception {
+        when(service.searchByIngredients(anyString(), any(DietaryRestrictions.class)))
+                .thenThrow(new InvalidInputException("That dietary filter is not one we support."));
+
+        mockMvc.perform(get("/api/recipes/search")
+                        .param("ingredients", "apple")
+                        .param("diet", "carnivore"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("That dietary filter is not one we support."));
+    }
 }

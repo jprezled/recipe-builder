@@ -57,7 +57,7 @@ class RecipeServiceTest {
         when(client.searchByIngredients(anyString(), anyInt(), any(DietaryRestrictions.class)))
                 .thenReturn(List.of(theirResult()));
 
-        List<RecipeSummaryDto> ours = service.searchByIngredients("apple" ,new DietaryRestrictions("none", "none"));
+        List<RecipeSummaryDto> ours = service.searchByIngredients("apple", new DietaryRestrictions("none", "none"));
 
         assertThat(ours).hasSize(1);
         RecipeSummaryDto recipe = ours.get(0);
@@ -85,7 +85,8 @@ class RecipeServiceTest {
         when(client.searchByIngredients(anyString(), anyInt(), any(DietaryRestrictions.class))).thenReturn(List.of(
                 new SpoonacularSearchResult(1L, "Half", "img", 2, 2, List.of(), List.of())));
 
-        assertThat(service.searchByIngredients("eggs", new DietaryRestrictions("none", "none")).get(0).matchPercent()).isEqualTo(50);
+        assertThat(service.searchByIngredients("eggs", new DietaryRestrictions("none", "none"))
+                .get(0).matchPercent()).isEqualTo(50);
     }
 
     @Test
@@ -104,7 +105,8 @@ class RecipeServiceTest {
     void noMatchesGivesAnEmptyListNotNull() {
         when(client.searchByIngredients(anyString(), anyInt(), any(DietaryRestrictions.class))).thenReturn(List.of());
 
-        assertThat(service.searchByIngredients("unobtanium", new DietaryRestrictions("none", "none"))).isNotNull().isEmpty();
+        assertThat(service.searchByIngredients("unobtanium", new DietaryRestrictions("none", "none")))
+                .isNotNull().isEmpty();
     }
 
     // ---- RB-85: refuse input we cannot search with -----------------------
@@ -126,52 +128,113 @@ class RecipeServiceTest {
         verifyNoInteractions(client);
     }
 
+    // ---- RB-151: diet and intolerance filters ------------------------------
+
     @Test
-    void validDietAndAllergyReachTheClient() { 
+    void validDietAndAllergyReachTheClient() {
         DietaryRestrictions choices = new DietaryRestrictions("vegan", "peanut");
         when(client.searchByIngredients(anyString(), anyInt(), any(DietaryRestrictions.class)))
                 .thenReturn(List.of());
-        
+
         service.searchByIngredients("apple", choices);
 
         verify(client).searchByIngredients(eq("apple"), anyInt(), eq(choices));
     }
 
     @Test
-    void noneIsAcceptedForBothChoices() { 
+    void noneIsAcceptedForBothChoices() {
         DietaryRestrictions choices = new DietaryRestrictions("none", "none");
         when(client.searchByIngredients(anyString(), anyInt(), any(DietaryRestrictions.class)))
                 .thenReturn(List.of());
-        
+
         service.searchByIngredients("apple", choices);
 
         verify(client).searchByIngredients(eq("apple"), anyInt(), eq(choices));
     }
 
     @Test
-    void unknownDietIsRejectedBeforeSpoonacularIsCalled() { 
+    void unknownDietIsRejectedBeforeSpoonacularIsCalled() {
         assertThatExceptionOfType(InvalidInputException.class)
-                .isThrownBy(() -> service.searchByIngredients("apple", 
-                            new DietaryRestrictions("Carnivore-ish", "none")));
+                .isThrownBy(() -> service.searchByIngredients("apple",
+                        new DietaryRestrictions("carnivore", "none")));
 
         verifyNoInteractions(client);
     }
 
     @Test
-    void unknownAllergyIsRejectedBeforeSpoonacularIsCalled() { 
+    void unknownAllergyIsRejectedBeforeSpoonacularIsCalled() {
         assertThatExceptionOfType(InvalidInputException.class)
-                .isThrownBy(() -> service.searchByIngredients("apple", 
-                            new DietaryRestrictions("none", "Pollen")));
+                .isThrownBy(() -> service.searchByIngredients("apple",
+                        new DietaryRestrictions("none", "pollen")));
 
         verifyNoInteractions(client);
     }
-    
+
     @Test
-    void blankIngredientsIsStillRejectedWhenAFilterIsSet() { 
+    void blankIngredientsIsStillRejectedWhenAFilterIsSet() {
         assertThatExceptionOfType(InvalidInputException.class)
                 .isThrownBy(() -> service.searchByIngredients("     ",
-                            new DietaryRestrictions("Vegan", "none")));
-        
+                        new DietaryRestrictions("vegan", "none")));
+
         verifyNoInteractions(client);
+    }
+
+    @Test
+    void severalIntolerancesAreCleanedSortedAndSentTogether() {
+        when(client.searchByIngredients(anyString(), anyInt(), any(DietaryRestrictions.class)))
+                .thenReturn(List.of());
+
+        service.searchByIngredients("apple", new DietaryRestrictions("vegan", " Peanut, dairy "));
+
+        verify(client).searchByIngredients(eq("apple"), anyInt(),
+                eq(new DietaryRestrictions("vegan", "dairy,peanut")));
+    }
+
+    @Test
+    void valuesWithSpacesInThemAreAccepted() {
+        when(client.searchByIngredients(anyString(), anyInt(), any(DietaryRestrictions.class)))
+                .thenReturn(List.of());
+
+        service.searchByIngredients("apple", new DietaryRestrictions("gluten free", "tree nut"));
+
+        verify(client).searchByIngredients(eq("apple"), anyInt(),
+                eq(new DietaryRestrictions("gluten free", "tree nut")));
+    }
+
+    @Test
+    void capitalsAreCleanedToLowercaseBeforeTheClientSeesThem() {
+        when(client.searchByIngredients(anyString(), anyInt(), any(DietaryRestrictions.class)))
+                .thenReturn(List.of());
+
+        service.searchByIngredients("apple", new DietaryRestrictions("Vegetarian", "Soy"));
+
+        verify(client).searchByIngredients(eq("apple"), anyInt(),
+                eq(new DietaryRestrictions("vegetarian", "soy")));
+    }
+
+    @Test
+    void oneBadItemInTheListRefusesTheWholeList() {
+        assertThatExceptionOfType(InvalidInputException.class)
+                .isThrownBy(() -> service.searchByIngredients("apple",
+                        new DietaryRestrictions("none", "peanut,pollen")));
+
+        verifyNoInteractions(client);
+    }
+
+    @Test
+    void moreThanOneDietIsRefused() {
+        assertThatExceptionOfType(InvalidInputException.class)
+                .isThrownBy(() -> service.searchByIngredients("apple",
+                        new DietaryRestrictions("vegan,vegetarian", "none")));
+
+        verifyNoInteractions(client);
+    }
+
+    @Test
+    void theRefusalUsesTheAgreedSentence() {
+        assertThatExceptionOfType(InvalidInputException.class)
+                .isThrownBy(() -> service.searchByIngredients("apple",
+                        new DietaryRestrictions("carnivore", "none")))
+                .withMessage("That dietary filter is not one we support.");
     }
 }

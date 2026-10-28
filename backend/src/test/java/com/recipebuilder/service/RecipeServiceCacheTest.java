@@ -129,4 +129,13 @@ class RecipeServiceCacheTest {
 
         verify(client, times(2)).searchByIngredients(anyString(), anyInt(), any(DietaryRestrictions.class));
     }
+    @Test
+    void intolerancesInAnyOrderShareOneCacheEntry() {
+        service.searchByIngredients("tomato", new DietaryRestrictions("none", "peanut,dairy"));
+        service.searchByIngredients("tomato", new DietaryRestrictions("none", "dairy,peanut"));
+        service.searchByIngredients("tomato", new DietaryRestrictions("none", " DAIRY , peanut"));
+
+        verify(client, times(1)).searchByIngredients(anyString(), anyInt(), any(DietaryRestrictions.class));
+    }
+    
 }
