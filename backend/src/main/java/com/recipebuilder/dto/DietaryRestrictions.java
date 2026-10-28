@@ -1,24 +1,19 @@
 package com.recipebuilder.dto;
+
 import java.util.List;
 
 /**
- * The customer's diet and allergy choices, plus the values we accept for each
- * "none"
- * 
- * 
- * 
+ * The cook's diet and intolerance choices, plus the values we accept for each.
+ *
+ * The approved values come from docs/dietary-filter-contract.md (RB-168):
+ * nine in all, lowercase, with spaces rather than hyphens. "none" means the
+ * cook chose nothing and is always allowed, so it is not in either list.
  */
-public record DietaryRestrictions (
+public record DietaryRestrictions(String diet, String intolerances) {
 
-        String diet, 
-        String allergies) {
+    public static final List<String> APPROVED_DIETS = List.of(
+            "vegetarian", "vegan", "gluten free");
 
-        public static final List<String> APPROVED_DIETS = List.of(
-                "Gluten Free", "Ketogenic", "Vegetarian", "Lacto-Vegetarian",
-            "Ovo-Vegetarian", "Vegan", "Pescetarian", "Paleo", "Primal");
-
-        public static final List<String> APPROVED_ALLERGIES = List.of(
-            "Dairy", "Egg", "Gluten", "Grain", "Peanut", "Seafood",
-            "Sesame", "Shellfish", "Soy", "Sulfite", "Tree Nut", "Wheat");
+    public static final List<String> APPROVED_INTOLERANCES = List.of(
+            "dairy", "egg", "peanut", "tree nut", "shellfish", "soy");
 }
-

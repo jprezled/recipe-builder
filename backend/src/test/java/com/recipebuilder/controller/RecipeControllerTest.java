@@ -72,17 +72,18 @@ class RecipeControllerTest {
     }
 
     @Test
-    void passesDietAndAllergiesFromTheQueryStringToTheService() throws Exception { 
+    void passesDietAndIntolerancesFromTheQueryStringToTheService() throws Exception {
         when(service.searchByIngredients(anyString(), any(DietaryRestrictions.class))).thenReturn(List.of());
 
         mockMvc.perform(get("/api/recipes/search")
-                            .param("ingredients", "tomato")
-                            .param("diet", "Vegan")
-                            .param("allergies", "Peanut"))
-                         .andExpect(status().isOk());
+                        .param("ingredients", "tomato")
+                        .param("diet", "vegan")
+                        .param("intolerances", "peanut"))
+                .andExpect(status().isOk());
 
-        verify(service).searchByIngredients(eq("tomato"), eq(new DietaryRestrictions("Vegan", "Peanut")));
+        verify(service).searchByIngredients(eq("tomato"), eq(new DietaryRestrictions("vegan", "peanut")));
     }
+
     @Test
     void missingDietAndAllergiesBecomeNone() throws Exception { 
         when(service.searchByIngredients(anyString(), any(DietaryRestrictions.class)))

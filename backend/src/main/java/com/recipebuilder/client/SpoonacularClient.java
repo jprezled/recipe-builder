@@ -80,9 +80,9 @@ public class SpoonacularClient {
             url += "&diet={diet}";
             values.add(choices.diet());
         }
-        if (hasValue(choices.allergies())) {
+        if (hasValue(choices.intolerances())) {
             url += "&intolerances={intolerances}";
-            values.add(choices.allergies());
+            values.add(choices.intolerances());
         }
 
         // STEP 2: send the request and convert the reply into Java objects.

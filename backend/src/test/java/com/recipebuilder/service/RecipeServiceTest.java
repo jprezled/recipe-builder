@@ -128,7 +128,7 @@ class RecipeServiceTest {
 
     @Test
     void validDietAndAllergyReachTheClient() { 
-        DietaryRestrictions choices = new DietaryRestrictions("Vegan", "Peanut");
+        DietaryRestrictions choices = new DietaryRestrictions("vegan", "peanut");
         when(client.searchByIngredients(anyString(), anyInt(), any(DietaryRestrictions.class)))
                 .thenReturn(List.of());
         

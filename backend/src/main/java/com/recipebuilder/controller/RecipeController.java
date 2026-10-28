@@ -11,9 +11,10 @@ import com.recipebuilder.dto.RecipeSummaryDto;
 import com.recipebuilder.service.RecipeService;
 
 /**
- * Our own web address: GET /api/recipes/search?ingredients=eggs,milk,flour
+ * Our own web address:
+ * GET /api/recipes/search?ingredients=eggs,milk&diet=vegetarian&intolerances=dairy,peanut
  *
- * Deliberately thin. It takes the words out of the web request, hands it to the
+ * Deliberately thin. It takes the words out of the web request, hands them to the
  * service, and returns whatever comes back. No rules live here - that is the
  * service's job, and keeping them apart is what lets both be tested on their
  * own.
@@ -34,17 +35,17 @@ public class RecipeController {
     /**
      * Finds recipes using one or more ingredients.
      *
-     * @param ingredients the ?ingredients=... part of the address, comma
-     *                    separated, e.g. "eggs,milk,flour"
+     * @param ingredients  the ?ingredients=... part of the address, comma
+     *                     separated, e.g. "eggs,milk,flour"
+     * @param diet         optional ?diet=..., exactly one value; "none" when left out
+     * @param intolerances optional ?intolerances=..., comma separated; "none" when left out
      * @return recipes in our own shape, which Spring serialises to JSON
-     * @param diet      optional ?diet=..., e.g "Vegan"; "none" when left out
-     * @param allergies optional ?allergies=.... e.g "Peanut"; "none" when left out
      */
     @GetMapping("/api/recipes/search")
     public List<RecipeSummaryDto> search(
-                    @RequestParam String ingredients,
-                    @RequestParam(defaultValue = "none") String diet,
-                    @RequestParam(defaultValue = "none") String allergies) { 
-        return service.searchByIngredients(ingredients, new DietaryRestrictions(diet, allergies));
+            @RequestParam String ingredients,
+            @RequestParam(defaultValue = "none") String diet,
+            @RequestParam(defaultValue = "none") String intolerances) {
+        return service.searchByIngredients(ingredients, new DietaryRestrictions(diet, intolerances));
     }
 }
