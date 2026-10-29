@@ -30,6 +30,13 @@ class PasswordHasherTest {
     }
 
     @Test
+    void theLiteralPlaceholderFromV2DoesNotVerify() {
+        // V2__demo_user.sql stored the text 'not-a-real-hash'. Nothing should
+        // ever match it - that is what RB-164 exists to fix.
+        assertFalse(hasher.matches("demo1234", "not-a-real-hash"));
+    }
+
+    @Test
     void wrongPasswordDoesNotMatch() {
         String hash = hasher.hash("examplePassword123!");
 
