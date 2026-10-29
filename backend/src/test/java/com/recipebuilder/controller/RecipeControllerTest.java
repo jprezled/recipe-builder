@@ -6,6 +6,8 @@ import org.junit.jupiter.api.Test;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -17,6 +19,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.recipebuilder.dto.DietaryRestrictions;
+import com.recipebuilder.dto.RecipeDetailDto;
 import com.recipebuilder.dto.RecipeSummaryDto;
 import com.recipebuilder.service.RecipeService;
 
@@ -96,6 +99,46 @@ class RecipeControllerTest {
         verify(service).searchByIngredients(eq("tomato"), eq(new DietaryRestrictions("none", "none")));
         
             }
+
+    @Test
+    void returnsOneRecipeAsJson() throws Exception {
+        when(service.getRecipe(660101L)).thenReturn(new RecipeDetailDto(
+                660101L,
+                "Simple Garlic Pasta",
+                "https://img.spoonacular.com/recipes/660101-556x370.jpg",
+                1,
+                45,
+                List.of("3 cloves of garlic (minced)"),
+                List.of("Start with boiling water in a large pot."),
+                new RecipeDetailDto.Diets(true, true, false, true)));
+
+        mockMvc.perform(get("/api/recipes/660101"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(660101))
+                .andExpect(jsonPath("$.title").value("Simple Garlic Pasta"))
+                .andExpect(jsonPath("$.imageUrl").value("https://img.spoonacular.com/recipes/660101-556x370.jpg"))
+                .andExpect(jsonPath("$.servings").value(1))
+                .andExpect(jsonPath("$.readyInMinutes").value(45))
+                .andExpect(jsonPath("$.ingredients[0]").value("3 cloves of garlic (minced)"))
+                .andExpect(jsonPath("$.steps[0]").value("Start with boiling water in a large pot."))
+                .andExpect(jsonPath("$.diets.vegetarian").value(true))
+                .andExpect(jsonPath("$.diets.glutenFree").value(false));
     }
 
+    /**
+     * The pattern route /api/recipes/{id} now sits beside the literal
+     * /api/recipes/search. Spring SHOULD prefer the literal word - but if it
+     * ever stops doing so, every search in the app returns 400, so this is
+     * pinned rather than assumed.
+     */
+    @Test
+    void theSearchAddressStillWinsOverTheIdPattern() throws Exception {
+        when(service.searchByIngredients(anyString(), any(DietaryRestrictions.class))).thenReturn(List.of());
 
+        mockMvc.perform(get("/api/recipes/search").param("ingredients", "apple"))
+                .andExpect(status().isOk());
+
+        verify(service).searchByIngredients(eq("apple"), eq(new DietaryRestrictions("none", "none")));
+        verify(service, never()).getRecipe(anyLong());
+    }
+}
