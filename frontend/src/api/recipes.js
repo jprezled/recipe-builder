@@ -43,7 +43,8 @@ async function readErrorMessage(response) {
  * @returns {Promise<Array>} the recipes, or an empty array if none matched
  * @throws {Error} with a message that can be displayed as-is
  */
-export async function searchRecipes(ingredients) {
+//export async function searchRecipes(ingredients) { //legacy
+export async function searchRecipes(ingredients, restrictions) {
   // STEP 1: build a RELATIVE address.
   //
   // Vite forwards /api to the backend on 8080, so the browser only ever talks
@@ -52,7 +53,20 @@ export async function searchRecipes(ingredients) {
   //
   // encodeURIComponent escapes the value - "green onion" has a space, and a
   // space is not legal in a URL.
-  const address = '/api/recipes/search?ingredients=' + encodeURIComponent(ingredients)
+
+  //const address = '/api/recipes/search?ingredients=' + encodeURIComponent(ingredients) //legacy
+    let address = '/api/recipes/search?ingredients=' + encodeURIComponent(ingredients)
+
+  // Left off entirely when absent rather than sent empty, so an unfiltered
+  // search is byte-for-byte the request it has always been - and so the
+  // backend keys it to the same cache entry.
+  if (restrictions && restrictions.diet) {
+    address += '&diet=' + encodeURIComponent(restrictions.diet)
+  }
+  if (restrictions && restrictions.intolerances) {
+    address += '&intolerances=' + encodeURIComponent(restrictions.intolerances)
+  }
+
 
   // STEP 2: send the request.
   //

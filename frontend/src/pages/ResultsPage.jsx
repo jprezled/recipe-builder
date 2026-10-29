@@ -3,8 +3,8 @@ import { Link, useSearchParams } from 'react-router-dom'
 import { getFavorites, searchRecipes } from '../api/recipes'
 import RecipeCard from '../components/RecipeCard'
 
-// Temporary preview: uncomment this import and the block below to inspect filter controls.
-//import DietaryFilters from '../components/DietaryFilters'
+// Temporary preview: uncomment this import and the block below to inspect filter controls. done
+import DietaryFilters from '../components/DietaryFilters'
 
 
 /**
@@ -25,9 +25,16 @@ export default function ResultsPage({
   // The standalone page gets its ingredients from the query string.
   // When this component is inside HomePage, Home passes the ingredients
   // directly as a prop instead.
-  const [searchParams] = useSearchParams()
-  const ingredients =
-    suppliedIngredients ?? searchParams.get('ingredients') ?? ''
+  //Adds the two values to effect's watch list, so they appear with address changes
+  const [searchParams, setSearchParams] = useSearchParams()
+  const ingredients = suppliedIngredients ?? searchParams.get('ingredients') ?? ''
+
+  // The restrictions always come from the address, even when the ingredients
+  // arrive as a prop. The address is the one source of truth, so a filtered
+  // search can be refreshed, bookmarked and shared.
+  const diet = searchParams.get('diet')
+  const intolerances = searchParams.get('intolerances')
+
 
   // Store the recipes and favorite IDs separately. Recipes supply the card
   // content; favorite IDs tell each card whether its star should be selected.
@@ -68,7 +75,8 @@ export default function ResultsPage({
         // the same time. A favorites-service failure should not prevent the
         // recipe search from succeeding.
         const [foundRecipes, savedFavorites] = await Promise.all([
-          searchRecipes(ingredients),
+          //searchRecipes(ingredients), //legacy, add new paramters 
+          searchRecipes(ingredients, { diet, intolerances }),   
           getFavorites().catch(() => []),
         ])
 
@@ -101,8 +109,36 @@ export default function ResultsPage({
     return () => {
       stillOnThisPage = false
     }
-  }, [ingredients])
+  }, [ingredients, diet, intolerances]) //added diet and intolerances 
 
+// === RB-173 Apply Handler
+  /**
+   * Put the chosen restrictions in the address.
+   *
+   * Apply navigates rather than searching directly: the effect above already
+   * re-runs when these change, so the address stays the one source of truth.
+   */
+  function handleApplyFilters(chosenDiet, chosenIntolerances) {
+    const next = new URLSearchParams(searchParams)
+
+    // Removed rather than set to an empty value, so an unfiltered search has
+    // a clean address and the request matches what it always sent.
+    if (chosenDiet) {
+      next.set('diet', chosenDiet)
+    } else {
+      next.delete('diet')
+    }
+
+    if (chosenIntolerances.length > 0) {
+      next.set('intolerances', chosenIntolerances.join(','))
+    } else {
+      next.delete('intolerances')
+    }
+
+    setSearchParams(next)
+  }
+
+  
   /**
    * Keep the star state in sync after a favorite button is clicked.
    *
@@ -161,17 +197,19 @@ export default function ResultsPage({
       </div>
 
       
-      {/*
-        Temporary preview: reports choices without filtering recipes. 
-         To enable, uncomment this component and its import.
+      
+      
 
-        <DietaryFilters
-          onApply={(diet, intolerances) => {
-            console.log('Selected diet:', diet)
-            console.log('Selected exclusions:', intolerances)
-        }}
+      {/* The key remounts the controls when the applied choices change, so
+      they always show what the address actually asked for - including
+      after a refresh or a Back. */}
+      <DietaryFilters
+        key={(diet ?? '') + '|' + (intolerances ?? '')}
+        selectedDiet={diet}
+        selectedIntolerances={intolerances ? intolerances.split(',') : []}
+        onApply={handleApplyFilters}
       />
-      */}
+
 
       {/* Keep the user informed while the recipe search is running. */}
       {isSearching && <p>Searching...</p>}

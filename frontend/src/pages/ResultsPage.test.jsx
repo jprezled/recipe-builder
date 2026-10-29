@@ -35,13 +35,60 @@ describe('ResultsPage', () => {
     getFavorites.mockResolvedValue([])
   })
 
+  // ---- RB-173: the restrictions travel in the address --------------------
+
+  it('sends the restrictions from the address to the search', async () => {
+    searchRecipes.mockResolvedValue([])
+    renderResults('?ingredients=eggs&diet=vegetarian&intolerances=dairy,peanut')
+
+    await vi.waitFor(() =>
+      expect(searchRecipes).toHaveBeenCalledWith('eggs', {
+        diet: 'vegetarian',
+        intolerances: 'dairy,peanut',
+      }),
+    )
+  })
+
+  it('searches again with the new choices when Apply is pressed', async () => {
+    searchRecipes.mockResolvedValue([])
+    renderResults('?ingredients=eggs')
+
+    await vi.waitFor(() => expect(searchRecipes).toHaveBeenCalled())
+
+    await userEvent.click(screen.getByRole('radio', { name: /vegan/i }))
+    await userEvent.click(screen.getByRole('button', { name: /apply/i }))
+
+    // Apply does not search directly - it changes the address, and the
+    // existing effect notices.
+    await vi.waitFor(() =>
+      expect(searchRecipes).toHaveBeenLastCalledWith('eggs', {
+        diet: 'vegan',
+        intolerances: null,
+      }),
+    )
+  })
+
+  it('shows the empty message, not an error, when a filter matches nothing', async () => {
+    searchRecipes.mockResolvedValue([])
+    renderResults('?ingredients=chicken&diet=vegetarian')
+
+    expect(await screen.findByText('No recipes found for those ingredients.'))
+      .toBeInTheDocument()
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+  })
+
+  // --- end of RB-173: restrictions travels tests
+
   it('searches for the ingredients in the address', async () => {
     searchRecipes.mockResolvedValue([])
     renderResults('?ingredients=eggs,milk,flour')
 
     expect(await screen.findByText('No recipes found for those ingredients.'))
       .toBeInTheDocument()
-    expect(searchRecipes).toHaveBeenCalledWith('eggs,milk,flour')
+    expect(searchRecipes).toHaveBeenCalledWith('eggs,milk,flour', {
+      diet: null,
+      intolerances: null,
+    })
   })
 
   it('shows the recipes the backend returned', async () => {

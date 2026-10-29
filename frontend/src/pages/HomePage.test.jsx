@@ -75,7 +75,12 @@ describe('HomePage', () => {
     await add('eggs')
     await add('milk')
     await userEvent.click(screen.getByRole('button', { name: 'Generate Recipes' }))
-    await vi.waitFor(() => expect(searchRecipes).toHaveBeenCalledWith('eggs,milk'))
+    // RB-173 updated the test to include all three arguments
+    await vi.waitFor(() => expect(searchRecipes).toHaveBeenCalledWith('eggs,milk', {
+      diet: null,
+      intolerances: null,
+    }),
+  )
   })
 
   it('does not search until Generate Recipes is pressed', async () => {
