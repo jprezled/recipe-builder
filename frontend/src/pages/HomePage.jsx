@@ -110,10 +110,14 @@ export default function HomePage() {
   // ingredients this way lets the embedded page search for this exact list.
   const ingredientsForResults = ingredients.join(',')
 
-  // The standalone Results page reads its ingredients from the URL. The
-  // Expand link uses this address to open that full-page version.
-  const resultsUrl =
-    '/results?ingredients=' + encodeURIComponent(ingredientsForResults)
+  // The filters live in this page's own address, so Expand has to carry them
+  // across. Sending only the ingredients would quietly drop a restriction the
+  // cook had set - the one failure this whole filter exists to avoid.
+  const resultsParams = new URLSearchParams(searchParams)
+  resultsParams.set('ingredients', ingredientsForResults)
+
+  const resultsUrl = '/results?' + resultsParams.toString()
+
 
   return (
     <main className="home-page">

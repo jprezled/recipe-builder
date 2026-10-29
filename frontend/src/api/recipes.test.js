@@ -49,6 +49,45 @@ describe('searchRecipes', () => {
     expect(fetchSpy.mock.calls[0][0]).toBe('/api/recipes/search?ingredients=green%20onion')
   })
 
+
+    // ---- RB-173: the restrictions ------------------------------------------
+
+  it('sends neither parameter when there are no restrictions', async () => {
+    const fetchSpy = vi.fn().mockResolvedValue({ ok: true, json: async () => [] })
+    vi.stubGlobal('fetch', fetchSpy)
+
+    // An unfiltered search must be byte-for-byte what it always was, so the
+    // backend keys it to the cache entry it already has.
+    await searchRecipes('apple', { diet: null, intolerances: null })
+
+    expect(fetchSpy.mock.calls[0][0]).toBe('/api/recipes/search?ingredients=apple')
+  })
+
+  it('sends both parameters when both are chosen', async () => {
+    const fetchSpy = vi.fn().mockResolvedValue({ ok: true, json: async () => [] })
+    vi.stubGlobal('fetch', fetchSpy)
+
+    await searchRecipes('apple', { diet: 'vegetarian', intolerances: 'dairy,peanut' })
+
+    expect(fetchSpy.mock.calls[0][0]).toBe(
+      '/api/recipes/search?ingredients=apple&diet=vegetarian&intolerances=dairy%2Cpeanut',
+    )
+  })
+
+  it('escapes a value containing a space', async () => {
+    const fetchSpy = vi.fn().mockResolvedValue({ ok: true, json: async () => [] })
+    vi.stubGlobal('fetch', fetchSpy)
+
+    // "gluten free" and "tree nut" really do contain a space.
+    await searchRecipes('apple', { diet: 'gluten free', intolerances: 'tree nut' })
+
+    expect(fetchSpy.mock.calls[0][0]).toBe(
+      '/api/recipes/search?ingredients=apple&diet=gluten%20free&intolerances=tree%20nut',
+    )
+  })
+
+
+
   // ---- failure -----------------------------------------------------------
 
   it('rejects with the message our backend sent', async () => {
@@ -93,3 +132,7 @@ describe('searchRecipes', () => {
     await expect(searchRecipes('apple')).rejects.toThrow(/^[A-Z][^{}]*\.$/)
   })
 })
+
+
+
+
