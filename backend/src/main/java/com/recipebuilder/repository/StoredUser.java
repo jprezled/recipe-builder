@@ -6,5 +6,4 @@ package com.recipebuilder.repository;
  * gets a different type with no passwordHash in it.
  */
 public record StoredUser(long id, String username, String email, String passwordHash) {
-    
 }

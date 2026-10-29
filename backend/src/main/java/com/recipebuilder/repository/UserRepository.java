@@ -69,11 +69,10 @@ public class UserRepository {
      */
     private RuntimeException asOurs(DataAccessException failure) {
         if (failure instanceof DataIntegrityViolationException) {
-            // A constraint said no: duplicate name, duplicate email or a value
-            // too long for its column. One branch, so the message does not
-            // claim to know which.
+            // The UNIQUE constraints on username and email, and also a value
+            // too long for its column - Postgres reports all three this way.
             return new UsernameTakenException(
-                    "That username or email cannot be used.", failure);
+                    "That username is taken. Please pick another.", failure);
         }
         return new DatabaseUnavailableException("Could not reach the database.", failure);
     }
