@@ -18,7 +18,7 @@ Stores accounts that can save recipes.
 | `user_id` | `SERIAL` (`INTEGER`) | `PRIMARY KEY` | Automatically generated user identifier. |
 | `username` | `VARCHAR(50)` | `NOT NULL`, `UNIQUE` | User's display/login name. |
 | `email` | `VARCHAR(255)` | `NOT NULL`, `UNIQUE` | User's email address. |
-| `password_hash` | `VARCHAR(255)` | `NOT NULL` | BCrypt hash of the password, 60 characters, written only by `PasswordHasher`. Never a plain password. |
+| `password_hash` | `VARCHAR(255)` | `NOT NULL` | A BCrypt hash, 60 characters. Never a plain password. Application code only ever produces this value through `PasswordHasher`; the migrations write it as a literal. |
 | `created_at` | `TIMESTAMP WITH TIME ZONE` | Default `CURRENT_TIMESTAMP`; nullable | Account creation time. |
 
 ## Table: `ingredients`
