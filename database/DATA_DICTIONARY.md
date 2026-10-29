@@ -2,6 +2,9 @@
 
 This document describes the schema defined by
 [`migrations/V1__initial_schema.sql`](migrations/V1__initial_schema.sql).
+Later migrations change data rather than structure:
+[`V3__demo_user_password.sql`](migrations/V3__demo_user_password.sql) replaced
+the demo user's placeholder `password_hash` with a real BCrypt scramble.
 `SERIAL` columns are integer identifiers that PostgreSQL populates
 automatically. Unless a column is explicitly marked `NOT NULL`, it is nullable;
 a default value does not make a column non-nullable.
@@ -15,7 +18,7 @@ Stores accounts that can save recipes.
 | `user_id` | `SERIAL` (`INTEGER`) | `PRIMARY KEY` | Automatically generated user identifier. |
 | `username` | `VARCHAR(50)` | `NOT NULL`, `UNIQUE` | User's display/login name. |
 | `email` | `VARCHAR(255)` | `NOT NULL`, `UNIQUE` | User's email address. |
-| `password_hash` | `VARCHAR(255)` | `NOT NULL` | Stores the hashed password. |
+| `password_hash` | `VARCHAR(255)` | `NOT NULL` | A BCrypt hash, 60 characters. Never a plain password. Application code only ever produces this value through `PasswordHasher`; the migrations write it as a literal. |
 | `created_at` | `TIMESTAMP WITH TIME ZONE` | Default `CURRENT_TIMESTAMP`; nullable | Account creation time. |
 
 ## Table: `ingredients`

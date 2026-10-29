@@ -68,20 +68,48 @@ it is not recognised, use the full path:
 ## Apply the migrations
 
 In order, to **both** databases. V1 creates the five tables. V2 creates the one
-hardcoded user that saved recipes belong to until accounts ship.
+hardcoded user that saved recipes belong to until accounts ship. V3 gives that
+user a real password so it can sign in once accounts are live - see
+[the demo account](#the-demo-account) below.
 
 #### On Mac, Linux, or Git Bash
 
 ```bash
 psql -d recipe_builder_db      -f database/migrations/V1__initial_schema.sql
 psql -d recipe_builder_db      -f database/migrations/V2__demo_user.sql
+psql -d recipe_builder_db      -f database/migrations/V3__demo_user_password.sql
 psql -d recipe_builder_test_db -f database/migrations/V1__initial_schema.sql
 psql -d recipe_builder_test_db -f database/migrations/V2__demo_user.sql
+psql -d recipe_builder_test_db -f database/migrations/V3__demo_user_password.sql
 ```
+
+Already have the databases from sprint 2? You only need the V3 line for each -
+it is the one new file, and it is safe to re-run.
+
+## The demo account
+
+`V3__demo_user_password.sql` gives the hardcoded user a password that works:
+
+| | |
+|---|---|
+| Username | `demo` |
+| Password | `demo1234` |
+
+It exists so the app has an account with saved recipes on it from the start - a
+fresh signup has an empty favorites page, which makes for a poor demo and tempts
+somebody into saving recipes live while the API quota is being watched.
+
+The hash in that migration came from the application's own `PasswordHasher`.
+**Do not regenerate it on a website** - different BCrypt settings produce a hash
+that never verifies, and the failure looks exactly like a bug in the login code.
+
+A password written down in the repository is a smell. It is acceptable here only
+because this is coursework on a private repo and the account holds nothing real.
+It must never reach anything public.
 
 #### On Windows
 
-The same two commands, with two differences.
+The same three commands, with two differences.
 
 **`psql` is often not on your PATH.** The installer does not always add it, so
 `psql` may come back as "not recognized". Either add
@@ -90,9 +118,10 @@ The same two commands, with two differences.
 ```powershell
 & "C:\Program Files\PostgreSQL\18\bin\psql.exe" -U postgres -d recipe_builder_db -f database/migrations/V1__initial_schema.sql
 & "C:\Program Files\PostgreSQL\18\bin\psql.exe" -U postgres -d recipe_builder_db -f database/migrations/V2__demo_user.sql
+& "C:\Program Files\PostgreSQL\18\bin\psql.exe" -U postgres -d recipe_builder_db -f database/migrations/V3__demo_user_password.sql
 ```
 
-Then the same two again with `-d recipe_builder_test_db`. Four runs in total,
+Then the same three again with `-d recipe_builder_test_db`. Six runs in total,
 same as the Mac block above.
 
 Adjust `18` to your version. Forward slashes in the file path are fine - psql
