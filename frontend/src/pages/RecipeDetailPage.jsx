@@ -10,6 +10,21 @@ import FavoriteButton from '../components/FavoriteButton'
 const COULD_NOT_LOAD = 'Could not load recipes. Please try again.'
 
 /**
+ * The labels a recipe reports about itself.
+ *
+ * Field name and label are kept apart on purpose: these labels are NOT the
+ * strings the dietary filter sends. The filter sends "gluten free" as a search
+ * parameter; this is a badge reading "Gluten free". Two vocabularies that
+ * happen to look alike - see docs/dietary-filter-contract.md.
+ */
+const DIET_LABELS = [
+  { field: 'vegetarian', label: 'Vegetarian' },
+  { field: 'vegan', label: 'Vegan' },
+  { field: 'glutenFree', label: 'Gluten free' },
+  { field: 'dairyFree', label: 'Dairy free' },
+]
+
+/**
  * The page for one recipe, named by the id in the address.
  *
  * The heading, image, description slot, button group and two sections are
@@ -96,6 +111,15 @@ export default function RecipeDetailPage() {
           <p className="detail-description">
             Serves {recipe.servings} · ready in {recipe.readyInMinutes} minutes
           </p>
+
+          {/* These four flags arrive in the call the page already makes, so
+              showing them costs nothing extra. Search results do not carry
+              them, which is why the result cards have no badges. */}
+          <ul className="diet-badges">
+            {DIET_LABELS.filter((one) => recipe.diets[one.field]).map((one) => (
+              <li key={one.field}>{one.label}</li>
+            ))}
+          </ul>
 
           <div className="button-group">
             <FavoriteButton

@@ -139,6 +139,24 @@ describe('RecipeDetailPage', () => {
     ).toBeInTheDocument()
   })
 
+  it('keeps Andrew wide worded Save button, not the cards star', async () => {
+    // His design for this page. The star belongs on the result cards, where
+    // space is tight; here the control is wide and says what it does.
+    renderDetail()
+
+    const save = await screen.findByRole('button', { name: 'Save Simple Garlic Pasta to favorites' })
+    expect(save).toHaveTextContent('Save to Favorites')
+    expect(save).not.toHaveTextContent('☆')
+  })
+
+  it('reads Remove from Favorites once the recipe is saved', async () => {
+    getFavorites.mockResolvedValue([{ id: 660101, title: 'Simple Garlic Pasta', imageUrl: 'x' }])
+    renderDetail()
+
+    const save = await screen.findByRole('button', { name: 'Remove Simple Garlic Pasta from favorites' })
+    expect(save).toHaveTextContent('Remove from Favorites')
+  })
+
   it('opens the Save button already saved when the recipe is a favorite', async () => {
     getFavorites.mockResolvedValue([{ id: 660101, title: 'Simple Garlic Pasta', imageUrl: 'x' }])
     renderDetail()
@@ -179,6 +197,30 @@ describe('RecipeDetailPage', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent(
       'Could not load recipes. Please try again.',
     )
+  })
+
+  it('shows a badge for each diet the recipe suits', async () => {
+    // The fixture is vegetarian, vegan and dairy free, but not gluten free.
+    renderDetail()
+
+    expect(await screen.findByText('Vegetarian')).toBeInTheDocument()
+    expect(screen.getByText('Vegan')).toBeInTheDocument()
+    expect(screen.getByText('Dairy free')).toBeInTheDocument()
+    expect(screen.queryByText('Gluten free')).not.toBeInTheDocument()
+  })
+
+  it('shows no badges for a recipe that suits none of them', async () => {
+    getRecipe.mockResolvedValue({
+      ...RECIPE,
+      diets: { vegetarian: false, vegan: false, glutenFree: false, dairyFree: false },
+    })
+    renderDetail()
+
+    await screen.findByText('Simple Garlic Pasta')
+    expect(screen.queryByText('Vegetarian')).not.toBeInTheDocument()
+    expect(screen.queryByText('Vegan')).not.toBeInTheDocument()
+    expect(screen.queryByText('Gluten free')).not.toBeInTheDocument()
+    expect(screen.queryByText('Dairy free')).not.toBeInTheDocument()
   })
 
   it('Back to Recipes returns to the results with the ingredients intact', async () => {
