@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useParams } from 'react-router-dom'
+import { useNavigate, useParams } from 'react-router-dom'
 import { getFavorites, getRecipe } from '../api/recipes'
 import FavoriteButton from '../components/FavoriteButton'
 
@@ -17,6 +17,7 @@ const COULD_NOT_LOAD = 'Could not load recipes. Please try again.'
  */
 export default function RecipeDetailPage() {
   const { id } = useParams()
+  const navigate = useNavigate()
 
   // Four pieces of state, so the page can tell its situations apart: still
   // loading, failed, loaded, and loaded-but-empty.
@@ -69,7 +70,17 @@ export default function RecipeDetailPage() {
 
   return (
     <main className="detail-page">
-      <button type="button" className="button button-secondary">Back to Recipes</button>
+      {/* One step back in history rather than a fixed address, so this
+          returns to the results the cook was actually looking at and keeps
+          their ingredients and any filter - without this page needing to
+          know either exists. */}
+      <button
+        type="button"
+        className="button button-secondary"
+        onClick={() => navigate(-1)}
+      >
+        Back to Recipes
+      </button>
 
       {isLoading && <p>Loading recipe...</p>}
 

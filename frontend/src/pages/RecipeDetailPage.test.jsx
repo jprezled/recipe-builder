@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
-import { MemoryRouter, Route, Routes } from 'react-router-dom'
+import userEvent from '@testing-library/user-event'
+import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom'
 import RecipeDetailPage from './RecipeDetailPage'
 import { getFavorites, getRecipe } from '../api/recipes'
 
@@ -23,6 +24,12 @@ const RECIPE = {
     'While you are boiling, mince the garlic',
   ],
   diets: { vegetarian: true, vegan: true, glutenFree: false, dairyFree: true },
+}
+
+/** Stands in for the results page, and reports what the address still holds. */
+function ResultsProbe() {
+  const { search } = useLocation()
+  return <p>results for {new URLSearchParams(search).get('ingredients')}</p>
 }
 
 function renderDetail(id = '660101') {
@@ -172,6 +179,24 @@ describe('RecipeDetailPage', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent(
       'Could not load recipes. Please try again.',
     )
+  })
+
+  it('Back to Recipes returns to the results with the ingredients intact', async () => {
+    // RB-179's Done criterion: pantry -> results -> a recipe -> back, without
+    // losing the ingredients or the filter.
+    render(
+      <MemoryRouter initialEntries={['/results?ingredients=eggs,milk', '/recipe/660101']} initialIndex={1}>
+        <Routes>
+          <Route path="/results" element={<ResultsProbe />} />
+          <Route path="/recipe/:id" element={<RecipeDetailPage />} />
+        </Routes>
+      </MemoryRouter>,
+    )
+
+    await screen.findByText('Simple Garlic Pasta')
+    await userEvent.click(screen.getByRole('button', { name: 'Back to Recipes' }))
+
+    expect(await screen.findByText('results for eggs,milk')).toBeInTheDocument()
   })
 
   it('still shows the recipe when the favorites lookup fails', async () => {
