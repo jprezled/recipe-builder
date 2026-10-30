@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { NavLink } from 'react-router-dom'
+import { NavLink, useLocation } from 'react-router-dom'
 
 
 /**
@@ -11,6 +11,11 @@ import { NavLink } from 'react-router-dom'
 export default function NavigationBar() {
   // Track whether the bar should slide out of view.
   const [isHidden, setIsHidden] = useState(false)
+
+  // Every link carries the current query string. The pantry list and the
+  // dietary filters live in the address, so a bare "/" would throw them away
+  // and drop the cook back on an empty page.
+  const { search } = useLocation()
 
   // Remember the last observed scroll position so each scroll event can be
   // compared with the previous one to determine the scrolling direction.
@@ -63,19 +68,19 @@ export default function NavigationBar() {
     >
       <div className="site-header-inner">
         {/* Keep the site name as a convenient link back to Home. */}
-        <NavLink className="site-name" to="/" end>
+        <NavLink className="site-name" to={{ pathname: '/', search }} end>
           Recipe Builder
         </NavLink>
 
         {/* Place the available page links together on the right. */}
         <nav className="site-navigation" aria-label="Main navigation">
-          <NavLink className="site-nav-link" to="/" end>
+          <NavLink className="site-nav-link" to={{ pathname: '/', search }} end>
             Home
           </NavLink>
-          <NavLink className="site-nav-link" to="/results">
+          <NavLink className="site-nav-link" to={{ pathname: '/results', search }}>
             Results
           </NavLink>
-          <NavLink className="site-nav-link" to="/favorites">
+          <NavLink className="site-nav-link" to={{ pathname: '/favorites', search }}>
             Favorites
           </NavLink>
         </nav>
