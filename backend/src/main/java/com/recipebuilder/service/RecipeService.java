@@ -109,9 +109,20 @@ public class RecipeService {
     /**
      * Everything about one recipe, in our shape.
      *
+     * Cached for an hour on the id alone. Unlike a search, every view of a
+     * recipe costs its own point, so browsing five recipes and going back to
+     * the first is six points without this and five with it.
+     *
+     * A plain key rather than the search's key generator: an id is one value
+     * with nothing to clean, sort or combine.
+     *
+     * Note: @Cacheable works through a Spring proxy, so this only takes effect
+     * when the method is called from OUTSIDE the class.
+     *
      * @param id Spoonacular's recipe id, the same one search returned
      * @return the recipe the detail page shows
      */
+    @Cacheable(cacheNames = "recipeDetails", key = "#id")
     public RecipeDetailDto getRecipe(long id) {
 
         // STEP 0: refuse a nonsense id before spending one of our 150 daily
