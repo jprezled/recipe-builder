@@ -91,6 +91,32 @@ export async function searchRecipes(ingredients, restrictions) {
 }
 
 /**
+ * Fetches everything about one recipe.
+ *
+ * One call costs one of our 150 daily Spoonacular points, so the backend
+ * remembers each recipe for an hour - opening the same one twice is free.
+ *
+ * @param {number|string} id Spoonacular's recipe id, the same one search returned
+ * @returns {Promise<object>} the recipe: { id, title, imageUrl, servings,
+ *          readyInMinutes, ingredients, steps, diets }
+ * @throws {Error} with a message that can be displayed as-is
+ */
+export async function getRecipe(id) {
+  let response
+  try {
+    response = await fetch('/api/recipes/' + encodeURIComponent(id))
+  } catch {
+    throw new Error(CANNOT_REACH)
+  }
+
+  if (!response.ok) {
+    throw new Error(await readErrorMessage(response))
+  }
+
+  return response.json()
+}
+
+/**
  * Lists the recipes that have been saved as favorites.
  *
  * This never reaches Spoonacular - the backend answers it from Postgres alone,

@@ -10,6 +10,19 @@ import { searchRecipes } from './api/recipes'
 vi.mock('./api/recipes', () => ({
   searchRecipes: vi.fn(() => Promise.resolve([])),
   getFavorites: vi.fn(() => Promise.resolve([])),
+  // The detail page loads a recipe on mount. Without this it renders its
+  // error state instead, and the route test below would pass against a
+  // broken page.
+  getRecipe: vi.fn(() => Promise.resolve({
+    id: 716429,
+    title: 'Simple Garlic Pasta',
+    imageUrl: 'http://img/1.jpg',
+    servings: 1,
+    readyInMinutes: 45,
+    ingredients: [],
+    steps: [],
+    diets: { vegetarian: false, vegan: false, glutenFree: false, dairyFree: false },
+  })),
 }))
 
 beforeEach(() => {

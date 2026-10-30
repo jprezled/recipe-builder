@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { searchRecipes } from './recipes'
+import { getRecipe, searchRecipes } from './recipes'
 
 /**
  * RB-39: one module owns every network call.
@@ -133,6 +133,52 @@ describe('searchRecipes', () => {
   })
 })
 
+/**
+ * RB-178: one recipe, by id, through the same error reader as the others.
+ */
+describe('getRecipe', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals()
+  })
 
+  it('resolves with the recipe the backend sent', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ id: 660101, title: 'Simple Garlic Pasta', steps: [], ingredients: [] }),
+    }))
 
+    const recipe = await getRecipe(660101)
 
+    expect(recipe.title).toBe('Simple Garlic Pasta')
+  })
+
+  it('calls the backend through a relative /api path', async () => {
+    const fetchSpy = vi.fn().mockResolvedValue({ ok: true, json: async () => ({}) })
+    vi.stubGlobal('fetch', fetchSpy)
+
+    await getRecipe(660101)
+
+    const url = fetchSpy.mock.calls[0][0]
+    expect(url).toBe('/api/recipes/660101')
+    // A full URL would bypass the Vite proxy and trigger CORS.
+    expect(url).not.toContain('localhost:8080')
+  })
+
+  it('rejects with the message our backend sent', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: false,
+      status: 400,
+      json: async () => ({ message: 'That recipe link is not valid.' }),
+    }))
+
+    await expect(getRecipe(0)).rejects.toThrow('That recipe link is not valid.')
+  })
+
+  it('rejects with a readable message when the backend is not running', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new TypeError('Failed to fetch')))
+
+    await expect(getRecipe(660101)).rejects.toThrow(
+      'Could not reach the recipe service. Is the backend running?',
+    )
+  })
+})
