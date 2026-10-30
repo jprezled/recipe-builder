@@ -2,6 +2,18 @@ import { useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import ResultsPage from './ResultsPage'
 
+/** "eggs, milk" from the address becomes ["eggs", "milk"] for the screen. */
+function splitList(fromAddress) {
+  if (!fromAddress) {
+    return []
+  }
+
+  return fromAddress
+    .split(',')
+    .map((ingredient) => ingredient.trim())
+    .filter(Boolean)
+}
+
 /**
  * The Add page is where the user enters ingredients.
  *
@@ -11,33 +23,50 @@ import ResultsPage from './ResultsPage'
  * have one implementation rather than a separate preview implementation.
  */
 export default function HomePage() {
-  // Read ingredients from the address if the user returns here from Results.
-  // This lets them continue from their existing list instead of starting over.
-  const [searchParams] = useSearchParams()
+  // The address holds the pantry list, not component state - the same
+  // decision RB-173 made for the filters. React Router unmounts this page
+  // whenever the cook uses the nav bar, so anything kept in useState here is
+  // destroyed on the way out and the list comes back empty.
+  const [searchParams, setSearchParams] = useSearchParams()
 
   // `typed` is only the text currently in the input. It does not become part
-  // of the pantry list until the user presses Add or submits with Enter.
+  // of the pantry list until the user presses Add or submits with Enter, so
+  // it is the one thing here that genuinely should not survive leaving.
   const [typed, setTyped] = useState('')
 
-  // Convert a URL value such as ?ingredients=eggs%2Cmilk into a list that can
-  // be displayed and edited. This initializer runs when HomePage first loads.
-  const [ingredients, setIngredients] = useState(() => {
-    const fromAddress = searchParams.get('ingredients')
+  const ingredients = splitList(searchParams.get('ingredients'))
 
-    if (!fromAddress) {
-      return []
+  // Whether the embedded Results page is shown. In the address too, so that
+  // coming back brings the recipes back and not just the ingredients.
+  const showResults = searchParams.get('results') === '1'
+
+  /**
+   * Write the pantry list into the address.
+   *
+   * Built from the current parameters so the diet and intolerances the
+   * embedded ResultsPage manages are carried through untouched.
+   *
+   * `replace` on an edit: adding five ingredients should not put five steps
+   * into the browser's Back button. Pressing Generate is a real change of
+   * what the page shows, so that one is left to push an entry.
+   */
+  function putInAddress(nextIngredients, nextShowResults, replace) {
+    const next = new URLSearchParams(searchParams)
+
+    if (nextIngredients.length > 0) {
+      next.set('ingredients', nextIngredients.join(','))
+    } else {
+      next.delete('ingredients')
     }
 
-    return fromAddress
-      .split(',')
-      .map((ingredient) => ingredient.trim())
-      .filter(Boolean)
-  })
+    if (nextShowResults) {
+      next.set('results', '1')
+    } else {
+      next.delete('results')
+    }
 
-  // This controls whether the embedded Results page is shown. Clicking
-  // Generate Recipes changes this to true; ResultsPage then performs the
-  // search and displays its own loading, error, and result states.
-  const [showResults, setShowResults] = useState(false)
+    setSearchParams(next, { replace })
+  }
 
   /**
    * Add the typed entry to the pantry list.
@@ -63,31 +92,28 @@ export default function HomePage() {
       return
     }
 
-    setIngredients((currentIngredients) => {
-      // Build on a copy rather than changing React's state array in place.
-      const next = currentIngredients.slice()
+    // Build on a copy rather than changing the current list in place.
+    const next = ingredients.slice()
 
-      for (const piece of pieces) {
-        // Treat entries with different capitalization as the same ingredient,
-        // so adding "Eggs" after "eggs" does not create a duplicate. Checked
-        // against the list being built, so a repeat inside pasted text is
-        // caught too.
-        const alreadyAdded = next.some(
-          (existing) => existing.toLowerCase() === piece.toLowerCase(),
-        )
+    for (const piece of pieces) {
+      // Treat entries with different capitalization as the same ingredient,
+      // so adding "Eggs" after "eggs" does not create a duplicate. Checked
+      // against the list being built, so a repeat inside pasted text is
+      // caught too.
+      const alreadyAdded = next.some(
+        (existing) => existing.toLowerCase() === piece.toLowerCase(),
+      )
 
-        if (!alreadyAdded) {
-          next.push(piece)
-        }
+      if (!alreadyAdded) {
+        next.push(piece)
       }
+    }
 
-      return next
-    })
+    // Hide old results because they were generated for the previous list.
+    putInAddress(next, false, true)
 
-    // Clear the input after adding. Hide old results because they were
-    // generated for the previous ingredient list.
+    // Clear the input after adding.
     setTyped('')
-    setShowResults(false)
   }
 
   /**
@@ -97,13 +123,11 @@ export default function HomePage() {
    * ingredient list. The user can generate a new set of results afterward.
    */
   function handleRemove(ingredientToRemove) {
-    setIngredients((currentIngredients) =>
-      currentIngredients.filter(
-        (ingredient) => ingredient !== ingredientToRemove,
-      ),
+    const remaining = ingredients.filter(
+      (ingredient) => ingredient !== ingredientToRemove,
     )
 
-    setShowResults(false)
+    putInAddress(remaining, false, true)
   }
 
   // ResultsPage expects a comma-separated string. Passing the current
@@ -115,6 +139,10 @@ export default function HomePage() {
   // cook had set - the one failure this whole filter exists to avoid.
   const resultsParams = new URLSearchParams(searchParams)
   resultsParams.set('ingredients', ingredientsForResults)
+
+  // "results" is this page's own flag for showing the embedded box. The
+  // standalone page always shows them, so it would be noise in a shared link.
+  resultsParams.delete('results')
 
   const resultsUrl = '/results?' + resultsParams.toString()
 
@@ -174,7 +202,7 @@ export default function HomePage() {
         <button
           type="button"
           className="button"
-          onClick={() => setShowResults(true)}
+          onClick={() => putInAddress(ingredients, true, false)}
           disabled={ingredients.length === 0}
         >
           Generate Recipes
