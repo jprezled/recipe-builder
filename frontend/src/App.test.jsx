@@ -97,6 +97,20 @@ describe('the pantry list survives the nav bar', () => {
     expect(screen.getAllByRole('listitem')).toHaveLength(2)
   })
 
+  it('Back to Ingredients keeps the ingredients and the filters', async () => {
+    renderAt('/results?ingredients=eggs,milk&diet=vegan&intolerances=peanut')
+
+    await userEvent.click(await screen.findByRole('link', { name: 'Back to Ingredients' }))
+
+    // The ingredients always survived this link. The filters did not, and an
+    // unfiltered search is a different search.
+    const back = new URLSearchParams(window.location.search)
+    expect(back.get('ingredients')).toBe('eggs,milk')
+    expect(back.get('diet')).toBe('vegan')
+    expect(back.get('intolerances')).toBe('peanut')
+    expect(screen.getAllByRole('listitem').length).toBeGreaterThan(0)
+  })
+
   it('still shows the results after leaving the page and coming back', async () => {
     renderAt('/')
     await add('eggs')

@@ -171,6 +171,14 @@ export default function ResultsPage({
     resultsUrl ||
     '/results?ingredients=' + encodeURIComponent(ingredients)
 
+  // Built from the current address rather than from scratch, so going back to
+  // edit the ingredients does not silently drop the cook's diet and
+  // intolerances - they chose those, and an unfiltered search is a different
+  // search.
+  const backToIngredients = new URLSearchParams(searchParams)
+  backToIngredients.set('ingredients', ingredients)
+  const backToIngredientsSearch = backToIngredients.toString()
+
   return (
     <PageWrapper
       className={
@@ -255,7 +263,7 @@ export default function ResultsPage({
         <div className="button-group">
           <Link
             className="button button-secondary"
-            to={'/?ingredients=' + encodeURIComponent(ingredients)}
+            to={{ pathname: '/', search: backToIngredientsSearch }}
           >
             Back to Ingredients
           </Link>
