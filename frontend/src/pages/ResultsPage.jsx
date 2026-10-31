@@ -188,7 +188,7 @@ export default function ResultsPage({
       }
     >
       <div className="results-heading">
-        <div>
+        <div className="results-heading-text">
           <h1>Your Recipes</h1>
           <p className="tagline">
             Here is what you can make with the ingredients you have added.
