@@ -505,3 +505,14 @@ a.button {
   font-size: 0.85rem;
   padding: 4px 12px;
 }
+
+/* ---------- Results page heading ---------- */
+
+/* The heading block takes the whole row and centres its own text, so "Your
+   Recipes" and its tagline sit in the middle of the page rather than hard
+   left. Expand is still a flex sibling, so on the embedded version the text
+   centres in the space left beside it. */
+.results-heading-text {
+  flex: 1;
+  text-align: center;
+}
