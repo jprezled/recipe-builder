@@ -18,6 +18,7 @@ import com.recipebuilder.exception.ApiKeyMissingException;
 import com.recipebuilder.exception.ApiLimitReachedException;
 import com.recipebuilder.exception.ExternalApiException;
 import com.recipebuilder.exception.InvalidInputException;
+import com.recipebuilder.exception.RecipeNotFoundException;
 import com.recipebuilder.service.RecipeService;
 
 /**
@@ -110,5 +111,32 @@ class RecipeErrorResponseTest {
                         .param("diet", "carnivore"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.message").value("That dietary filter is not one we support."));
+    }
+
+    @Test
+    void anUnknownRecipeIdIsNotFound() throws Exception {
+        when(service.getRecipe(999999999L))
+                .thenThrow(new RecipeNotFoundException("That recipe could not be found."));
+
+        mockMvc.perform(get("/api/recipes/999999999"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.message").value("That recipe could not be found."))
+                .andExpect(content().string(org.hamcrest.Matchers.not(
+                        org.hamcrest.Matchers.containsString("Exception"))));
+    }
+
+    /**
+     * Spring cannot turn "abc" into a number, so it throws before the
+     * controller runs. Without a handler for that the browser gets Spring's
+     * default error page, stack trace and all.
+     */
+    @Test
+    void anIdThatIsNotANumberIsABadRequest() throws Exception {
+        mockMvc.perform(get("/api/recipes/abc"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("That recipe link is not valid."))
+                .andExpect(content().string(org.hamcrest.Matchers.not(
+                        org.hamcrest.Matchers.containsString("Exception"))))
+                .andExpect(jsonPath("$.trace").doesNotExist());
     }
 }

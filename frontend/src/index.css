@@ -485,3 +485,23 @@ a.button {
     width: 100%;
   }
 }
+
+/* ---------- Diet badges on the recipe detail page ---------- */
+
+.diet-badges {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.5rem;
+  list-style: none;
+  margin: 0 0 1rem;
+  padding: 0;
+}
+
+.diet-badges li {
+  background-color: #e7f3e7;
+  border-radius: 999px;
+  color: #2a5c2a;
+  font-size: 0.85rem;
+  padding: 4px 12px;
+}

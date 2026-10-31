@@ -1,3 +1,4 @@
+import { Link, useLocation } from 'react-router-dom'
 import FavoriteButton from './FavoriteButton'
 
 /**
@@ -18,6 +19,12 @@ import FavoriteButton from './FavoriteButton'
 export default function RecipeCard({
   id, title, description, imageUrl, isFavorite, onFavoriteChange,
 }) {
+  // The recipe address carries the pantry list and the filters forward. The
+  // nav bar passes on whatever the current address holds, so a detail page
+  // reached by a bare /recipe/123 leaves it nothing to pass and the cook
+  // comes back to an empty page.
+  const { search } = useLocation()
+
   // Spoonacular sometimes omits the image, and recipes.image_url is nullable in
   // our own table too, so neither page can assume there is one.
   const hasImage = Boolean(imageUrl)
@@ -40,7 +47,12 @@ export default function RecipeCard({
         />
       )}
 
-      <button type="button" className="button">View Recipe</button>
+      {/* A link on Andrew's own button rather than the whole card being
+          clickable: the star is a button, and a link wrapping it would both
+          read as ambiguous to a screen reader and navigate when the cook
+          only meant to save. Keeping his .button class means it still looks
+          exactly the same. */}
+      <Link className="button" to={{ pathname: '/recipe/' + id, search }}>View Recipe</Link>
     </article>
   )
 }

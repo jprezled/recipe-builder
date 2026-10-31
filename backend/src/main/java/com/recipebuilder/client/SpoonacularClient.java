@@ -10,12 +10,14 @@ import org.springframework.web.client.HttpStatusCodeException;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 
+import com.recipebuilder.client.dto.SpoonacularRecipeInformation;
 import com.recipebuilder.client.dto.SpoonacularSearchResponse;
 import com.recipebuilder.client.dto.SpoonacularSearchResult;
 import com.recipebuilder.dto.DietaryRestrictions;
 import com.recipebuilder.exception.ApiKeyMissingException;
 import com.recipebuilder.exception.ApiLimitReachedException;
 import com.recipebuilder.exception.ExternalApiException;
+import com.recipebuilder.exception.RecipeNotFoundException;
 
 /**
  * The ONLY class that talks to spoonacular.com.
@@ -107,6 +109,45 @@ public class SpoonacularClient {
         return response.results();
     }
 
+    /**
+     * Asks Spoonacular for everything about one recipe.
+     *
+     * @param id Spoonacular's recipe id, the same one search returned
+     * @return their full reply for that recipe
+     */
+    public SpoonacularRecipeInformation getRecipe(long id) {
+
+        // STEP 0: same guard as the search. An empty key comes back as a
+        // confusing 401 rather than telling us what is actually wrong.
+        if (apiKey == null || apiKey.isBlank()) {
+            throw new ApiKeyMissingException(
+                    "SPOONACULAR_API_KEY is not set. Add it to the .env file at the repo root.");
+        }
+
+        // STEP 1: build the address. includeNutrition=false because nothing on
+        // the page shows nutrition, and asking for it makes their reply much
+        // larger for no benefit.
+        String url = baseUrl
+                + "/recipes/{id}/information"
+                + "?includeNutrition=false"
+                + "&apiKey={apiKey}";
+
+        // STEP 2: send it and convert the reply into Java objects.
+        try {
+            return restTemplate.getForObject(
+                    url,
+                    SpoonacularRecipeInformation.class,
+                    id,
+                    apiKey);
+        } catch (HttpStatusCodeException failure) {
+            // Spoonacular answered, but with an error status.
+            throw translate(failure.getStatusCode().value(), failure);
+        } catch (RestClientException failure) {
+            // No answer at all: no network, DNS failed, or a timeout.
+            throw new ExternalApiException("Could not reach Spoonacular.", failure);
+        }
+    }
+
     /** A choice counts only if the cook picked something real. */
     private static boolean hasValue(String choice) {
         return choice != null && !choice.isBlank() && !choice.equalsIgnoreCase("none");
@@ -120,6 +161,11 @@ public class SpoonacularClient {
         if (status == 402) {
             // 402 Payment Required is how Spoonacular reports a spent quota.
             return new ApiLimitReachedException();
+        }
+        if (status == 404) {
+            // Only getRecipe can produce this - the search endpoint answers
+            // 200 with an empty list rather than 404.
+            return new RecipeNotFoundException("That recipe could not be found.");
         }
         if (status == 401 || status == 403) {
             return new ApiKeyMissingException(

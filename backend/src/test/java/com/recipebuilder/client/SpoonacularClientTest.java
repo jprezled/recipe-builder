@@ -18,6 +18,7 @@ import static org.springframework.test.web.client.match.MockRestRequestMatchers.
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.requestTo;
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess;
 
+import com.recipebuilder.client.dto.SpoonacularRecipeInformation;
 import com.recipebuilder.client.dto.SpoonacularSearchResult;
 import com.recipebuilder.dto.DietaryRestrictions;
 
@@ -137,5 +138,80 @@ class SpoonacularClientTest {
         client.searchByIngredients("apple", 2, new DietaryRestrictions("vegetarian", "none"));
 
         server.verify();
+    }
+
+    /**
+     * RB-175: the detail call, against a real captured response. Recapture with:
+     *
+     *   curl -s "https://api.spoonacular.com/recipes/660101/information\
+     *     ?includeNutrition=false&apiKey=$KEY" | python3 -m json.tool \
+     *     > src/test/resources/stubs/recipe-information.json
+     *
+     * The stub keeps all 37 of their top-level fields, including the `summary`
+     * we never read. That is deliberate: if the record ever loses
+     * @JsonIgnoreProperties, this is the test that fails.
+     */
+    @Test
+    void parsesOneRecipeFromAStubbedInformationResponse() throws IOException {
+        server.expect(requestTo(startsWith("https://api.spoonacular.invalid/recipes/660101/information")))
+                .andExpect(method(HttpMethod.GET))
+                .andExpect(queryParam("includeNutrition", "false"))
+                .andExpect(queryParam("apiKey", "test-key-not-a-real-key"))
+                .andRespond(withSuccess(stubbedRecipe("recipe-information.json"), MediaType.APPLICATION_JSON));
+
+        SpoonacularRecipeInformation recipe = client.getRecipe(660101L);
+
+        assertThat(recipe.id()).isEqualTo(660101L);
+        assertThat(recipe.title()).isEqualTo("Simple Garlic Pasta");
+        assertThat(recipe.image()).isEqualTo("https://img.spoonacular.com/recipes/660101-556x370.jpg");
+        assertThat(recipe.servings()).isEqualTo(1);
+        assertThat(recipe.readyInMinutes()).isEqualTo(45);
+
+        assertThat(recipe.vegetarian()).isTrue();
+        assertThat(recipe.vegan()).isTrue();
+        assertThat(recipe.glutenFree()).isFalse();
+        assertThat(recipe.dairyFree()).isTrue();
+
+        assertThat(recipe.extendedIngredients())
+                .extracting(SpoonacularRecipeInformation.ExtendedIngredient::original)
+                .containsExactly(
+                        "2 whole dried chili pepper",
+                        "3 cloves of garlic (minced)",
+                        "3 tablespoons olive oil",
+                        "1 teaspoon Himalayan or sea salt, to taste",
+                        "100 grams Spaghettini (thin spaghetti)");
+
+        // The structured steps, not their plain `instructions` HTML string.
+        assertThat(recipe.analyzedInstructions()).hasSize(1);
+        assertThat(recipe.analyzedInstructions().get(0).steps()).hasSize(7);
+        assertThat(recipe.analyzedInstructions().get(0).steps().get(1).step())
+                .isEqualTo("Start with boiling water in a large pot.");
+
+        server.verify();
+    }
+
+    /**
+     * Some recipes genuinely list nothing. Empty lists rather than an exception
+     * or a null - docs/recipe-detail-contract.md calls this a success, not a
+     * failure.
+     */
+    @Test
+    void aRecipeWithNothingListedGivesEmptyLists() throws IOException {
+        server.expect(requestTo(startsWith("https://api.spoonacular.invalid/recipes/660101/information")))
+                .andRespond(withSuccess(stubbedRecipe("recipe-information-no-steps.json"),
+                        MediaType.APPLICATION_JSON));
+
+        SpoonacularRecipeInformation recipe = client.getRecipe(660101L);
+
+        assertThat(recipe.title()).isEqualTo("Simple Garlic Pasta");
+        assertThat(recipe.extendedIngredients()).isEmpty();
+        assertThat(recipe.analyzedInstructions()).isEmpty();
+
+        server.verify();
+    }
+
+    private String stubbedRecipe(String fileName) throws IOException {
+        return new ClassPathResource("stubs/" + fileName)
+                .getContentAsString(StandardCharsets.UTF_8);
     }
 }

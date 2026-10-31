@@ -13,6 +13,7 @@ import com.recipebuilder.dto.DietaryRestrictions;
 import com.recipebuilder.exception.ApiKeyMissingException;
 import com.recipebuilder.exception.ApiLimitReachedException;
 import com.recipebuilder.exception.ExternalApiException;
+import com.recipebuilder.exception.RecipeNotFoundException;
 
 /**
  * RB-85: Spoonacular's failures become our own named errors, so nothing above
@@ -63,5 +64,19 @@ class SpoonacularErrorsTest {
 
         assertThatExceptionOfType(ExternalApiException.class)
                 .isThrownBy(() -> client.searchByIngredients("apple", 10, new DietaryRestrictions("none","none")));
+    }
+
+    /**
+     * RB-175: an unknown id is the cook's bad link, not our service being down.
+     * Without this branch translate() folds 404 into ExternalApiException, and
+     * the handler reports "Recipe search is unavailable right now" - blaming us
+     * for their typo. Search never returns 404, so only detail needs this.
+     */
+    @Test
+    void unknownRecipeIdBecomesRecipeNotFound() {
+        server.expect(anything()).andRespond(withStatus(HttpStatus.NOT_FOUND));
+
+        assertThatExceptionOfType(RecipeNotFoundException.class)
+                .isThrownBy(() -> client.getRecipe(999999999L));
     }
 }
