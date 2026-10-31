@@ -8,8 +8,10 @@ import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
 import com.recipebuilder.client.SpoonacularClient;
+import com.recipebuilder.client.dto.SpoonacularRecipeInformation;
 import com.recipebuilder.client.dto.SpoonacularSearchResult;
 import com.recipebuilder.dto.DietaryRestrictions;
+import com.recipebuilder.dto.RecipeDetailDto;
 import com.recipebuilder.dto.RecipeSummaryDto;
 import com.recipebuilder.exception.InvalidInputException;
 
@@ -102,6 +104,80 @@ public class RecipeService {
 
         // STEP 3: always a list, never null.
         return ourResults;
+    }
+
+    /**
+     * Everything about one recipe, in our shape.
+     *
+     * Cached for an hour on the id alone. Unlike a search, every view of a
+     * recipe costs its own point, so browsing five recipes and going back to
+     * the first is six points without this and five with it.
+     *
+     * A plain key rather than the search's key generator: an id is one value
+     * with nothing to clean, sort or combine.
+     *
+     * Note: @Cacheable works through a Spring proxy, so this only takes effect
+     * when the method is called from OUTSIDE the class.
+     *
+     * @param id Spoonacular's recipe id, the same one search returned
+     * @return the recipe the detail page shows
+     */
+    @Cacheable(cacheNames = "recipeDetails", key = "#id")
+    public RecipeDetailDto getRecipe(long id) {
+
+        // STEP 0: refuse a nonsense id before spending one of our 150 daily
+        // points on it. The wording is the same "bad link" sentence the
+        // handler uses for an id that is not a number at all.
+        if (id <= 0) {
+            throw new InvalidInputException("That recipe link is not valid.");
+        }
+
+        // STEP 1: ask Spoonacular. What comes back is in THEIR shape.
+        SpoonacularRecipeInformation theirs = client.getRecipe(id);
+
+        // STEP 2: copy the ingredient lines across, one at a time.
+        List<String> ingredients = new ArrayList<>();
+
+        if (theirs.extendedIngredients() != null) {
+            for (SpoonacularRecipeInformation.ExtendedIngredient one : theirs.extendedIngredients()) {
+                ingredients.add(one.original());
+            }
+        }
+
+        // STEP 3: copy the steps across.
+        //
+        // Spoonacular can send no instruction blocks at all, so read the first
+        // one only if there is one. Going straight to position zero is the
+        // mistake here, and it throws on a perfectly ordinary recipe.
+        List<String> steps = new ArrayList<>();
+
+        if (theirs.analyzedInstructions() != null && !theirs.analyzedInstructions().isEmpty()) {
+            SpoonacularRecipeInformation.AnalyzedInstruction block =
+                    theirs.analyzedInstructions().get(0);
+
+            if (block.steps() != null) {
+                for (SpoonacularRecipeInformation.Step one : block.steps()) {
+                    steps.add(one.step());
+                }
+            }
+        }
+
+        // STEP 4: hand back our own shape.
+        RecipeDetailDto.Diets diets = new RecipeDetailDto.Diets(
+                theirs.vegetarian(),
+                theirs.vegan(),
+                theirs.glutenFree(),
+                theirs.dairyFree());
+
+        return new RecipeDetailDto(
+                theirs.id(),
+                theirs.title(),
+                theirs.image(),                   // their "image" is our "imageUrl"
+                theirs.servings(),
+                theirs.readyInMinutes(),
+                ingredients,
+                steps,
+                diets);
     }
 
     /** Refuses a diet or intolerance that is not "none" and not on the approved lists. */

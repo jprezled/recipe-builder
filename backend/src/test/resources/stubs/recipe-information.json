@@ -1,0 +1,367 @@
+{
+  "id": 660101,
+  "image": "https://img.spoonacular.com/recipes/660101-556x370.jpg",
+  "imageType": "jpg",
+  "title": "Simple Garlic Pasta",
+  "readyInMinutes": 45,
+  "servings": 1,
+  "sourceUrl": "https://www.foodista.com/recipe/BG3S6M3T/simple-garlic-pasta",
+  "vegetarian": true,
+  "vegan": true,
+  "glutenFree": false,
+  "dairyFree": true,
+  "veryHealthy": false,
+  "cheap": false,
+  "veryPopular": false,
+  "sustainable": false,
+  "lowFodmap": false,
+  "weightWatcherSmartPoints": 23,
+  "gaps": "no",
+  "preparationMinutes": null,
+  "cookingMinutes": null,
+  "aggregateLikes": 1,
+  "healthScore": 11.0,
+  "creditsText": "foodista.com",
+  "license": null,
+  "sourceName": "foodista.com",
+  "pricePerServing": 94.92,
+  "extendedIngredients": [
+    {
+      "id": 10111962,
+      "aisle": "Produce",
+      "image": "dried-arbol-chiles.jpg",
+      "consistency": "SOLID",
+      "name": "chili pepper",
+      "nameClean": "chili pepper",
+      "original": "2 whole dried chili pepper",
+      "originalName": "whole dried chili pepper",
+      "amount": 2.0,
+      "unit": "",
+      "meta": [
+        "dried",
+        "whole"
+      ],
+      "measures": {
+        "us": {
+          "amount": 2.0,
+          "unitShort": "",
+          "unitLong": ""
+        },
+        "metric": {
+          "amount": 2.0,
+          "unitShort": "",
+          "unitLong": ""
+        }
+      }
+    },
+    {
+      "id": 11215,
+      "aisle": "Produce",
+      "image": "garlic.png",
+      "consistency": "SOLID",
+      "name": "garlic",
+      "nameClean": "garlic",
+      "original": "3 cloves of garlic (minced)",
+      "originalName": "garlic (minced)",
+      "amount": 3.0,
+      "unit": "cloves",
+      "meta": [
+        "minced"
+      ],
+      "measures": {
+        "us": {
+          "amount": 3.0,
+          "unitShort": "cloves",
+          "unitLong": "cloves"
+        },
+        "metric": {
+          "amount": 3.0,
+          "unitShort": "cloves",
+          "unitLong": "cloves"
+        }
+      }
+    },
+    {
+      "id": 4053,
+      "aisle": "Oil, Vinegar, Salad Dressing",
+      "image": "olive-oil.jpg",
+      "consistency": "LIQUID",
+      "name": "olive oil",
+      "nameClean": "olive oil",
+      "original": "3 tablespoons olive oil",
+      "originalName": "olive oil",
+      "amount": 3.0,
+      "unit": "tablespoons",
+      "meta": [],
+      "measures": {
+        "us": {
+          "amount": 3.0,
+          "unitShort": "Tbsps",
+          "unitLong": "Tbsps"
+        },
+        "metric": {
+          "amount": 3.0,
+          "unitShort": "Tbsps",
+          "unitLong": "Tbsps"
+        }
+      }
+    },
+    {
+      "id": 1012047,
+      "aisle": "Spices and Seasonings",
+      "image": "salt.jpg",
+      "consistency": "SOLID",
+      "name": "sea salt",
+      "nameClean": "sea salt",
+      "original": "1 teaspoon Himalayan or sea salt, to taste",
+      "originalName": "Himalayan or sea salt, to taste",
+      "amount": 1.0,
+      "unit": "teaspoon",
+      "meta": [
+        "to taste"
+      ],
+      "measures": {
+        "us": {
+          "amount": 1.0,
+          "unitShort": "tsp",
+          "unitLong": "teaspoon"
+        },
+        "metric": {
+          "amount": 1.0,
+          "unitShort": "tsp",
+          "unitLong": "teaspoon"
+        }
+      }
+    },
+    {
+      "id": 12520420,
+      "aisle": "Pasta and Rice",
+      "image": "spaghetti.jpg",
+      "consistency": "SOLID",
+      "name": "spaghettini",
+      "nameClean": "spaghettini",
+      "original": "100 grams Spaghettini (thin spaghetti)",
+      "originalName": "Spaghettini (thin spaghetti)",
+      "amount": 100.0,
+      "unit": "grams",
+      "meta": [
+        "thin",
+        "spaghetti"
+      ],
+      "measures": {
+        "us": {
+          "amount": 3.527,
+          "unitShort": "oz",
+          "unitLong": "ounces"
+        },
+        "metric": {
+          "amount": 100.0,
+          "unitShort": "g",
+          "unitLong": "grams"
+        }
+      }
+    }
+  ],
+  "summary": "If you want to add more <b>dairy free, lacto ovo vegetarian, and vegan</b> recipes to your recipe box, Simple Garlic Pasta might be a recipe you should try. This main course has <b>759 calories</b>, <b>14g of protein</b>, and <b>44g of fat</b> per serving. This recipe serves 1. For <b>95 cents per serving</b>, this recipe <b>covers 16%</b> of your daily requirements of vitamins and minerals. 1 person found this recipe to be flavorful and satisfying. If you have sea salt, garlic, spaghettini, and a few other ingredients on hand, you can make it. It is brought to you by Foodista. From preparation to the plate, this recipe takes about <b>45 minutes</b>. All things considered, we decided this recipe <b>deserves a spoonacular score of 70%</b>. This score is pretty good. <a href=\"https://spoonacular.com/recipes/simple-garlic-pasta-122297\">Simple Garlic Pasta</a>, <a href=\"https://spoonacular.com/recipes/simple-garlic-pasta-1401135\">Simple Garlic Pasta</a>, and <a href=\"https://spoonacular.com/recipes/simple-prawn-and-garlic-pasta-supper-38608\">Simple Prawn And Garlic Pasta Supper</a> are very similar to this recipe.",
+  "cuisines": [],
+  "dishTypes": [
+    "side dish",
+    "lunch",
+    "main course",
+    "main dish",
+    "dinner"
+  ],
+  "diets": [
+    "dairy free",
+    "lacto ovo vegetarian",
+    "vegan"
+  ],
+  "occasions": [],
+  "instructions": "<ol><li>Important: timing is everything</li><li>Start with boiling water in a large pot. Add generous amount of sea salt to the boiling water so that you can actually taste a bit of salt in the water. (you are making your pasta flavored with the salt water)</li><li>Put spaghettini in the water and boil for 7 minutes</li><li>While you are boiling the spaghettini, mince the garlic</li><li>Have a frying pan heated up (med-low heat) with olive oil and chili pepper after 4 miniutes of boiling pasta.</li><li>Put the garlic in the pan. it's almost like you are deep frying the garlic than pan frying it. you have 2-3 minutes to make the garlic cripsy golden brown.</li><li>After 7 minutes of past boiling, put the pan in high heat, then scoop a 2 tablespoons of the salty boiling water and pour it to the pan (still heated) - you'll see a bit of steam coming out...this helps the past to stay warm</li><li>Quickly take the pasta out of the pot, drain it, and dump it in the pan and quickly mix it...and you are done!</li></ol>",
+  "analyzedInstructions": [
+    {
+      "name": "",
+      "steps": [
+        {
+          "number": 1,
+          "step": "Important: timing is everything",
+          "ingredients": [],
+          "equipment": []
+        },
+        {
+          "number": 2,
+          "step": "Start with boiling water in a large pot.",
+          "ingredients": [
+            {
+              "id": 14412,
+              "name": "water",
+              "localizedName": "water",
+              "image": "water.png"
+            }
+          ],
+          "equipment": [
+            {
+              "id": 404752,
+              "name": "pot",
+              "localizedName": "pot",
+              "image": "https://spoonacular.com/cdn/equipment_100x100/stock-pot.jpg"
+            }
+          ]
+        },
+        {
+          "number": 3,
+          "step": "Add generous amount of sea salt to the boiling water so that you can actually taste a bit of salt in the water. (you are making your pasta flavored with the salt water)Put spaghettini in the water and boil for 7 minutes",
+          "ingredients": [
+            {
+              "id": 12520420,
+              "name": "spaghettini",
+              "localizedName": "spaghettini",
+              "image": "spaghetti.jpg"
+            },
+            {
+              "id": 1012047,
+              "name": "sea salt",
+              "localizedName": "sea salt",
+              "image": "salt.jpg"
+            },
+            {
+              "id": 20420,
+              "name": "pasta",
+              "localizedName": "pasta",
+              "image": "https://spoonacular.com/cdn/ingredients_100x100/fusilli.jpg"
+            },
+            {
+              "id": 14412,
+              "name": "water",
+              "localizedName": "water",
+              "image": "water.png"
+            },
+            {
+              "id": 2047,
+              "name": "salt",
+              "localizedName": "salt",
+              "image": "salt.jpg"
+            }
+          ],
+          "equipment": []
+        },
+        {
+          "number": 4,
+          "step": "While you are boiling the spaghettini, mince the garlic",
+          "ingredients": [
+            {
+              "id": 12520420,
+              "name": "spaghettini",
+              "localizedName": "spaghettini",
+              "image": "spaghetti.jpg"
+            },
+            {
+              "id": 11215,
+              "name": "garlic",
+              "localizedName": "garlic",
+              "image": "garlic.png"
+            },
+            {
+              "id": 0,
+              "name": "ground meat",
+              "localizedName": "ground meat",
+              "image": "fresh-ground-beef.jpg"
+            }
+          ],
+          "equipment": []
+        },
+        {
+          "number": 5,
+          "step": "Have a frying pan heated up (med-low heat) with olive oil and chili pepper after 4 miniutes of boiling pasta.",
+          "ingredients": [
+            {
+              "id": 11819,
+              "name": "chili pepper",
+              "localizedName": "chili pepper",
+              "image": "red-chili.jpg"
+            },
+            {
+              "id": 4053,
+              "name": "olive oil",
+              "localizedName": "olive oil",
+              "image": "olive-oil.jpg"
+            },
+            {
+              "id": 20420,
+              "name": "pasta",
+              "localizedName": "pasta",
+              "image": "https://spoonacular.com/cdn/ingredients_100x100/fusilli.jpg"
+            }
+          ],
+          "equipment": [
+            {
+              "id": 404645,
+              "name": "frying pan",
+              "localizedName": "frying pan",
+              "image": "https://spoonacular.com/cdn/equipment_100x100/pan.png"
+            }
+          ]
+        },
+        {
+          "number": 6,
+          "step": "Put the garlic in the pan. it's almost like you are deep frying the garlic than pan frying it. you have 2-3 minutes to make the garlic cripsy golden brown.After 7 minutes of past boiling, put the pan in high heat, then scoop a 2 tablespoons of the salty boiling water and pour it to the pan (still heated) - you'll see a bit of steam coming out...this helps the past to stay warm",
+          "ingredients": [
+            {
+              "id": 11215,
+              "name": "garlic",
+              "localizedName": "garlic",
+              "image": "garlic.png"
+            },
+            {
+              "id": 14412,
+              "name": "water",
+              "localizedName": "water",
+              "image": "water.png"
+            }
+          ],
+          "equipment": [
+            {
+              "id": 404645,
+              "name": "frying pan",
+              "localizedName": "frying pan",
+              "image": "https://spoonacular.com/cdn/equipment_100x100/pan.png"
+            }
+          ],
+          "length": {
+            "number": 10,
+            "unit": "minutes"
+          }
+        },
+        {
+          "number": 7,
+          "step": "Quickly take the pasta out of the pot, drain it, and dump it in the pan and quickly mix it...and you are done!",
+          "ingredients": [
+            {
+              "id": 20420,
+              "name": "pasta",
+              "localizedName": "pasta",
+              "image": "https://spoonacular.com/cdn/ingredients_100x100/fusilli.jpg"
+            }
+          ],
+          "equipment": [
+            {
+              "id": 404645,
+              "name": "frying pan",
+              "localizedName": "frying pan",
+              "image": "https://spoonacular.com/cdn/equipment_100x100/pan.png"
+            },
+            {
+              "id": 404752,
+              "name": "pot",
+              "localizedName": "pot",
+              "image": "https://spoonacular.com/cdn/equipment_100x100/stock-pot.jpg"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "language": "en",
+  "spoonacularScore": 56.208961486816406,
+  "spoonacularSourceUrl": "https://spoonacular.com/simple-garlic-pasta-660101"
+}

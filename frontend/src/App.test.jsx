@@ -10,6 +10,19 @@ import { searchRecipes } from './api/recipes'
 vi.mock('./api/recipes', () => ({
   searchRecipes: vi.fn(() => Promise.resolve([])),
   getFavorites: vi.fn(() => Promise.resolve([])),
+  // The detail page loads a recipe on mount. Without this it renders its
+  // error state instead, and the route test below would pass against a
+  // broken page.
+  getRecipe: vi.fn(() => Promise.resolve({
+    id: 716429,
+    title: 'Simple Garlic Pasta',
+    imageUrl: 'http://img/1.jpg',
+    servings: 1,
+    readyInMinutes: 45,
+    ingredients: [],
+    steps: [],
+    diets: { vegetarian: false, vegan: false, glutenFree: false, dairyFree: false },
+  })),
 }))
 
 beforeEach(() => {
@@ -95,6 +108,31 @@ describe('the pantry list survives the nav bar', () => {
     await userEvent.click(screen.getByRole('link', { name: 'Home' }))
 
     expect(screen.getAllByRole('listitem')).toHaveLength(2)
+  })
+
+  it('still has the pantry list after opening a recipe and leaving by the nav bar', async () => {
+    // Reported by hand: results -> a recipe -> Home lost the ingredients,
+    // because the detail address carried none for the nav bar to pass on.
+    searchRecipes.mockResolvedValue([{
+      id: 660101,
+      title: 'Simple Garlic Pasta',
+      imageUrl: 'http://img/1.jpg',
+      ingredientsYouHave: 1,
+      ingredientsYouNeed: 2,
+      matchPercent: 33,
+    }])
+
+    renderAt('/')
+    await add('garlic')
+    await userEvent.click(screen.getByRole('button', { name: 'Generate Recipes' }))
+
+    await userEvent.click(await screen.findByRole('link', { name: 'View Recipe' }))
+    await screen.findByRole('heading', { name: 'Simple Garlic Pasta' })
+
+    await userEvent.click(screen.getByRole('link', { name: 'Home' }))
+
+    expect(screen.getAllByRole('listitem').map((one) => one.textContent))
+      .toEqual(expect.arrayContaining([expect.stringContaining('garlic')]))
   })
 
   it('Back to Ingredients keeps the ingredients and the filters', async () => {

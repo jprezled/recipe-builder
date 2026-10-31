@@ -176,6 +176,35 @@ who genuinely mistyped their username; that is the right trade.
 fails, and shows the backend's own sentence. So the 401 reaches the cook as
 *"Please sign in to save favorites."* through a path that already exists.
 
+## Sprint 3 additions — recipe detail
+
+Two new cases from RB-127, agreed in `recipe-detail-contract.md`. Same
+`{"message": "..."}` as everything else.
+
+| Situation | Status | Message |
+|---|---|---|
+| No recipe with that id | 404 | `That recipe could not be found.` |
+| The id in the address is not a number | 400 | `That recipe link is not valid.` |
+
+### Why 404 needs saying out loud
+
+`SpoonacularClient.translate` folds every status it does not recognise into the
+502 above. For an unknown id that blames *our* service for *their* bad link.
+Search never returns 404 — a no-match comes back as an empty list, not a status
+code — so this only becomes a problem once recipe detail exists.
+
+### Why the 400 is not optional
+
+Spring cannot convert `abc` into a number, so it throws before our controller
+runs. With no handler for that, `/api/recipes/abc` returns Spring's default
+error body — stack trace, timestamp, path — which rule 2 above forbids.
+
+### Neither of these is the empty recipe
+
+A recipe with no steps, or with no ingredients listed, came back **successfully**.
+Those two get their own sentences on the page and are not errors at all; they
+live in `recipe-detail-contract.md`, not in this file.
+
 ---
 
 ## Status

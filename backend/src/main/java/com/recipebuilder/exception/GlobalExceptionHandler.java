@@ -3,6 +3,7 @@ package com.recipebuilder.exception;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MissingServletRequestParameterException;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
@@ -77,6 +78,25 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(DemoUserMissingException.class)
     public ResponseEntity<ApiErrorResponse> onDemoUserMissing(DemoUserMissingException failure) {
         return build(HttpStatus.INTERNAL_SERVER_ERROR, failure.getMessage());
+    }
+
+    /** No recipe exists with the id that was asked for. */
+    @ExceptionHandler(RecipeNotFoundException.class)
+    public ResponseEntity<ApiErrorResponse> onRecipeNotFound(RecipeNotFoundException failure) {
+        return build(HttpStatus.NOT_FOUND, failure.getMessage());
+    }
+
+    /**
+     * The id in the address was not a number, so Spring could not turn it into
+     * one and threw before our controller ran.
+     *
+     * Without this the browser gets Spring's default error page, which carries
+     * a stack trace - the one thing RB-80's fourth criterion forbids.
+     */
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    public ResponseEntity<ApiErrorResponse> onUnreadableId(
+            MethodArgumentTypeMismatchException failure) {
+        return build(HttpStatus.BAD_REQUEST, "That recipe link is not valid.");
     }
 
     private ResponseEntity<ApiErrorResponse> build(HttpStatus status, String message) {
