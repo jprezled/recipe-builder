@@ -102,4 +102,17 @@ public class GlobalExceptionHandler {
     private ResponseEntity<ApiErrorResponse> build(HttpStatus status, String message) {
         return ResponseEntity.status(status).body(new ApiErrorResponse(message));
     }
+
+    // === for RB-159 === //
+     /**
+     * The name or the email is already in use.
+     *
+     * The message comes from the exception rather than being written here,
+     * because the repository already set the sentence agreed in
+     * docs/error-shape.md.
+     */
+    @ExceptionHandler(UsernameTakenException.class)
+    public ResponseEntity<ApiErrorResponse> onUsernameTaken(UsernameTakenException failure) {
+        return build(HttpStatus.CONFLICT, failure.getMessage());
+    }
 }
