@@ -130,12 +130,13 @@ export default function NavigationBar() {
 
           {signedInAs === null ? (
             <>
-              {/* No query string on these two: neither page uses the pantry
-                  list, and carrying it would only make the address noisy. */}
-              <NavLink className="site-nav-link" to="/signin">
+              {/* These carry the query string too. Neither page USES the
+                  pantry list, but signing in part way through a search must
+                  not lose it - the address is where the list lives. */}
+              <NavLink className="site-nav-link" to={{ pathname: '/signin', search }}>
                 Sign in
               </NavLink>
-              <NavLink className="site-nav-link" to="/signup">
+              <NavLink className="site-nav-link" to={{ pathname: '/signup', search }}>
                 Sign up
               </NavLink>
             </>

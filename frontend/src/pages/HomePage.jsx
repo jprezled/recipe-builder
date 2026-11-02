@@ -208,7 +208,14 @@ export default function HomePage() {
           Generate Recipes
         </button>
 
-        <Link className="button button-secondary" to="/favorites">
+        {/* Carries the query string for the same reason the nav bar does: the
+            pantry list and the dietary filters live in the address, so a bare
+            "/favorites" throws them away and coming back lands on an empty
+            page. RB-188 fixed the nav bar's links and not this one. */}
+        <Link
+          className="button button-secondary"
+          to={{ pathname: '/favorites', search: searchParams.toString() }}
+        >
           View Favorites
         </Link>
       </div>

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { signUp } from '../api/accounts'
 
 /**
@@ -14,6 +14,9 @@ import { signUp } from '../api/accounts'
  */
 export default function SignUpPage() {
   const navigate = useNavigate()
+
+  // Passed through for the same reason as SignInPage.
+  const { search } = useLocation()
 
   const [username, setUsername] = useState('')
   const [email, setEmail] = useState('')
@@ -40,7 +43,7 @@ export default function SignUpPage() {
       // Straight to sign-in rather than signing them in here: creating an
       // account and starting a session are two different endpoints, and
       // doing both would mean two ways to become signed in to keep working.
-      navigate('/signin')
+      navigate({ pathname: '/signin', search })
     } catch (failure) {
       setErrorMessage(failure.message)
     } finally {
@@ -94,7 +97,7 @@ export default function SignUpPage() {
       {errorMessage && <p className="account-error" role="alert">{errorMessage}</p>}
 
       <p className="account-swap">
-        Already have an account? <Link to="/signin">Sign in</Link>
+        Already have an account? <Link to={{ pathname: '/signin', search }}>Sign in</Link>
       </p>
     </main>
   )

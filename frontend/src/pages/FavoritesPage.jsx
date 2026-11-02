@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 import { getFavorites } from '../api/recipes'
 import { getSession } from '../api/accounts'
 import RecipeCard from '../components/RecipeCard'
@@ -17,6 +17,10 @@ import RecipeCard from '../components/RecipeCard'
  * back tomorrow, and whatever is here could not have come from anywhere else.
  */
 export default function FavoritesPage() {
+  // Favorites does not use the pantry list, but it has to hand it back: the
+  // list lives in the address, so a bare "/" on the way out loses it.
+  const { search } = useLocation()
+
   const [favorites, setFavorites] = useState([])
 
   // Three states, not two. null means "we have not asked yet", which is what
@@ -121,7 +125,7 @@ export default function FavoritesPage() {
         <div className="empty-state">
           <p className="empty-title">Please sign in to save favorites.</p>
           <p>Your saved recipes are kept with your account.</p>
-          <Link className="button" to="/signin">Sign in</Link>
+          <Link className="button" to={{ pathname: '/signin', search }}>Sign in</Link>
         </div>
       )}
 
@@ -129,7 +133,7 @@ export default function FavoritesPage() {
         <div className="empty-state">
           <p className="empty-title">No favorites yet</p>
           <p>Find a recipe you like and tap Favorites. It will show up here.</p>
-          <Link className="button" to="/">Find Recipes</Link>
+          <Link className="button" to={{ pathname: '/', search }}>Find Recipes</Link>
         </div>
       )}
 
@@ -148,7 +152,7 @@ export default function FavoritesPage() {
       </div>
 
       <div className="button-group">
-        <Link className="button button-secondary" to="/">Back to Home</Link>
+        <Link className="button button-secondary" to={{ pathname: '/', search }}>Back to Home</Link>
       </div>
     </main>
   )
