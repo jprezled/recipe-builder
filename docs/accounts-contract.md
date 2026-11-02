@@ -199,7 +199,6 @@ here to be copied rather than retyped.
 
 RB-161 deletes `DEMO_USER_ID` from `FavoriteService` and replaces it with this.
 
-Sign in also stores the username, a String under "username", so GET /api/session can answer without a database call.
 ---
 
 ## The three new error messages

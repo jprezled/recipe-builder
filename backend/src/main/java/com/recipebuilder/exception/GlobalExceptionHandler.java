@@ -102,14 +102,4 @@ public class GlobalExceptionHandler {
     private ResponseEntity<ApiErrorResponse> build(HttpStatus status, String message) {
         return ResponseEntity.status(status).body(new ApiErrorResponse(message));
     }
-
-    /**
-     * Nobody is signed in, or the sign-in details were wrong. Both are 401, and
-     * the message is the agreed sentence for whichever it was.
-     */
-    @ExceptionHandler(NotSignedInException.class)
-    public ResponseEntity<ApiErrorResponse> onNotSignedIn(NotSignedInException failure) {
-        return build(HttpStatus.UNAUTHORIZED, failure.getMessage());
-    }
-    
 }
