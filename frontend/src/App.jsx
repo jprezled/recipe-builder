@@ -3,6 +3,8 @@ import HomePage from './pages/HomePage'
 import ResultsPage from './pages/ResultsPage'
 import FavoritesPage from './pages/FavoritesPage'
 import RecipeDetailPage from './pages/RecipeDetailPage'
+import SignInPage from './pages/SignInPage'
+import SignUpPage from './pages/SignUpPage'
 import NavigationBar from './components/NavigationBar'
 
 /**
@@ -32,6 +34,11 @@ export default function App() {
 
         {/* A recipe's ID in the address tells this page which recipe to show. */}
         <Route path="/recipe/:id" element={<RecipeDetailPage />} />
+
+        {/* Accounts. Neither page carries the pantry list, so neither takes
+            the query string the other routes pass around. */}
+        <Route path="/signin" element={<SignInPage />} />
+        <Route path="/signup" element={<SignUpPage />} />
 
         {/* Later sprints: /budget and /health go here. Nothing else has to
             change to add them - that is the point of a route table. */}
