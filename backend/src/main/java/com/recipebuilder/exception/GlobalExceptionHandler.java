@@ -103,8 +103,7 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(status).body(new ApiErrorResponse(message));
     }
 
-    // === for RB-159 === //
-     /**
+    /**
      * The name or the email is already in use.
      *
      * The message comes from the exception rather than being written here,
