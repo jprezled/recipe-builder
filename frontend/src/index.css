@@ -533,12 +533,14 @@ a.button {
 .account-page h1 {
   color: var(--color-heading);
   margin-bottom: 0.25rem;
+  text-align: center;
 }
 
 .account-tagline {
   margin-top: 0;
   margin-bottom: 1.5rem;
   color: var(--color-text);
+  text-align: center;
 }
 
 .account-form {
