@@ -186,6 +186,47 @@ class FavoriteRepositoryTest {
     }
 
     @Test
+    void twoUsersEachSeeOnlyTheirOwnFavorites() {
+        // The second account is created here rather than in a migration, so it
+        // disappears with the transaction and cannot affect another test.
+        long otherUserId = db.queryForObject(
+                "INSERT INTO users (username, email, password_hash) "
+                + "VALUES ('other', 'other@example.com', 'not-a-real-hash') "
+                + "RETURNING user_id", Long.class);
+
+        repository.save(DEMO_USER_ID, new FavoriteRequest(1111L, "Demo's recipe", null));
+        repository.save(otherUserId, new FavoriteRequest(2222L, "Other's recipe", null));
+
+        assertThat(repository.findForUser(DEMO_USER_ID))
+                .extracting(FavoriteDto::id)
+                .containsExactly(1111L);
+
+        assertThat(repository.findForUser(otherUserId))
+                .extracting(FavoriteDto::id)
+                .containsExactly(2222L);
+    }
+
+    @Test
+    void twoUsersCanSaveTheSameRecipeWithoutCollidingOnIt() {
+        long otherUserId = db.queryForObject(
+                "INSERT INTO users (username, email, password_hash) "
+                + "VALUES ('other', 'other@example.com', 'not-a-real-hash') "
+                + "RETURNING user_id", Long.class);
+
+        repository.save(DEMO_USER_ID, new FavoriteRequest(716429L, "Shared", null));
+        repository.save(otherUserId, new FavoriteRequest(716429L, "Shared", null));
+
+        // saved_recipes is keyed on (user_id, recipe_id), so one recipe row is
+        // shared and each user gets their own link to it.
+        assertThat(repository.findForUser(DEMO_USER_ID)).hasSize(1);
+        assertThat(repository.findForUser(otherUserId)).hasSize(1);
+
+        Integer recipeRows = db.queryForObject(
+                "SELECT COUNT(*) FROM recipes WHERE spoonacular_id = 716429", Integer.class);
+        assertThat(recipeRows).isEqualTo(1);
+    }
+
+    @Test
     void severalFavoritesAllComeBack() {
         repository.save(DEMO_USER_ID, new FavoriteRequest(1111L, "First", null));
         repository.save(DEMO_USER_ID, new FavoriteRequest(2222L, "Second", null));

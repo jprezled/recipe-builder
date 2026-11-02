@@ -1,5 +1,3 @@
-// === for RB-159 === //
-
 package com.recipebuilder.dto;
 
 /**

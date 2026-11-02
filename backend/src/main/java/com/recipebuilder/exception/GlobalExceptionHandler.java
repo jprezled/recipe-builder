@@ -103,8 +103,7 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(status).body(new ApiErrorResponse(message));
     }
 
-    // === for RB-159 === //
-     /**
+    /**
      * The name or the email is already in use.
      *
      * The message comes from the exception rather than being written here,
@@ -114,5 +113,14 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(UsernameTakenException.class)
     public ResponseEntity<ApiErrorResponse> onUsernameTaken(UsernameTakenException failure) {
         return build(HttpStatus.CONFLICT, failure.getMessage());
+    }
+
+    /**
+     * Nobody is signed in, or the sign-in details were wrong. Both are 401, and
+     * the message is the agreed sentence for whichever it was.
+     */
+    @ExceptionHandler(NotSignedInException.class)
+    public ResponseEntity<ApiErrorResponse> onNotSignedIn(NotSignedInException failure) {
+        return build(HttpStatus.UNAUTHORIZED, failure.getMessage());
     }
 }

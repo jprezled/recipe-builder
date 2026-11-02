@@ -163,6 +163,22 @@ Three new cases from RB-124, agreed in `accounts-contract.md`. Same
 | Username or email already taken | 409 | `That username is taken. Please pick another.` |
 | Wrong username **or** wrong password | 401 | `Incorrect username or password.` |
 
+### Sign-up validation — RB-159
+
+The three above come from `accounts-contract.md`. These five are the sign-up
+rules in the same contract (8-character password, 50- and 255-character
+columns), which fixes the *rule* but left the wording to this file.
+
+| Situation | Status | Message |
+|---|---|---|
+| Username missing | 400 | `Please enter a username.` |
+| Email missing | 400 | `Please enter an email address.` |
+| Password shorter than 8 | 400 | `Please choose a password of at least 8 characters.` |
+| Username longer than 50 | 400 | `That username is too long. Please use 50 characters or fewer.` |
+| Email longer than 255 | 400 | `That email address is too long. Please use 255 characters or fewer.` |
+
+`UserService` holds each of these as a constant, so the sentence exists once.
+
 ### Why the third one is deliberately vague
 
 An unknown username and a wrong password return the **same sentence**. If they
@@ -218,12 +234,3 @@ live in `recipe-detail-contract.md`, not in this file.
 
 Changing a message means changing it here first, then in whichever side owns
 it. This file is the source of truth.
-
-/ === for RB-159 === /
-| Situation                | Status | Message |
-|---|---|---|
-| Username missing         | 400 | `Please enter a username.` |
-| Email missing            | 400 | `Please enter an email address.` |
-| Password shorter than 8  | 400 | `Please choose a password of at least 8 characters.` |
-| Username longer than 50  | 400 | `That username is too long. Please use 50 characters or fewer.` |
-| Email longer than 255    | 400 | `That email address is too long. Please use 255 characters or fewer.` |

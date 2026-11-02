@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event'
 import { BrowserRouter } from 'react-router-dom'
 import App from './App'
 import { searchRecipes } from './api/recipes'
+import { getSession, signIn, signOut } from './api/accounts'
 
 // The pages search on mount. Stubbing the api layer keeps these tests about
 // routing and navigation rather than about the network.
@@ -25,8 +26,19 @@ vi.mock('./api/recipes', () => ({
   })),
 }))
 
+// The header asks who-am-I whenever the address changes. These route tests
+// are not about accounts, so the default is "signed in" and the few tests that
+// care override it.
+vi.mock('./api/accounts', () => ({
+  getSession: vi.fn(() => Promise.resolve({ id: 1, username: 'demo' })),
+  signIn: vi.fn(() => Promise.resolve({ id: 1, username: 'demo' })),
+  signUp: vi.fn(() => Promise.resolve({ id: 1, username: 'demo' })),
+  signOut: vi.fn(() => Promise.resolve()),
+}))
+
 beforeEach(() => {
   vi.clearAllMocks()
+  getSession.mockResolvedValue({ id: 1, username: 'demo' })
 })
 
 /**
@@ -61,6 +73,16 @@ describe('App routes', () => {
   it('shows the favorites page at /favorites', () => {
     renderAt('/favorites')
     expect(screen.getByRole('heading', { name: 'Your Favorites' })).toBeInTheDocument()
+  })
+
+  it('shows the sign-in page at /signin', () => {
+    renderAt('/signin')
+    expect(screen.getByRole('heading', { name: 'Sign in' })).toBeInTheDocument()
+  })
+
+  it('shows the sign-up page at /signup', () => {
+    renderAt('/signup')
+    expect(screen.getByRole('heading', { name: 'Sign up' })).toBeInTheDocument()
   })
 
   it('shows the detail page at /recipe/:id', () => {
@@ -159,5 +181,76 @@ describe('the pantry list survives the nav bar', () => {
 
     // The embedded results box is back, not just the ingredient list.
     expect(screen.getByRole('heading', { name: 'Your Recipes' })).toBeInTheDocument()
+  })
+})
+
+/**
+ * The header has to say who you are.
+ *
+ * It is created once and sits above every page, so a single check when the app
+ * starts would leave it stale forever: signing in successfully would still
+ * show "Sign in" until a full page reload. It re-asks on every navigation.
+ */
+describe('the header says who is signed in', () => {
+  it('offers sign in and sign up when nobody is signed in', async () => {
+    getSession.mockRejectedValue(new Error('Please sign in to save favorites.'))
+    renderAt('/')
+
+    expect(await screen.findByRole('link', { name: 'Sign in' })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Sign up' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Sign out' })).not.toBeInTheDocument()
+  })
+
+  it('shows the name and a way out when somebody is', async () => {
+    getSession.mockResolvedValue({ id: 1, username: 'demo' })
+    renderAt('/')
+
+    expect(await screen.findByText('demo')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Sign out' })).toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: 'Sign in' })).not.toBeInTheDocument()
+  })
+
+  it('treats a rejection as nobody rather than as an error to display', async () => {
+    getSession.mockRejectedValue(new Error('Please sign in to save favorites.'))
+    renderAt('/')
+
+    await screen.findByRole('link', { name: 'Sign in' })
+
+    // Not being signed in is an answer, not a failure. It must never put the
+    // 401 sentence on screen.
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+    expect(screen.queryByText('Please sign in to save favorites.')).not.toBeInTheDocument()
+  })
+
+  it('notices a sign-in that happened without a page reload', async () => {
+    // The whole point of re-asking on navigation. Nobody at first, then the
+    // form succeeds and the header has to catch up on its own.
+    getSession.mockRejectedValue(new Error('Please sign in to save favorites.'))
+    renderAt('/signin')
+
+    // The header's "Sign in" link, not the page's button of the same name -
+    // the page also carries a "Sign up" link, so that one is ambiguous here.
+    await screen.findByRole('link', { name: 'Sign in' })
+
+    signIn.mockResolvedValue({ id: 1, username: 'demo' })
+    getSession.mockResolvedValue({ id: 1, username: 'demo' })
+
+    await userEvent.type(screen.getByLabelText('Username'), 'demo')
+    await userEvent.type(screen.getByLabelText('Password'), 'demo1234')
+    await userEvent.click(screen.getByRole('button', { name: 'Sign in' }))
+
+    expect(await screen.findByText('demo')).toBeInTheDocument()
+  })
+
+  it('signing out puts the header back to offering sign in', async () => {
+    getSession.mockResolvedValue({ id: 1, username: 'demo' })
+    renderAt('/favorites')
+    await screen.findByText('demo')
+
+    getSession.mockRejectedValue(new Error('Please sign in to save favorites.'))
+    await userEvent.click(screen.getByRole('button', { name: 'Sign out' }))
+
+    expect(await screen.findByRole('link', { name: 'Sign in' })).toBeInTheDocument()
+    expect(signOut).toHaveBeenCalled()
   })
 })
