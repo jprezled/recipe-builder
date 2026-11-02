@@ -218,3 +218,12 @@ live in `recipe-detail-contract.md`, not in this file.
 
 Changing a message means changing it here first, then in whichever side owns
 it. This file is the source of truth.
+
+/ === for RB-159 === /
+| Situation                | Status | Message |
+|---|---|---|
+| Username missing         | 400 | `Please enter a username.` |
+| Email missing            | 400 | `Please enter an email address.` |
+| Password shorter than 8  | 400 | `Please choose a password of at least 8 characters.` |
+| Username longer than 50  | 400 | `That username is too long. Please use 50 characters or fewer.` |
+| Email longer than 255    | 400 | `That email address is too long. Please use 255 characters or fewer.` |
