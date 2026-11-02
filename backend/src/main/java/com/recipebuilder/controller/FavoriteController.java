@@ -2,7 +2,9 @@ package com.recipebuilder.controller;
 
 import com.recipebuilder.dto.FavoriteDto;
 import com.recipebuilder.dto.FavoriteRequest;
+import com.recipebuilder.exception.NotSignedInException;
 import com.recipebuilder.service.FavoriteService;
+import com.recipebuilder.service.SessionService;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -12,12 +14,15 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpSession;
+
 import java.util.List;
 
 /**
  * Our favorites addresses:
  *
- *   GET    /api/favorites        what the demo user has saved
+ *   GET    /api/favorites        what the signed-in cook has saved
  *   POST   /api/favorites        save one
  *   DELETE /api/favorites/{id}   unsave one, by Spoonacular's id
  *
@@ -37,10 +42,10 @@ public class FavoriteController {
         this.service = service;
     }
 
-    /** @return the demo user's saved recipes, newest first */
+    /** @return the signed-in cook's saved recipes, newest first */
     @GetMapping("/api/favorites")
-    public List<FavoriteDto> list() {
-        return service.list();
+    public List<FavoriteDto> list(HttpServletRequest http) {
+        return service.list(signedInUserId(http));
     }
 
     /**
@@ -52,8 +57,8 @@ public class FavoriteController {
      */
     @PostMapping("/api/favorites")
     @ResponseStatus(HttpStatus.CREATED)
-    public void add(@RequestBody FavoriteRequest recipe) {
-        service.add(recipe);
+    public void add(@RequestBody FavoriteRequest recipe, HttpServletRequest http) {
+        service.add(signedInUserId(http), recipe);
     }
 
     /**
@@ -66,7 +71,27 @@ public class FavoriteController {
      */
     @DeleteMapping("/api/favorites/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void remove(@PathVariable long id) {
-        service.remove(id);
+    public void remove(@PathVariable long id, HttpServletRequest http) {
+        service.remove(signedInUserId(http), id);
+    }
+
+    /**
+     * Whose favorites this request is about.
+     *
+     * getSession(false) rather than getSession(): the plain version CREATES a
+     * session, which would hand a cookie to every signed-out visitor who ever
+     * opens the favorites page and pile up empty sessions on the server.
+     *
+     * Having a session is not the same as being signed in - one can exist for
+     * other reasons - so the userId attribute is what actually decides.
+     */
+    private long signedInUserId(HttpServletRequest http) {
+        HttpSession session = http.getSession(false);
+
+        if (session == null || !(session.getAttribute(SessionController.USER_ID) instanceof Long id)) {
+            throw new NotSignedInException(SessionService.NOT_SIGNED_IN);
+        }
+
+        return id;
     }
 }

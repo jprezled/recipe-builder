@@ -16,6 +16,8 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -27,8 +29,8 @@ import static org.mockito.Mockito.when;
  */
 class FavoriteServiceTest {
 
-    /** The id database/migrations/V2__demo_user.sql creates. */
-    private static final long DEMO_USER_ID = 1L;
+    /** Any user id. The point of this subtask is that it is not fixed. */
+    private static final long A_USER = 7L;
 
     private FavoriteRepository repository;
     private FavoriteService service;
@@ -40,31 +42,31 @@ class FavoriteServiceTest {
     }
 
     @Test
-    void savingPassesTheRecipeAndTheDemoUserToTheRepository() {
-        service.add(new FavoriteRequest(716429L, "Pasta", "http://img/1.jpg"));
+    void savingPassesTheRecipeAndTheGivenUserToTheRepository() {
+        service.add(A_USER, new FavoriteRequest(716429L, "Pasta", "http://img/1.jpg"));
 
         ArgumentCaptor<Long> userId = ArgumentCaptor.forClass(Long.class);
         ArgumentCaptor<FavoriteRequest> saved = ArgumentCaptor.forClass(FavoriteRequest.class);
         verify(repository).save(userId.capture(), saved.capture());
 
-        assertThat(userId.getValue()).isEqualTo(DEMO_USER_ID);
+        assertThat(userId.getValue()).isEqualTo(A_USER);
         assertThat(saved.getValue().id()).isEqualTo(716429L);
     }
 
     @Test
-    void listingAsksForTheDemoUsersFavorites() {
-        when(repository.findForUser(DEMO_USER_ID))
+    void listingAsksForThatUsersFavorites() {
+        when(repository.findForUser(A_USER))
                 .thenReturn(List.of(new FavoriteDto(716429L, "Pasta", null)));
 
-        assertThat(service.list()).hasSize(1);
-        verify(repository).findForUser(DEMO_USER_ID);
+        assertThat(service.list(A_USER)).hasSize(1);
+        verify(repository).findForUser(A_USER);
     }
 
     @Test
-    void removingPassesTheDemoUserAndTheSpoonacularId() {
-        service.remove(716429L);
+    void removingPassesThatUserAndTheSpoonacularId() {
+        service.remove(A_USER, 716429L);
 
-        verify(repository).remove(DEMO_USER_ID, 716429L);
+        verify(repository).remove(A_USER, 716429L);
     }
 
     @Test
@@ -72,7 +74,7 @@ class FavoriteServiceTest {
         // Spoonacular's payload is not guaranteed. A blank row would sit on the
         // favorites page forever as a card nobody can identify.
         assertThatExceptionOfType(InvalidInputException.class)
-                .isThrownBy(() -> service.add(new FavoriteRequest(716429L, "  ", null)));
+                .isThrownBy(() -> service.add(A_USER, new FavoriteRequest(716429L, "  ", null)));
 
         verify(repository, never()).save(anyLong(), any());
     }
@@ -81,7 +83,7 @@ class FavoriteServiceTest {
     void refusesARecipeWithNoId() {
         // An id of 0 or less cannot be looked up again.
         assertThatExceptionOfType(InvalidInputException.class)
-                .isThrownBy(() -> service.add(new FavoriteRequest(0L, "Pasta", null)));
+                .isThrownBy(() -> service.add(A_USER, new FavoriteRequest(0L, "Pasta", null)));
 
         verify(repository, never()).save(anyLong(), any());
     }
@@ -89,7 +91,7 @@ class FavoriteServiceTest {
     @Test
     void refusesNothingAtAll() {
         assertThatExceptionOfType(InvalidInputException.class)
-                .isThrownBy(() -> service.add(null));
+                .isThrownBy(() -> service.add(A_USER, null));
 
         verify(repository, never()).save(anyLong(), any());
     }
@@ -97,8 +99,17 @@ class FavoriteServiceTest {
     @Test
     void refusesToRemoveWithNoId() {
         assertThatExceptionOfType(InvalidInputException.class)
-                .isThrownBy(() -> service.remove(0L));
+                .isThrownBy(() -> service.remove(A_USER, 0L));
 
         verify(repository, never()).remove(anyLong(), anyLong());
+    }
+
+    @Test
+    void twoDifferentUsersEachReachTheRepositoryAsThemselves() {
+        service.add(7L, new FavoriteRequest(1111L, "Mine", null));
+        service.add(8L, new FavoriteRequest(2222L, "Yours", null));
+
+        verify(repository).save(eq(7L), any(FavoriteRequest.class));
+        verify(repository).save(eq(8L), any(FavoriteRequest.class));
     }
 }

@@ -19,16 +19,6 @@ import java.util.List;
 @Service
 public class FavoriteService {
 
-    /**
-     * The one user every favorite belongs to for now.
-     *
-     * User accounts are a later sprint. Until then every saved recipe hangs off
-     * this single row, which database/migrations/V2__demo_user.sql creates with
-     * exactly this id. When accounts arrive, this constant is what gets
-     * replaced by the signed-in user - and it being in ONE place is the point.
-     */
-    private static final long DEMO_USER_ID = 1L;
-
     private final FavoriteRepository repository;
 
     public FavoriteService(FavoriteRepository repository) {
@@ -36,11 +26,13 @@ public class FavoriteService {
     }
 
     /**
-     * Saves a recipe to the demo user's favorites.
+     * Saves a recipe to one person's favorites.
      *
+     * @param userId whose favorites - the controller reads this from the
+     *               session, because this layer must not know HTTP exists
      * @param recipe what the browser sent: Spoonacular id, title, image
      */
-    public void add(FavoriteRequest recipe) {
+    public void add(long userId, FavoriteRequest recipe) {
         if (recipe == null) {
             throw new InvalidInputException("No recipe was sent to save.");
         }
@@ -56,32 +48,35 @@ public class FavoriteService {
             throw new InvalidInputException("That recipe cannot be saved - it has no title.");
         }
 
-        repository.save(DEMO_USER_ID, recipe);
+        repository.save(userId, recipe);
     }
 
     /**
-     * Lists the demo user's saved recipes, newest first.
+     * Lists one person's saved recipes, newest first.
      *
      * Never contacts Spoonacular, so this is free no matter how often the
      * favorites page is opened.
+     *
+     * @param userId whose favorites
      */
-    public List<FavoriteDto> list() {
-        return repository.findForUser(DEMO_USER_ID);
+    public List<FavoriteDto> list(long userId) {
+        return repository.findForUser(userId);
     }
 
     /**
-     * Removes one recipe from the demo user's favorites.
+     * Removes one recipe from one person's favorites.
      *
      * Removing something that was never saved is deliberately not an error, so
      * the browser can retry safely.
      *
+     * @param userId        whose favorites
      * @param spoonacularId the recipe, by Spoonacular's id
      */
-    public void remove(long spoonacularId) {
+    public void remove(long userId, long spoonacularId) {
         if (spoonacularId <= 0) {
             throw new InvalidInputException("That recipe cannot be removed - it has no id.");
         }
 
-        repository.remove(DEMO_USER_ID, spoonacularId);
+        repository.remove(userId, spoonacularId);
     }
 }
