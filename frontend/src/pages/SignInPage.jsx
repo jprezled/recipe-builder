@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { signIn } from '../api/accounts'
 
 /**
@@ -12,6 +12,10 @@ import { signIn } from '../api/accounts'
  */
 export default function SignInPage() {
   const navigate = useNavigate()
+
+  // This page does not use the pantry list, but it has to pass it on: the list
+  // lives in the address, so dropping it here loses it for good.
+  const { search } = useLocation()
 
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
@@ -33,7 +37,7 @@ export default function SignInPage() {
 
       // Favorites is where being signed in actually changes what you see, so
       // it is the one page worth landing on.
-      navigate('/favorites')
+      navigate({ pathname: '/favorites', search })
     } catch (failure) {
       setErrorMessage(failure.message)
     } finally {
@@ -74,7 +78,7 @@ export default function SignInPage() {
       {errorMessage && <p className="account-error" role="alert">{errorMessage}</p>}
 
       <p className="account-swap">
-        New here? <Link to="/signup">Sign up</Link>
+        New here? <Link to={{ pathname: '/signup', search }}>Sign up</Link>
       </p>
     </main>
   )

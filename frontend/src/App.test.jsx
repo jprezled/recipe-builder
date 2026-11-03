@@ -157,6 +157,66 @@ describe('the pantry list survives the nav bar', () => {
       .toEqual(expect.arrayContaining([expect.stringContaining('garlic')]))
   })
 
+  it('keeps the pantry list when View Favorites is pressed', async () => {
+    // Reported by hand: results on screen, press View Favorites, and the
+    // ingredients are gone when you come back. RB-188 fixed the nav bar's
+    // links but not this button, which still navigates to a bare /favorites.
+    renderAt('/')
+    await add('eggs')
+    await add('milk')
+    await userEvent.click(screen.getByRole('button', { name: 'Generate Recipes' }))
+
+    await userEvent.click(screen.getByRole('link', { name: 'View Favorites' }))
+
+    // The list has to survive the trip, the same way it survives the nav bar.
+    expect(new URLSearchParams(window.location.search).get('ingredients')).toBe('eggs,milk')
+  })
+
+  it('still has the pantry list after View Favorites and back again', async () => {
+    renderAt('/')
+    await add('eggs')
+    await add('milk')
+    await userEvent.click(screen.getByRole('button', { name: 'Generate Recipes' }))
+
+    await userEvent.click(screen.getByRole('link', { name: 'View Favorites' }))
+    await userEvent.click(screen.getByRole('link', { name: 'Back to Home' }))
+
+    expect(screen.getAllByRole('listitem')).toHaveLength(2)
+  })
+
+  it('keeps the pantry list through signing in', async () => {
+    // Searching, then signing in part way through, then coming back. Every hop
+    // has to carry the address: the nav link, the form's own navigate after
+    // success, and the link back.
+    getSession.mockRejectedValue(new Error('nobody'))
+    renderAt('/?ingredients=eggs,milk&results=1')
+
+    await userEvent.click(await screen.findByRole('link', { name: 'Sign in' }))
+    expect(new URLSearchParams(window.location.search).get('ingredients'))
+      .toBe('eggs,milk')
+
+    signIn.mockResolvedValue({ id: 1, username: 'demo' })
+    getSession.mockResolvedValue({ id: 1, username: 'demo' })
+
+    await userEvent.type(screen.getByLabelText('Username'), 'demo')
+    await userEvent.type(screen.getByLabelText('Password'), 'demo1234')
+    await userEvent.click(screen.getByRole('button', { name: 'Sign in' }))
+
+    // Landed on favourites, list still in the address.
+    await screen.findByRole('heading', { name: 'Your Favorites' })
+    expect(new URLSearchParams(window.location.search).get('ingredients'))
+      .toBe('eggs,milk')
+  })
+
+  it('keeps the pantry list through signing up', async () => {
+    getSession.mockRejectedValue(new Error('nobody'))
+    renderAt('/?ingredients=eggs,milk&results=1')
+
+    await userEvent.click(await screen.findByRole('link', { name: 'Sign up' }))
+    expect(new URLSearchParams(window.location.search).get('ingredients'))
+      .toBe('eggs,milk')
+  })
+
   it('Back to Ingredients keeps the ingredients and the filters', async () => {
     renderAt('/results?ingredients=eggs,milk&diet=vegan&intolerances=peanut')
 
