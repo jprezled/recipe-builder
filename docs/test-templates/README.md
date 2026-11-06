@@ -8,13 +8,21 @@ Nothing in this folder runs.
 
 ## Pick your file
 
-| Your subtask | Read this | You will create |
-|---|---|---|
-| **2** — handle Spoonacular's errors | [client-test.md](client-test.md) | `client/SpoonacularErrorsTest.java` |
-| **3** — convert their data into ours | [service-test.md](service-test.md) | `service/RecipeServiceTest.java` |
-| **4** — the `/api/recipes/search` address | [controller-test.md](controller-test.md) | `controller/RecipeControllerTest.java` |
+Go by **what you are testing**, not by which sprint you are in.
 
-## All three follow the same six steps
+| What you are testing | Read this | Example |
+|---|---|---|
+| our code that calls Spoonacular | [client-test.md](client-test.md) | `client/SpoonacularClientTest.java` |
+| rules and conversions, no HTTP | [service-test.md](service-test.md) | `service/RecipeServiceTest.java` |
+| one of our own web addresses | [controller-test.md](controller-test.md) | `controller/RecipeControllerTest.java` |
+| a React component or page | [component-test.md](component-test.md) | `components/RecipeNote.test.jsx` |
+
+**Database tests have no template.** There is only one —
+`repository/FavoriteRepositoryTest.java` — so read that file instead. It shows
+the two things that make it different: it needs Postgres running, and
+`@Transactional` rolls every test back so one test cannot see another's rows.
+
+## All four follow the same six steps
 
 1. Create the `.java` file
 2. Paste the skeleton
@@ -47,6 +55,8 @@ proving and ignore the rest — you do not work through them in order.
 
 ## Running tests
 
+Backend:
+
 ```bash
 cd backend
 ./mvnw test                                  # everything
@@ -54,6 +64,18 @@ cd backend
 ```
 
 Windows PowerShell: `.\mvnw.cmd` instead of `./mvnw`.
+
+Frontend:
+
+```bash
+cd frontend
+npm test                                     # everything
+npm test -- RecipeNote                       # one file
+```
+
+**Read the `Tests run:` line, not the exit code.** `./mvnw test | tail` reports
+the exit code of `tail`, not of Maven, so a failing suite can look like a
+passing one.
 
 When the output scrolls past, the readable version is saved to a file:
 
@@ -74,9 +96,12 @@ Controller  →  Service  →  Client  →  Spoonacular
 ```
 
 **Never call the real API.** Tests must run offline, need no API key, and spend
-none of our 150 daily points. A test hitting the real Spoonacular is slow,
+none of our 50 daily points. A test hitting the real Spoonacular is slow,
 costs quota, breaks when their servers hiccup, and fails outright for a
 teammate who has not registered yet.
+
+The frontend version of the same rule is `vi.mock('../api/recipes')`, which
+replaces our whole API module with fakes.
 
 ## Naming
 
