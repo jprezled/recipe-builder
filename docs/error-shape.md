@@ -234,3 +234,65 @@ live in `recipe-detail-contract.md`, not in this file.
 
 Changing a message means changing it here first, then in whichever side owns
 it. This file is the source of truth.
+
+## Sprint 4 additions — notes, pantry, preferences and sorting
+
+Agreed in the sprint 4 contracts, and compared against by their tests.
+
+**Copy these strings exactly. Do not write your own version.** In sprint 3,
+RB-158 shipped with an invented message instead of the agreed one. It was
+caught in review, but only just.
+
+### Notes on saved recipes (RB-205)
+
+| Situation | Status | Message |
+|---|---|---|
+| Not signed in | 401 | `Please sign in to save favorites.` |
+| The recipe is not in this cook's favourites | 404 | `Save this recipe before adding a note.` |
+| Note longer than 500 characters | 400 | `That note is too long. Please use 500 characters or fewer.` |
+
+**Why 404 and not 409:** the thing being addressed genuinely is not there.
+`/api/favorites/660101/note` names a saved recipe this cook does not have.
+
+### Saved pantry (RB-208)
+
+| Situation | Status | Message |
+|---|---|---|
+| Not signed in | 401 | `Please sign in to save favorites.` |
+| List longer than 500 characters | 400 | `That ingredient list is too long. Please use 500 characters or fewer.` |
+
+### Saved dietary restrictions (RB-209)
+
+| Situation | Status | Message |
+|---|---|---|
+| Not signed in | 401 | `Please sign in to save favorites.` |
+| A value we do not offer | 400 | `That dietary filter is not one we support.` |
+
+The second one is **the same string** the search filter uses, from
+`dietary-filter-contract.md`. One wording for one problem, whichever endpoint
+reports it.
+
+### Sort order (RB-207)
+
+| Situation | Status | Message |
+|---|---|---|
+| A sort value we do not offer | 400 | `That sort order is not one we support.` |
+
+### Ingredient suggestions (RB-228)
+
+**No new error messages.** A short or missing `query` answers **200** with an
+empty array rather than an error, because the page asks as the cook types — so
+an early call with almost nothing typed is normal.
+
+A failed lookup is ignored by every caller. The suggestion box sits on top of a
+text field that works perfectly well without it, so there is nothing to tell
+the cook about.
+
+### A correction to the quota figure
+
+Earlier sections in this file say the free tier is **150 points a day**.
+
+**It is 50.** Confirmed on 2026-11-05 by a 402 response that states the number.
+Every quota sum written before that date is three times too generous. The `429`
+message itself is unchanged — only the figure in the surrounding prose was
+wrong.
