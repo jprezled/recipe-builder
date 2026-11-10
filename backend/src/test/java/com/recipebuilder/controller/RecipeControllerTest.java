@@ -110,7 +110,7 @@ class RecipeControllerTest {
                 45,
                 List.of("3 cloves of garlic (minced)"),
                 List.of("Start with boiling water in a large pot."),
-                new RecipeDetailDto.Diets(true, true, false, true)));
+                new RecipeDetailDto.Diets(true, true, false, true),null));
 
         mockMvc.perform(get("/api/recipes/660101"))
                 .andExpect(status().isOk())

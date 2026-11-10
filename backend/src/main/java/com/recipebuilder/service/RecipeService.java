@@ -177,7 +177,8 @@ public class RecipeService {
                 theirs.readyInMinutes(),
                 ingredients,
                 steps,
-                diets);
+                diets,
+                toNutrition(theirs.nutrition())); // Nutrition is not yet implemented, so always null for now.
     }
 
     /** Refuses a diet or intolerance that is not "none" and not on the approved lists. */
@@ -195,4 +196,40 @@ public class RecipeService {
             }
         }
     }
+
+    /** Converts Spoonacular's nutrient list into our six figures. */
+    private static RecipeDetailDto.Nutrition toNutrition(
+            SpoonacularRecipeInformation.Nutrition theirs) {
+
+        if (theirs == null || theirs.nutrients() == null) {
+            return null;
+        }
+
+        return new RecipeDetailDto.Nutrition(
+                amountOf(theirs, "Calories"),
+                amountOf(theirs, "Fat"),
+                amountOf(theirs, "Saturated Fat"),
+                amountOf(theirs, "Carbohydrates"),
+                amountOf(theirs, "Sugar"),
+                amountOf(theirs, "Protein"));
+    }
+
+    /** Finds a nutrient by its exact name and rounds its amount. */
+    private static double amountOf(
+            SpoonacularRecipeInformation.Nutrition theirs, String name) {
+
+        for (SpoonacularRecipeInformation.Nutrient nutrient : theirs.nutrients()) {
+            if (name.equals(nutrient.name())) {
+                return round2(nutrient.amount());
+            }
+        }
+
+        return 0;
+    }
+
+    /** Rounds an amount to two decimal places. */
+    private static double round2(double amount) {
+        return Math.round(amount * 100.0) / 100.0;
+    }
+
 }
