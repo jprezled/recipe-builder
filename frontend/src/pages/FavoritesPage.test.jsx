@@ -160,4 +160,21 @@ describe('FavoritesPage when nobody is signed in', () => {
     expect(await screen.findByText('No favorites yet')).toBeInTheDocument()
     expect(screen.queryByText('Please sign in to save favorites.')).not.toBeInTheDocument()
   })
+
+  // RB-205: notes ------------------------------------------------------
+
+  it('shows a saved note on its card', async () => {
+    getFavorites.mockResolvedValue([{ ...SAVED, note: 'double the garlic' }])
+    renderFavorites()
+
+    expect(await screen.findByText('double the garlic')).toBeInTheDocument()
+  })
+
+  /** The page must pass the note through, not just render the component. */
+  it('offers to add a note when a saved recipe has none', async () => {
+    getFavorites.mockResolvedValue([{ ...SAVED, note: null }])
+    renderFavorites()
+
+    expect(await screen.findByRole('button', { name: 'Add a note' })).toBeInTheDocument()
+  })
 })

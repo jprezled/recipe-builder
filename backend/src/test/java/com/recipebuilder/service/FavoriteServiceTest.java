@@ -14,6 +14,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.ArgumentMatchers.any;
@@ -56,7 +58,7 @@ class FavoriteServiceTest {
     @Test
     void listingAsksForThatUsersFavorites() {
         when(repository.findForUser(A_USER))
-                .thenReturn(List.of(new FavoriteDto(716429L, "Pasta", null)));
+                .thenReturn(List.of(new FavoriteDto(716429L, "Pasta", null, null)));
 
         assertThat(service.list(A_USER)).hasSize(1);
         verify(repository).findForUser(A_USER);
@@ -111,5 +113,69 @@ class FavoriteServiceTest {
 
         verify(repository).save(eq(7L), any(FavoriteRequest.class));
         verify(repository).save(eq(8L), any(FavoriteRequest.class));
+    }
+
+    // RB-205: notes ------------------------------------------------------
+
+    @Test
+    void aNoteIsWrittenForTheSignedInCook() {
+        when(repository.saveNote(A_USER, 660101L, "double the garlic")).thenReturn(1);
+
+        service.saveNote(A_USER, 660101L, "double the garlic");
+
+        verify(repository).saveNote(A_USER, 660101L, "double the garlic");
+    }
+
+    /**
+     * Clearing a note and never writing one must end up the same in the
+     * column, so the page has one empty case to render rather than two.
+     */
+    @Test
+    void anEmptyNoteIsStoredAsNothingAtAll() {
+        when(repository.saveNote(eq(A_USER), eq(660101L), isNull())).thenReturn(1);
+
+        service.saveNote(A_USER, 660101L, "   ");
+
+        verify(repository).saveNote(A_USER, 660101L, null);
+    }
+
+    @Test
+    void surroundingSpaceIsTrimmedOffANote() {
+        when(repository.saveNote(eq(A_USER), eq(660101L), anyString())).thenReturn(1);
+
+        service.saveNote(A_USER, 660101L, "  used less salt  ");
+
+        verify(repository).saveNote(A_USER, 660101L, "used less salt");
+    }
+
+    @Test
+    void aNoteLongerThanTheLimitIsRefused() {
+        assertThatExceptionOfType(InvalidInputException.class)
+                .isThrownBy(() -> service.saveNote(A_USER, 660101L, "x".repeat(501)))
+                .withMessage(FavoriteService.NOTE_TOO_LONG);
+
+        verify(repository, never()).saveNote(anyLong(), anyLong(), anyString());
+    }
+
+    @Test
+    void aNoteExactlyAtTheLimitIsAccepted() {
+        when(repository.saveNote(eq(A_USER), eq(660101L), anyString())).thenReturn(1);
+
+        service.saveNote(A_USER, 660101L, "x".repeat(500));
+
+        verify(repository).saveNote(eq(A_USER), eq(660101L), anyString());
+    }
+
+    /**
+     * The note hangs off the saved_recipes row. With no such row, accepting the
+     * note would throw it away without telling the cook.
+     */
+    @Test
+    void aNoteOnARecipeTheCookHasNotSavedIsRefused() {
+        when(repository.saveNote(eq(A_USER), eq(660101L), anyString())).thenReturn(0);
+
+        assertThatExceptionOfType(InvalidInputException.class)
+                .isThrownBy(() -> service.saveNote(A_USER, 660101L, "a note"))
+                .withMessage(FavoriteService.NOT_SAVED);
     }
 }

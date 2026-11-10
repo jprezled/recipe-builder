@@ -648,3 +648,64 @@ a.button {
   outline: 2px solid currentColor;
   outline-offset: 4px;
 }
+
+/* RB-205: the cook's note on a saved recipe, at the foot of its card. */
+.note {
+  border-top: 1px solid #e3ebe3;
+  margin-top: 0.8rem;
+  padding-top: 0.7rem;
+  text-align: left;
+  width: 100%;
+}
+.note-text {
+  font-size: 0.88rem;
+  margin: 0 0 0.5rem;
+  /* pre-wrap so the cook's own line breaks survive. */
+  white-space: pre-wrap;
+}
+.note-empty {
+  color: #7a8a7a;
+  font-size: 0.85rem;
+  font-style: italic;
+  margin: 0 0 0.5rem;
+}
+.note label {
+  display: block;
+  font-size: 0.8rem;
+  font-weight: 600;
+  margin-bottom: 0.3rem;
+}
+.note-input {
+  border: 1px solid #c3d2c3;
+  border-radius: 6px;
+  font: inherit;
+  font-size: 0.88rem;
+  padding: 7px 9px;
+  resize: vertical;
+  width: 100%;
+}
+.note-actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+.note-edit,
+.note-save,
+.note-cancel {
+  border-radius: 6px;
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.82rem;
+  padding: 5px 11px;
+}
+.note-edit,
+.note-cancel {
+  background: none;
+  border: 1px solid #c3d2c3;
+  color: #2a5c2a;
+}
+.note-save {
+  background-color: #2a5c2a;
+  border: 1px solid #2a5c2a;
+  color: #ffffff;
+}

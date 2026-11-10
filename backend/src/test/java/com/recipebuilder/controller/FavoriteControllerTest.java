@@ -4,6 +4,7 @@ import com.recipebuilder.dto.FavoriteDto;
 import com.recipebuilder.dto.FavoriteRequest;
 import com.recipebuilder.exception.DatabaseUnavailableException;
 import com.recipebuilder.exception.DemoUserMissingException;
+import com.recipebuilder.exception.InvalidInputException;
 import com.recipebuilder.service.FavoriteService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -23,6 +24,7 @@ import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -53,7 +55,7 @@ class FavoriteControllerTest {
     @Test
     void listsFavoritesAsJson() throws Exception {
         when(service.list(SIGNED_IN)).thenReturn(List.of(
-                new FavoriteDto(716429L, "Garlic Chicken Pasta", "http://img/1.jpg")));
+                new FavoriteDto(716429L, "Garlic Chicken Pasta", "http://img/1.jpg", null)));
 
         mockMvc.perform(get("/api/favorites").sessionAttr(USER_ID, SIGNED_IN))
                 .andExpect(status().isOk())
@@ -204,5 +206,60 @@ class FavoriteControllerTest {
                 .andExpect(jsonPath("$.message").value("Please sign in to save favorites."));
 
         verifyNoInteractions(service);
+    }
+
+    // RB-205: notes ------------------------------------------------------
+
+    @Test
+    void writingANoteAnswers204AndNoBody() throws Exception {
+        mockMvc.perform(put("/api/favorites/660101/note")
+                        .sessionAttr(USER_ID, SIGNED_IN)
+                        .contentType(MediaType.TEXT_PLAIN).content("double the garlic"))
+                .andExpect(status().isNoContent());
+
+        verify(service).saveNote(SIGNED_IN, 660101L, "double the garlic");
+    }
+
+    @Test
+    void writingANoteWhileSignedOutIsRefusedWithTheAgreedSentence() throws Exception {
+        mockMvc.perform(put("/api/favorites/660101/note")
+                        .contentType(MediaType.TEXT_PLAIN).content("double the garlic"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.message").value("Please sign in to save favorites."));
+
+        verifyNoInteractions(service);
+    }
+
+    /** An empty body clears the note, so it must reach the service, not 400. */
+    @Test
+    void anEmptyNoteBodyIsAccepted() throws Exception {
+        mockMvc.perform(put("/api/favorites/660101/note")
+                        .sessionAttr(USER_ID, SIGNED_IN)
+                        .contentType(MediaType.TEXT_PLAIN).content(""))
+                .andExpect(status().isNoContent());
+
+        verify(service).saveNote(eq(SIGNED_IN), eq(660101L), any());
+    }
+
+    @Test
+    void aNoteOnAnUnsavedRecipeAnswers400WithTheServicesSentence() throws Exception {
+        doThrow(new InvalidInputException("Save this recipe before adding a note."))
+                .when(service).saveNote(eq(SIGNED_IN), eq(660101L), any());
+
+        mockMvc.perform(put("/api/favorites/660101/note")
+                        .sessionAttr(USER_ID, SIGNED_IN)
+                        .contentType(MediaType.TEXT_PLAIN).content("a note"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("Save this recipe before adding a note."));
+    }
+
+    @Test
+    void aNoteComesBackOnEachSavedRecipe() throws Exception {
+        when(service.list(SIGNED_IN)).thenReturn(List.of(
+                new FavoriteDto(716429L, "Pasta", "http://img/1.jpg", "double the garlic")));
+
+        mockMvc.perform(get("/api/favorites").sessionAttr(USER_ID, SIGNED_IN))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].note").value("double the garlic"));
     }
 }

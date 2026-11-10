@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
@@ -93,5 +94,25 @@ public class FavoriteController {
         }
 
         return id;
+    }
+
+    /**
+     * RB-205: writes the signed-in cook's note about one saved recipe.
+     *
+     * PUT rather than POST: writing the same note twice leaves the same note.
+     * The body is the note itself rather than a wrapper object, because there
+     * is exactly one field - so the request is text/plain, not JSON.
+     *
+     * @param id   the recipe, by Spoonacular's id, from the end of the address
+     * @param note the text, or blank to clear it
+     * @param http the request, which is where the session lives
+     */
+    @PutMapping("/api/favorites/{id}/note")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void note(@PathVariable long id,
+                     @RequestBody(required = false) String note,
+                     HttpServletRequest http) {
+
+        service.saveNote(signedInUserId(http), id, note);
     }
 }

@@ -26,6 +26,10 @@ public class FavoriteRowMapper implements RowMapper<FavoriteDto> {
         String title = row.getString("title");
         String imageUrl = row.getString("image_url");
 
-        return new FavoriteDto(spoonacularId, title, imageUrl);
+        // RB-205: getString gives null for a SQL NULL, which is exactly what
+        // "no note written" means to the rest of the app.
+        String note = row.getString("note");
+
+        return new FavoriteDto(spoonacularId, title, imageUrl, note);
     }
 }

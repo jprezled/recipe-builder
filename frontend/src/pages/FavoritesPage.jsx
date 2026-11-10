@@ -3,6 +3,7 @@ import { Link, useLocation } from 'react-router-dom'
 import { getFavorites } from '../api/recipes'
 import { getSession } from '../api/accounts'
 import RecipeCard from '../components/RecipeCard'
+import RecipeNote from '../components/RecipeNote'
 
 /**
  * The recipes you have saved.
@@ -147,7 +148,12 @@ export default function FavoritesPage() {
             imageUrl={recipe.imageUrl}
             isFavorite={true}
             onFavoriteChange={handleFavoriteChange}
-          />
+          >
+            {/* RB-205: only on this page. A note belongs to a recipe the cook
+                has saved, so there is nothing to attach one to in search
+                results. */}
+            <RecipeNote recipeId={recipe.id} note={recipe.note} />
+          </RecipeCard>
         ))}
       </div>
 
