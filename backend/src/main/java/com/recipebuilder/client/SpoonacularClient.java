@@ -129,7 +129,7 @@ public class SpoonacularClient {
         // larger for no benefit.
         String url = baseUrl
                 + "/recipes/{id}/information"
-                + "?includeNutrition=false"
+                + "?includeNutrition=true"
                 + "&apiKey={apiKey}";
 
         // STEP 2: send it and convert the reply into Java objects.
