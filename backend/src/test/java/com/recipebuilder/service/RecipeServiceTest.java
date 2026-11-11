@@ -54,10 +54,10 @@ class RecipeServiceTest {
 
     @Test
     void theirFieldsBecomeOursWithTheRightValues() {
-        when(client.searchByIngredients(anyString(), anyInt(), any(DietaryRestrictions.class)))
+        when(client.searchByIngredients(anyString(), anyInt(), any(DietaryRestrictions.class), anyString()))
                 .thenReturn(List.of(theirResult()));
 
-        List<RecipeSummaryDto> ours = service.searchByIngredients("apple", new DietaryRestrictions("none", "none"));
+        List<RecipeSummaryDto> ours = service.searchByIngredients("apple", new DietaryRestrictions("none", "none"), null);
 
         assertThat(ours).hasSize(1);
         RecipeSummaryDto recipe = ours.get(0);
@@ -72,40 +72,40 @@ class RecipeServiceTest {
 
     @Test
     void weAskSpoonacularForTheIngredientTheUserTyped() {
-        when(client.searchByIngredients(anyString(), anyInt(), any(DietaryRestrictions.class))).thenReturn(List.of());
+        when(client.searchByIngredients(anyString(), anyInt(), any(DietaryRestrictions.class), anyString())).thenReturn(List.of());
 
-        service.searchByIngredients("apple", new DietaryRestrictions("none", "none"));
+        service.searchByIngredients("apple", new DietaryRestrictions("none", "none"), null);
 
-        verify(client).searchByIngredients(eq("apple"), anyInt(), any(DietaryRestrictions.class));
+        verify(client).searchByIngredients(eq("apple"), anyInt(), any(DietaryRestrictions.class), anyString());
     }
 
     @Test
     void eachRecipeCarriesItsMatchPercentage() {
         // 2 of yours, 2 missing -> 2 of 4 -> 50%
-        when(client.searchByIngredients(anyString(), anyInt(), any(DietaryRestrictions.class))).thenReturn(List.of(
+        when(client.searchByIngredients(anyString(), anyInt(), any(DietaryRestrictions.class), anyString())).thenReturn(List.of(
                 new SpoonacularSearchResult(1L, "Half", "img", 2, 2, List.of(), List.of())));
 
-        assertThat(service.searchByIngredients("eggs", new DietaryRestrictions("none", "none"))
+        assertThat(service.searchByIngredients("eggs", new DietaryRestrictions("none", "none"), null)
                 .get(0).matchPercent()).isEqualTo(50);
     }
 
     @Test
     void theClosestMatchComesFirst() {
-        when(client.searchByIngredients(anyString(), anyInt(), any(DietaryRestrictions.class))).thenReturn(List.of(
+        when(client.searchByIngredients(anyString(), anyInt(), any(DietaryRestrictions.class), anyString())).thenReturn(List.of(
                 new SpoonacularSearchResult(1L, "Quarter", "img", 1, 3, List.of(), List.of()),
                 new SpoonacularSearchResult(2L, "Whole", "img", 3, 0, List.of(), List.of()),
                 new SpoonacularSearchResult(3L, "Half", "img", 2, 2, List.of(), List.of())));
 
-        assertThat(service.searchByIngredients("eggs", new DietaryRestrictions("none", "none")))
+        assertThat(service.searchByIngredients("eggs", new DietaryRestrictions("none", "none"), null))
                 .extracting(RecipeSummaryDto::title)
                 .containsExactly("Whole", "Half", "Quarter");
     }
 
     @Test
     void noMatchesGivesAnEmptyListNotNull() {
-        when(client.searchByIngredients(anyString(), anyInt(), any(DietaryRestrictions.class))).thenReturn(List.of());
+        when(client.searchByIngredients(anyString(), anyInt(), any(DietaryRestrictions.class), anyString())).thenReturn(List.of());
 
-        assertThat(service.searchByIngredients("unobtanium", new DietaryRestrictions("none", "none")))
+        assertThat(service.searchByIngredients("unobtanium", new DietaryRestrictions("none", "none"), null))
                 .isNotNull().isEmpty();
     }
 
@@ -114,7 +114,7 @@ class RecipeServiceTest {
     @Test
     void blankIngredientIsRejectedWithoutSpendingAPoint() {
         assertThatExceptionOfType(InvalidInputException.class)
-                .isThrownBy(() -> service.searchByIngredients("   ", new DietaryRestrictions("none", "none")));
+                .isThrownBy(() -> service.searchByIngredients("   ", new DietaryRestrictions("none", "none"), null));
 
         // The point of the test: no quota is spent on a meaningless search.
         verifyNoInteractions(client);
@@ -123,7 +123,7 @@ class RecipeServiceTest {
     @Test
     void emptyIngredientIsRejectedWithoutSpendingAPoint() {
         assertThatExceptionOfType(InvalidInputException.class)
-                .isThrownBy(() -> service.searchByIngredients("", new DietaryRestrictions("none", "none")));
+                .isThrownBy(() -> service.searchByIngredients("", new DietaryRestrictions("none", "none"), null));
 
         verifyNoInteractions(client);
     }
@@ -133,30 +133,30 @@ class RecipeServiceTest {
     @Test
     void validDietAndAllergyReachTheClient() {
         DietaryRestrictions choices = new DietaryRestrictions("vegan", "peanut");
-        when(client.searchByIngredients(anyString(), anyInt(), any(DietaryRestrictions.class)))
+        when(client.searchByIngredients(anyString(), anyInt(), any(DietaryRestrictions.class), anyString()))
                 .thenReturn(List.of());
 
-        service.searchByIngredients("apple", choices);
+        service.searchByIngredients("apple", choices, null);
 
-        verify(client).searchByIngredients(eq("apple"), anyInt(), eq(choices));
+        verify(client).searchByIngredients(eq("apple"), anyInt(), eq(choices), anyString());
     }
 
     @Test
     void noneIsAcceptedForBothChoices() {
         DietaryRestrictions choices = new DietaryRestrictions("none", "none");
-        when(client.searchByIngredients(anyString(), anyInt(), any(DietaryRestrictions.class)))
+        when(client.searchByIngredients(anyString(), anyInt(), any(DietaryRestrictions.class), anyString()))
                 .thenReturn(List.of());
 
-        service.searchByIngredients("apple", choices);
+        service.searchByIngredients("apple", choices, null);
 
-        verify(client).searchByIngredients(eq("apple"), anyInt(), eq(choices));
+        verify(client).searchByIngredients(eq("apple"), anyInt(), eq(choices), anyString());
     }
 
     @Test
     void unknownDietIsRejectedBeforeSpoonacularIsCalled() {
         assertThatExceptionOfType(InvalidInputException.class)
                 .isThrownBy(() -> service.searchByIngredients("apple",
-                        new DietaryRestrictions("carnivore", "none")));
+                        new DietaryRestrictions("carnivore", "none"), null));
 
         verifyNoInteractions(client);
     }
@@ -165,7 +165,7 @@ class RecipeServiceTest {
     void unknownAllergyIsRejectedBeforeSpoonacularIsCalled() {
         assertThatExceptionOfType(InvalidInputException.class)
                 .isThrownBy(() -> service.searchByIngredients("apple",
-                        new DietaryRestrictions("none", "pollen")));
+                        new DietaryRestrictions("none", "pollen"), null));
 
         verifyNoInteractions(client);
     }
@@ -174,49 +174,49 @@ class RecipeServiceTest {
     void blankIngredientsIsStillRejectedWhenAFilterIsSet() {
         assertThatExceptionOfType(InvalidInputException.class)
                 .isThrownBy(() -> service.searchByIngredients("     ",
-                        new DietaryRestrictions("vegan", "none")));
+                        new DietaryRestrictions("vegan", "none"), null));
 
         verifyNoInteractions(client);
     }
 
     @Test
     void severalIntolerancesAreCleanedSortedAndSentTogether() {
-        when(client.searchByIngredients(anyString(), anyInt(), any(DietaryRestrictions.class)))
+        when(client.searchByIngredients(anyString(), anyInt(), any(DietaryRestrictions.class), anyString()))
                 .thenReturn(List.of());
 
-        service.searchByIngredients("apple", new DietaryRestrictions("vegan", " Peanut, dairy "));
+        service.searchByIngredients("apple", new DietaryRestrictions("vegan", " Peanut, dairy "), null);
 
         verify(client).searchByIngredients(eq("apple"), anyInt(),
-                eq(new DietaryRestrictions("vegan", "dairy,peanut")));
+                eq(new DietaryRestrictions("vegan", "dairy,peanut")), anyString());
     }
 
     @Test
     void valuesWithSpacesInThemAreAccepted() {
-        when(client.searchByIngredients(anyString(), anyInt(), any(DietaryRestrictions.class)))
+        when(client.searchByIngredients(anyString(), anyInt(), any(DietaryRestrictions.class), anyString()))
                 .thenReturn(List.of());
 
-        service.searchByIngredients("apple", new DietaryRestrictions("gluten free", "tree nut"));
+        service.searchByIngredients("apple", new DietaryRestrictions("gluten free", "tree nut"), null);
 
         verify(client).searchByIngredients(eq("apple"), anyInt(),
-                eq(new DietaryRestrictions("gluten free", "tree nut")));
+                eq(new DietaryRestrictions("gluten free", "tree nut")), anyString());
     }
 
     @Test
     void capitalsAreCleanedToLowercaseBeforeTheClientSeesThem() {
-        when(client.searchByIngredients(anyString(), anyInt(), any(DietaryRestrictions.class)))
+        when(client.searchByIngredients(anyString(), anyInt(), any(DietaryRestrictions.class), anyString()))
                 .thenReturn(List.of());
 
-        service.searchByIngredients("apple", new DietaryRestrictions("Vegetarian", "Soy"));
+        service.searchByIngredients("apple", new DietaryRestrictions("Vegetarian", "Soy"), null);
 
         verify(client).searchByIngredients(eq("apple"), anyInt(),
-                eq(new DietaryRestrictions("vegetarian", "soy")));
+                eq(new DietaryRestrictions("vegetarian", "soy")), anyString());
     }
 
     @Test
     void oneBadItemInTheListRefusesTheWholeList() {
         assertThatExceptionOfType(InvalidInputException.class)
                 .isThrownBy(() -> service.searchByIngredients("apple",
-                        new DietaryRestrictions("none", "peanut,pollen")));
+                        new DietaryRestrictions("none", "peanut,pollen"), null));
 
         verifyNoInteractions(client);
     }
@@ -225,7 +225,7 @@ class RecipeServiceTest {
     void moreThanOneDietIsRefused() {
         assertThatExceptionOfType(InvalidInputException.class)
                 .isThrownBy(() -> service.searchByIngredients("apple",
-                        new DietaryRestrictions("vegan,vegetarian", "none")));
+                        new DietaryRestrictions("vegan,vegetarian", "none"), null));
 
         verifyNoInteractions(client);
     }
@@ -234,7 +234,80 @@ class RecipeServiceTest {
     void theRefusalUsesTheAgreedSentence() {
         assertThatExceptionOfType(InvalidInputException.class)
                 .isThrownBy(() -> service.searchByIngredients("apple",
-                        new DietaryRestrictions("carnivore", "none")))
+                        new DietaryRestrictions("carnivore", "none"), null))
                 .withMessage("That dietary filter is not one we support.");
+    }
+
+    // ---- RB-224: sort order ------------------------------------------------
+
+    @Test
+    void unknownSortIsRefusedBeforeSpoonacularIsCalled() {
+        assertThatExceptionOfType(InvalidInputException.class)
+                .isThrownBy(() -> service.searchByIngredients("apple",
+                        new DietaryRestrictions("none", "none"), "random"))
+                .withMessage("That sort order is not one we support.");
+
+        // The point of the test: no quota is spent on a sort we do not offer.
+        verifyNoInteractions(client);
+    }
+
+    @Test
+    void fewestMissingSortReachesTheClient() {
+        when(client.searchByIngredients(anyString(), anyInt(), any(DietaryRestrictions.class), anyString()))
+                .thenReturn(List.of());
+
+        service.searchByIngredients("apple", new DietaryRestrictions("none", "none"), "min-missing-ingredients");
+
+        verify(client).searchByIngredients(eq("apple"), anyInt(), any(DietaryRestrictions.class),
+                eq("min-missing-ingredients"));
+    }
+
+    @Test
+    void mostUsedSortReachesTheClient() {
+        when(client.searchByIngredients(anyString(), anyInt(), any(DietaryRestrictions.class), anyString()))
+                .thenReturn(List.of());
+
+        service.searchByIngredients("apple", new DietaryRestrictions("none", "none"), "max-used-ingredients");
+
+        verify(client).searchByIngredients(eq("apple"), anyInt(), any(DietaryRestrictions.class),
+                eq("max-used-ingredients"));
+    }
+
+    @Test
+    void blankSortBecomesTheDefault() {
+        when(client.searchByIngredients(anyString(), anyInt(), any(DietaryRestrictions.class), anyString()))
+                .thenReturn(List.of());
+
+        service.searchByIngredients("apple", new DietaryRestrictions("none", "none"), "   ");
+
+        verify(client).searchByIngredients(eq("apple"), anyInt(), any(DietaryRestrictions.class),
+                eq("max-used-ingredients"));
+    }
+
+    @Test
+    void missingSortBecomesTheDefault() {
+        when(client.searchByIngredients(anyString(), anyInt(), any(DietaryRestrictions.class), anyString()))
+                .thenReturn(List.of());
+
+        service.searchByIngredients("apple", new DietaryRestrictions("none", "none"), null);
+
+        verify(client).searchByIngredients(eq("apple"), anyInt(), any(DietaryRestrictions.class),
+                eq("max-used-ingredients"));
+    }
+
+    @Test
+    void fewestMissingResultsKeepSpoonacularsOrder() {
+        // Deliberately NOT in match-percentage order. If the service re-sorted
+        // these, "Whole" would jump to the front and this test would fail.
+        when(client.searchByIngredients(anyString(), anyInt(), any(DietaryRestrictions.class), anyString()))
+                .thenReturn(List.of(
+                        new SpoonacularSearchResult(1L, "Quarter", "img", 1, 3, List.of(), List.of()),
+                        new SpoonacularSearchResult(2L, "Whole", "img", 3, 0, List.of(), List.of()),
+                        new SpoonacularSearchResult(3L, "Half", "img", 2, 2, List.of(), List.of())));
+
+        assertThat(service.searchByIngredients("eggs", new DietaryRestrictions("none", "none"),
+                "min-missing-ingredients"))
+                .extracting(RecipeSummaryDto::title)
+                .containsExactly("Quarter", "Whole", "Half");
     }
 }

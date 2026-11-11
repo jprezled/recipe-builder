@@ -71,7 +71,7 @@ class SpoonacularClientTest {
                 .andExpect(queryParam("apiKey", "test-key-not-a-real-key"))
                 .andRespond(withSuccess(stubbedResponse(), MediaType.APPLICATION_JSON));
 
-        List<SpoonacularSearchResult> results = client.searchByIngredients("apple", 2, new DietaryRestrictions("none", "none"));
+        List<SpoonacularSearchResult> results = client.searchByIngredients("apple", 2, new DietaryRestrictions("none", "none"), "max-used-ingredients");
 
         assertThat(results).hasSize(2);
 
@@ -107,7 +107,7 @@ class SpoonacularClientTest {
                 .andExpect(queryParam("apiKey", "test-key-not-a-real-key"))
                 .andRespond(withSuccess(stubbedResponse(), MediaType.APPLICATION_JSON));
 
-        client.searchByIngredients("apple", 2, new DietaryRestrictions("vegetarian", "peanut"));
+        client.searchByIngredients("apple", 2, new DietaryRestrictions("vegetarian", "peanut"), "max-used-ingredients");
 
         server.verify();
     }
@@ -120,7 +120,7 @@ class SpoonacularClientTest {
                         .doesNotContain("intolerances="))
                 .andRespond(withSuccess(stubbedResponse(), MediaType.APPLICATION_JSON));
 
-        client.searchByIngredients("apple", 2, new DietaryRestrictions("none", "none"));
+        client.searchByIngredients("apple", 2, new DietaryRestrictions("none", "none"), "max-used-ingredients");
 
         server.verify();
     }
@@ -135,7 +135,7 @@ class SpoonacularClientTest {
                         .doesNotContain("intolerances="))
                 .andRespond(withSuccess(stubbedResponse(), MediaType.APPLICATION_JSON));
 
-        client.searchByIngredients("apple", 2, new DietaryRestrictions("vegetarian", "none"));
+        client.searchByIngredients("apple", 2, new DietaryRestrictions("vegetarian", "none"), "max-used-ingredients");
 
         server.verify();
     }
