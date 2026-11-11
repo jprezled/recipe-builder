@@ -14,6 +14,7 @@ public class UserRowMapper implements RowMapper<StoredUser> {
                 row.getLong("user_id"),
                 row.getString("username"),
                 row.getString("email"),
-                row.getString("password_hash"));
+                row.getString("password_hash"),
+                row.getString("pantry"));
     }
 }

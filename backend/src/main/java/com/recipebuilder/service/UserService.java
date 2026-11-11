@@ -1,4 +1,5 @@
 package com.recipebuilder.service;
+
 import org.springframework.stereotype.Service;
 
 import com.recipebuilder.dto.SignUpRequest;
@@ -81,8 +82,9 @@ public class UserService {
         // layer below this one has ever held a real password.
         String passwordHash = hasher.hash(password);
 
-        // STEP 4: store it, and convert what came back into our outgoing type.
-        StoredUser stored = users.insert(username, email, passwordHash);
+        // STEP 4: handle the pantry and store it along with the new user.
+        String pantry = request.pantry() == null ? "" : request.pantry().trim();
+        StoredUser stored = users.insert(username, email, passwordHash, pantry);
 
         return new UserDto(stored.id(), stored.username());
     }
