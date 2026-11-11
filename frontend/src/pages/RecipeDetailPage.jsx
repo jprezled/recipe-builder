@@ -24,6 +24,14 @@ const DIET_LABELS = [
   { field: 'dairyFree', label: 'Dairy free' },
 ]
 
+const NUTRITION_ROWS = [
+  { field: 'calories', label: 'Calories', unit: ' kcal' },
+  { field: 'fat', label: 'Fat', unit: 'g' },
+  { field: 'saturatedFat', label: 'Saturated fat', unit: 'g' },
+  { field: 'carbohydrates', label: 'Carbohydrates', unit: 'g' },
+  { field: 'sugar', label: 'Sugar', unit: 'g' },
+  { field: 'protein', label: 'Protein', unit: 'g' },
+]
 /**
  * The page for one recipe, named by the id in the address.
  *
@@ -36,6 +44,7 @@ export default function RecipeDetailPage() {
 
   // Four pieces of state, so the page can tell its situations apart: still
   // loading, failed, loaded, and loaded-but-empty.
+  const [isNutritionOpen, setIsNutritionOpen] = useState(false)
   const [recipe, setRecipe] = useState(null)
   const [isFavorite, setIsFavorite] = useState(false)
   const [errorMessage, setErrorMessage] = useState('')
@@ -50,6 +59,7 @@ export default function RecipeDetailPage() {
       setIsLoading(true)
       setErrorMessage('')
       setRecipe(null)
+      setIsNutritionOpen(false)
 
       try {
         // The saved list is a database read and costs no Spoonacular quota,
@@ -128,7 +138,41 @@ export default function RecipeDetailPage() {
               onChange={(_id, isNowFavorite) => setIsFavorite(isNowFavorite)}
               variant="text"
             />
+
+            {recipe.nutrition != null && (
+              <button
+                type="button"
+                className="nutrition-toggle"
+                aria-expanded={isNutritionOpen}
+                aria-controls="nutrition-facts"
+                onClick={() => setIsNutritionOpen((open) => !open)}
+              >
+                Nutrition Facts{' '}
+                <span aria-hidden="true">
+                  {isNutritionOpen ? '▲' : '▼'}
+                </span>
+              </button>
+            )}
+
           </div>
+
+          {recipe.nutrition != null && isNutritionOpen && (
+            <section className="detail-section" id="nutrition-facts">
+              <h2>Nutrition Facts</h2>
+              <p className="nutrition-note">Per serving</p>
+
+              <ul className="nutrition-list">
+                {NUTRITION_ROWS.map((row) => (
+                  <li key={row.field}>
+                    <span>{row.label}</span>
+                    <span>
+                      {recipe.nutrition[row.field]}{row.unit}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
 
           <section className="detail-section">
             <h2>Ingredients</h2>

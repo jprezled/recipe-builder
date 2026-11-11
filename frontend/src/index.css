@@ -648,3 +648,45 @@ a.button {
   outline: 2px solid currentColor;
   outline-offset: 4px;
 }
+
+/* RB-204: Nutrition Facts button beside Save. */
+.nutrition-toggle {
+  background-color: #ffffff;
+  border: 1px solid #2a5c2a;
+  border-radius: 6px;
+  color: #2a5c2a;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 600;
+  padding: 10px 18px;
+}
+
+.nutrition-toggle:hover {
+  background-color: #f0f6f0;
+}
+
+.nutrition-toggle:focus-visible {
+  outline: 2px solid #2a5c2a;
+  outline-offset: 2px;
+}
+
+/* Per-serving note and aligned nutrition rows. */
+.nutrition-note {
+  color: #5a6b5a;
+  font-size: 0.85rem;
+  margin: 0 0 0.6rem;
+}
+
+.nutrition-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.nutrition-list li {
+  border-bottom: 1px solid #e3ebe3;
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 7px 0;
+}
