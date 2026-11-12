@@ -9,7 +9,7 @@ import com.recipebuilder.repository.StoredUser;
 import com.recipebuilder.repository.UserRepository;
 
 /**
- * The rules about creating an account.
+ * The rules about creating an account and managing pantry data.
  *
  * Knows nothing about HTTP - no requests, no responses, no status codes. The
  * rules live here rather than in the controller so they hold for anything
@@ -27,6 +27,8 @@ public class UserService {
             "That username is too long. Please use 50 characters or fewer.";
     public static final String EMAIL_TOO_LONG =
             "That email address is too long. Please use 255 characters or fewer.";
+    public static final String PANTRY_TOO_LONG =
+            "That pantry description is too long. Please use 255 characters or fewer.";
 
     private static final int SHORTEST_PASSWORD = 8;
 
@@ -34,6 +36,7 @@ public class UserService {
     // value becomes a sentence rather than a raw Postgres error.
     private static final int LONGEST_USERNAME = 50;
     private static final int LONGEST_EMAIL = 255;
+    private static final int LONGEST_PANTRY = 255;
 
     private final UserRepository users;
     private final PasswordHasher hasher;
@@ -84,8 +87,36 @@ public class UserService {
 
         // STEP 4: handle the pantry and store it along with the new user.
         String pantry = request.pantry() == null ? "" : request.pantry().trim();
+        if (pantry.length() > LONGEST_PANTRY) {
+            throw new InvalidInputException(PANTRY_TOO_LONG);
+        }
+
         StoredUser stored = users.insert(username, email, passwordHash, pantry);
 
         return new UserDto(stored.id(), stored.username());
+    }
+
+    /**
+     * Reads a user's pantry data by their ID.
+     */
+    public String getPantry(Long userId) {
+        StoredUser user = users.findById(userId);
+        if (user == null) {
+            throw new InvalidInputException("User not found.");
+        }
+        return user.pantry() != null ? user.pantry() : "";
+    }
+
+    /**
+     * Updates a user's pantry data.
+     */
+    public void updatePantry(Long userId, String rawPantry) {
+        String pantry = rawPantry == null ? "" : rawPantry.trim();
+
+        if (pantry.length() > LONGEST_PANTRY) {
+            throw new InvalidInputException(PANTRY_TOO_LONG);
+        }
+
+        users.updatePantry(userId, pantry);
     }
 }
