@@ -486,6 +486,44 @@ a.button {
   }
 }
 
+/* ---------- Sort dropdown (RB-227) ---------- */
+
+/* Sits under the dietary filters and matches their panel style. */
+.sort-control {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 1rem;
+  margin: 0 0 1.5rem;
+  padding: 0.75rem 1.25rem;
+  text-align: left;
+  background-color: var(--color-card);
+  border: 1px solid var(--color-primary-dark);
+  border-radius: 10px;
+}
+
+.sort-control label {
+  font-weight: bold;
+  color: var(--color-heading);
+}
+
+/* 44px tall, the same touch target as the filter options. */
+.sort-control select {
+  min-height: 44px;
+  padding: 0.25rem 0.5rem;
+  font: inherit;
+  color: var(--color-text);
+  background-color: white;
+  border: 1px solid var(--color-primary-dark);
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.sort-control select:focus-visible {
+  outline: 2px solid var(--color-heading);
+  outline-offset: 3px;
+}
+
 /* ---------- Diet badges on the recipe detail page ---------- */
 
 .diet-badges {

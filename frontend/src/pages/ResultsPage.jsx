@@ -9,7 +9,7 @@ import DietaryFilters from '../components/DietaryFilters'
 // The default sort, from docs/sort-contract.md. It is never written into the
 // address: no sort parameter at all means this one.
 const DEFAULT_SORT = 'max-used-ingredients'
-
+const FEWEST_MISSING_SORT = 'min-missing-ingredients'
 /**
  * Displays recipes for the ingredients supplied to the page.
  *
@@ -144,7 +144,7 @@ export default function ResultsPage({
 
     setSearchParams(next)
   }
-  
+
   // === RB-226 Sort handler
   /**
    * Put the chosen sort in the address.
@@ -243,6 +243,21 @@ export default function ResultsPage({
         selectedIntolerances={intolerances ? intolerances.split(',') : []}
         onApply={handleApplyFilters}
       />
+
+      {/* RB-227: one choice, so it applies straight away - no Apply button.
+          Its value comes from the address, so it always shows what the
+          address asked for, including after a refresh or a Back. */}
+      <div className="sort-control">
+        <label htmlFor="sort-order">Sort by</label>
+        <select
+          id="sort-order"
+          value={sort ?? DEFAULT_SORT}
+          onChange={(event) => handleSortChange(event.target.value)}
+        >
+          <option value={DEFAULT_SORT}>Most of my ingredients used</option>
+          <option value={FEWEST_MISSING_SORT}>Fewest extra ingredients to buy</option>
+        </select>
+      </div>
 
 
       {/* Keep the user informed while the recipe search is running. */}

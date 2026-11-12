@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 import ResultsPage from './ResultsPage'
@@ -105,6 +105,77 @@ describe('ResultsPage', () => {
   })
 
   // --- end of RB-226
+
+  // ---- RB-227: the sort dropdown ------------------------------------------
+
+  it('offers both sort options', async () => {
+    searchRecipes.mockResolvedValue([])
+    renderResults('?ingredients=eggs')
+
+    const options = within(await screen.findByLabelText('Sort by')).getAllByRole('option')
+    expect(options.map((option) => option.value)).toEqual([
+      'max-used-ingredients',
+      'min-missing-ingredients',
+    ])
+  })
+
+  it('opens on the default sort when the address has none', async () => {
+    searchRecipes.mockResolvedValue([])
+    renderResults('?ingredients=eggs')
+
+    expect(await screen.findByLabelText('Sort by')).toHaveValue('max-used-ingredients')
+  })
+
+  it('shows the sort the address asked for', async () => {
+    searchRecipes.mockResolvedValue([])
+    renderResults('?ingredients=eggs&sort=min-missing-ingredients')
+
+    expect(await screen.findByLabelText('Sort by')).toHaveValue('min-missing-ingredients')
+  })
+
+  it('searches again as soon as the sort is changed, with no Apply', async () => {
+    searchRecipes.mockResolvedValue([])
+    renderResults('?ingredients=eggs')
+    await vi.waitFor(() => expect(searchRecipes).toHaveBeenCalled())
+
+    await userEvent.selectOptions(screen.getByLabelText('Sort by'), 'min-missing-ingredients')
+
+    await vi.waitFor(() =>
+      expect(searchRecipes).toHaveBeenLastCalledWith('eggs', {
+        diet: null,
+        intolerances: null,
+        sort: 'min-missing-ingredients',
+      }),
+    )
+  })
+
+  it('drops the sort from the address when the default is chosen again', async () => {
+    searchRecipes.mockResolvedValue([])
+    renderResults('?ingredients=eggs&sort=min-missing-ingredients')
+    await vi.waitFor(() => expect(searchRecipes).toHaveBeenCalled())
+
+    await userEvent.selectOptions(screen.getByLabelText('Sort by'), 'max-used-ingredients')
+
+    // null, not 'max-used-ingredients': the default is written as no
+    // parameter at all, so a plain search keeps its old address.
+    await vi.waitFor(() =>
+      expect(searchRecipes).toHaveBeenLastCalledWith('eggs', {
+        diet: null,
+        intolerances: null,
+        sort: null,
+      }),
+    )
+  })
+
+  it('ties a real label to the dropdown', async () => {
+    searchRecipes.mockResolvedValue([])
+    renderResults('?ingredients=eggs')
+
+    const dropdown = await screen.findByLabelText('Sort by')
+    expect(dropdown.tagName).toBe('SELECT')
+  })
+
+  // --- end of RB-227
 
   it('searches for the ingredients in the address', async () => {
     searchRecipes.mockResolvedValue([])
