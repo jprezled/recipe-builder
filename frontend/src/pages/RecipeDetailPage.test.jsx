@@ -3,9 +3,11 @@ import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom'
 import RecipeDetailPage from './RecipeDetailPage'
-import { getFavorites, getRecipe } from '../api/recipes'
+import { addFavorite, getFavorites, getRecipe } from '../api/recipes'
+import { getCollections } from '../api/collections'
 
 vi.mock('../api/recipes')
+vi.mock('../api/collections')
 
 /** A recipe in OUR shape, as docs/recipe-detail-contract.md fixes it. */
 const RECIPE = {
@@ -53,6 +55,31 @@ describe('RecipeDetailPage', () => {
     vi.resetAllMocks()
     getRecipe.mockResolvedValue(RECIPE)
     getFavorites.mockResolvedValue([])
+    getCollections.mockResolvedValue([])
+  })
+
+  it('offers the cook their collections when saving (RB-210)', async () => {
+    getCollections.mockResolvedValue([{ id: 3, name: 'Breakfast' }])
+    addFavorite.mockResolvedValue(undefined)
+    renderDetail()
+
+    await userEvent.click(await screen.findByRole('button',
+      { name: 'Save Simple Garlic Pasta to favorites' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Breakfast' }))
+
+    expect(addFavorite).toHaveBeenCalledWith(expect.objectContaining({ id: 660101 }), 3)
+  })
+
+  it('still saves when the collections cannot be read (RB-210)', async () => {
+    getCollections.mockRejectedValue(new Error('Please sign in to save favorites.'))
+    addFavorite.mockResolvedValue(undefined)
+    renderDetail()
+
+    await userEvent.click(await screen.findByRole('button',
+      { name: 'Save Simple Garlic Pasta to favorites' }))
+
+    expect(addFavorite).toHaveBeenCalled()
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
   })
 
   it('asks for the recipe named in the address', async () => {

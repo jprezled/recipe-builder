@@ -1,5 +1,6 @@
 package com.recipebuilder.controller;
 
+import com.recipebuilder.exception.RecipeNotFoundException;
 import com.recipebuilder.dto.FavoriteDto;
 import com.recipebuilder.dto.FavoriteRequest;
 import com.recipebuilder.exception.DatabaseUnavailableException;
@@ -55,7 +56,7 @@ class FavoriteControllerTest {
     @Test
     void listsFavoritesAsJson() throws Exception {
         when(service.list(SIGNED_IN)).thenReturn(List.of(
-                new FavoriteDto(716429L, "Garlic Chicken Pasta", "http://img/1.jpg", null)));
+                new FavoriteDto(716429L, "Garlic Chicken Pasta", "http://img/1.jpg", null, null)));
 
         mockMvc.perform(get("/api/favorites").sessionAttr(USER_ID, SIGNED_IN))
                 .andExpect(status().isOk())
@@ -256,10 +257,71 @@ class FavoriteControllerTest {
     @Test
     void aNoteComesBackOnEachSavedRecipe() throws Exception {
         when(service.list(SIGNED_IN)).thenReturn(List.of(
-                new FavoriteDto(716429L, "Pasta", "http://img/1.jpg", "double the garlic")));
+                new FavoriteDto(716429L, "Pasta", "http://img/1.jpg", "double the garlic", null)));
 
         mockMvc.perform(get("/api/favorites").sessionAttr(USER_ID, SIGNED_IN))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].note").value("double the garlic"));
+    }
+
+    // RB-210: collections ------------------------------------------------
+
+    @Test
+    void movingAnswers204() throws Exception {
+        mockMvc.perform(put("/api/favorites/660101/collection")
+                        .sessionAttr(USER_ID, SIGNED_IN)
+                        .contentType(MediaType.TEXT_PLAIN).content("3"))
+                .andExpect(status().isNoContent());
+
+        verify(service).moveToCollection(SIGNED_IN, 660101L, 3L);
+    }
+
+    @Test
+    void anEmptyBodyMakesItLoose() throws Exception {
+        mockMvc.perform(put("/api/favorites/660101/collection")
+                        .sessionAttr(USER_ID, SIGNED_IN))
+                .andExpect(status().isNoContent());
+
+        verify(service).moveToCollection(SIGNED_IN, 660101L, null);
+    }
+
+    @Test
+    void movingWhileSignedOutIsUnauthorised() throws Exception {
+        mockMvc.perform(put("/api/favorites/660101/collection")
+                        .contentType(MediaType.TEXT_PLAIN).content("3"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.message").value("Please sign in to save favorites."));
+
+        verifyNoInteractions(service);
+    }
+
+    @Test
+    void movingARecipeTheCookHasNotSavedAnswers404() throws Exception {
+        doThrow(new RecipeNotFoundException("Save this recipe before adding it to a collection."))
+                .when(service).moveToCollection(SIGNED_IN, 660101L, 3L);
+
+        mockMvc.perform(put("/api/favorites/660101/collection")
+                        .sessionAttr(USER_ID, SIGNED_IN)
+                        .contentType(MediaType.TEXT_PLAIN).content("3"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.message")
+                        .value("Save this recipe before adding it to a collection."));
+    }
+
+    @Test
+    void listingReportsEachRecipesCollection() throws Exception {
+        when(service.list(SIGNED_IN)).thenReturn(List.of(
+                new FavoriteDto(716429L, "Pancakes", null, null, 3L)));
+
+        mockMvc.perform(get("/api/favorites").sessionAttr(USER_ID, SIGNED_IN))
+                .andExpect(jsonPath("$[0].collectionId").value(3));
+    }
+
+    @Test
+    void anOldThreeFieldSaveStillDeserialises() throws Exception {
+        mockMvc.perform(post("/api/favorites")
+                        .sessionAttr(USER_ID, SIGNED_IN)
+                        .contentType(MediaType.APPLICATION_JSON).content(A_RECIPE))
+                .andExpect(status().isCreated());
     }
 }

@@ -30,6 +30,14 @@ public class FavoriteRowMapper implements RowMapper<FavoriteDto> {
         // "no note written" means to the rest of the app.
         String note = row.getString("note");
 
-        return new FavoriteDto(spoonacularId, title, imageUrl, note);
+        // RB-210: getLong alone gives 0 for a SQL NULL, and every loose recipe
+        // would claim to be in collection 0, so ask wasNull straight after.
+        // (getObject with Long.class is refused by the driver for an int4.)
+        Long collectionId = row.getLong("collection_id");
+        if (row.wasNull()) {
+            collectionId = null;
+        }
+
+        return new FavoriteDto(spoonacularId, title, imageUrl, note, collectionId);
     }
 }

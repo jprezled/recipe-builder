@@ -4,8 +4,10 @@ import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 import ResultsPage from './ResultsPage'
 import { addFavorite, getFavorites, searchRecipes } from '../api/recipes'
+import { getCollections } from '../api/collections'
 
 vi.mock('../api/recipes')
+vi.mock('../api/collections')
 
 const PASTA = {
   id: 716429, title: 'Garlic Chicken Pasta', imageUrl: 'http://img/1.jpg',
@@ -33,6 +35,7 @@ describe('ResultsPage', () => {
   beforeEach(() => {
     vi.resetAllMocks()
     getFavorites.mockResolvedValue([])
+    getCollections.mockResolvedValue([])
   })
 
   // ---- RB-173: the restrictions travel in the address --------------------
@@ -177,6 +180,44 @@ describe('ResultsPage', () => {
 
     expect(await screen.findByRole('button',
       { name: 'Remove Garlic Chicken Pasta from favorites' })).toBeInTheDocument()
+  })
+
+  // ---- RB-210: collections -------------------------------------------------
+
+  it('asks which collection when the cook has some', async () => {
+    searchRecipes.mockResolvedValue([PASTA])
+    getCollections.mockResolvedValue([{ id: 3, name: 'Breakfast' }])
+    addFavorite.mockResolvedValue(undefined)
+
+    renderResults()
+    await userEvent.click(await screen.findByRole('button',
+      { name: 'Save Garlic Chicken Pasta to favorites' }))
+    expect(addFavorite).not.toHaveBeenCalled()
+
+    await userEvent.click(screen.getByRole('button', { name: 'Breakfast' }))
+
+    expect(addFavorite).toHaveBeenCalledWith(expect.objectContaining({ id: 716429 }), 3)
+  })
+
+  it('fetches the collections once, not once per card', async () => {
+    searchRecipes.mockResolvedValue([PASTA, PARFAIT])
+    renderResults()
+    await screen.findByText('Garlic Chicken Pasta')
+
+    expect(getCollections).toHaveBeenCalledTimes(1)
+  })
+
+  it('stays silent and keeps saving when signed out (collections refused)', async () => {
+    searchRecipes.mockResolvedValue([PASTA])
+    getCollections.mockRejectedValue(new Error('Please sign in to save favorites.'))
+    addFavorite.mockResolvedValue(undefined)
+
+    renderResults()
+    await userEvent.click(await screen.findByRole('button',
+      { name: 'Save Garlic Chicken Pasta to favorites' }))
+
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+    expect(addFavorite).toHaveBeenCalledWith(expect.objectContaining({ id: 716429 }))
   })
 
   it('makes two requests, not one per recipe', async () => {

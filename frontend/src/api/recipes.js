@@ -160,7 +160,7 @@ export async function getFavorites() {
  * @param {{id: number, title: string, imageUrl: string}} recipe from a search
  * @throws {Error} with a message that can be displayed as-is
  */
-export async function addFavorite(recipe) {
+export async function addFavorite(recipe, collectionId) {
   let response
   try {
     response = await fetch('/api/favorites', {
@@ -170,6 +170,9 @@ export async function addFavorite(recipe) {
         id: recipe.id,
         title: recipe.title,
         imageUrl: recipe.imageUrl,
+        // RB-210: undefined is left out of the JSON, so a save with no
+        // collection is the same three-field body it always was.
+        collectionId: collectionId,
       }),
     })
   } catch {
