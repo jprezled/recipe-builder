@@ -15,6 +15,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import com.recipebuilder.client.SpoonacularClient;
 import com.recipebuilder.client.dto.SpoonacularRecipeInformation;
 import com.recipebuilder.dto.RecipeDetailDto;
+import com.recipebuilder.dto.ShoppingItemDto;
 import com.recipebuilder.exception.InvalidInputException;
 
 /**
@@ -124,7 +125,15 @@ class RecipeDetailServiceTest {
         // Still a successful conversion, not an error.
         assertThat(ours.title()).isEqualTo("Simple Garlic Pasta");
     }
+    @Test
+    void aRecipeWithNoIngredientListAtAllGivesEmptyLists() {
+        when(client.getRecipe(660101L)).thenReturn(theirRecipe(null, List.of()));
 
+        RecipeDetailDto ours = service.getRecipe(660101L);
+
+        assertThat(ours.ingredients()).isEmpty();
+        assertThat(ours.allIngredients()).isEmpty();
+    }
     @Test
     void aRecipeWithNoIngredientsGivesAnEmptyIngredientList() {
         when(client.getRecipe(660101L)).thenReturn(theirRecipe(List.of(), List.of()));
@@ -133,7 +142,46 @@ class RecipeDetailServiceTest {
 
         assertThat(ours.ingredients()).isEmpty();
     }
+    /**
+    * RB-203: every ingredient comes back with its name, its readable line and
+    * its aisle. All of them, not a filtered subset.
+    */
+    @Test
+    void everyIngredientComesBackWithItsAisle() {
+        when(client.getRecipe(660101L)).thenReturn(theirFullRecipe());
 
+        RecipeDetailDto ours = service.getRecipe(660101L);
+
+        assertThat(ours.allIngredients()).containsExactly(
+                new ShoppingItemDto("dried chili pepper", "2 whole dried chili pepper", "Produce"),
+                new ShoppingItemDto("garlic", "3 cloves of garlic (minced)", "Produce"),
+                new ShoppingItemDto("olive oil", "3 tablespoons olive oil", "Oil, Vinegar, Salad Dressing"));
+    }
+
+    /**
+     * Their aisle is free text and sometimes empty. The fallback happens here
+     * in the service so every screen sees the same thing.
+     */
+    @Test
+    void anIngredientWithNoAisleLandsInOther() {
+        when(client.getRecipe(660101L)).thenReturn(theirRecipe(
+                List.of(new SpoonacularRecipeInformation.ExtendedIngredient("salt", "1 pinch of salt", null)),
+                List.of()));
+
+        RecipeDetailDto ours = service.getRecipe(660101L);
+
+        assertThat(ours.allIngredients()).containsExactly(
+                new ShoppingItemDto("salt", "1 pinch of salt", "Other"));
+    }
+
+    @Test
+    void aRecipeWithNoIngredientsGivesAnEmptyAllIngredientsList() {
+        when(client.getRecipe(660101L)).thenReturn(theirRecipe(List.of(), List.of()));
+
+        RecipeDetailDto ours = service.getRecipe(660101L);
+
+        assertThat(ours.allIngredients()).isEmpty();
+    }
     /**
      * Refused before the call, so a nonsense id cannot spend one of our 150
      * daily points.
