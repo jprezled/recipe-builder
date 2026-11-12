@@ -32,7 +32,7 @@ class UserServiceTest {
         SignUpRequest request = new SignUpRequest("alice", "alice@test.com", "secret123", "");
         when(passwordHasher.hash("secret123")).thenReturn("hashed_pw");
         StoredUser savedUser = new StoredUser(1L, "alice", "alice@test.com", "hashed_pw", "");
-        when(userRepository.insert("alice", "alice@test.com", "hashed_pw")).thenReturn(savedUser);
+        when(userRepository.insert("alice", "alice@test.com", "hashed_pw", "")).thenReturn(savedUser);
 
         UserDto result = userService.signUp(request);
 
@@ -44,7 +44,7 @@ class UserServiceTest {
     void signUpUsernameTaken() {
         SignUpRequest request = new SignUpRequest("alice", "alice@test.com", "secret123", "");
         when(passwordHasher.hash(anyString())).thenReturn("hashed_pw");
-        when(userRepository.insert(anyString(), anyString(), anyString()))
+        when(userRepository.insert(anyString(), anyString(), anyString(), anyString()))
                 .thenThrow(new UsernameTakenException("Taken", null));
 
         assertThatThrownBy(() -> userService.signUp(request))
