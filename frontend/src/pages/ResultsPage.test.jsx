@@ -45,6 +45,7 @@ describe('ResultsPage', () => {
       expect(searchRecipes).toHaveBeenCalledWith('eggs', {
         diet: 'vegetarian',
         intolerances: 'dairy,peanut',
+        sort: null,
       }),
     )
   })
@@ -64,6 +65,7 @@ describe('ResultsPage', () => {
       expect(searchRecipes).toHaveBeenLastCalledWith('eggs', {
         diet: 'vegan',
         intolerances: null,
+        sort: null,
       }),
     )
   })
@@ -79,6 +81,31 @@ describe('ResultsPage', () => {
 
   // --- end of RB-173: restrictions travels tests
 
+  // ---- RB-226: the sort travels in the address ----------------------------
+
+  it('sends the sort from the address to the search', async () => {
+    searchRecipes.mockResolvedValue([])
+    renderResults('?ingredients=eggs&sort=min-missing-ingredients')
+
+    await vi.waitFor(() =>
+      expect(searchRecipes).toHaveBeenCalledWith('eggs', {
+        diet: null,
+        intolerances: null,
+        sort: 'min-missing-ingredients',
+      }),
+    )
+  })
+
+  it('keeps the sort when going back to the ingredients', async () => {
+    searchRecipes.mockResolvedValue([PASTA])
+    renderResults('?ingredients=eggs&sort=min-missing-ingredients')
+
+    const back = await screen.findByRole('link', { name: 'Back to Ingredients' })
+    expect(back.getAttribute('href')).toContain('sort=min-missing-ingredients')
+  })
+
+  // --- end of RB-226
+
   it('searches for the ingredients in the address', async () => {
     searchRecipes.mockResolvedValue([])
     renderResults('?ingredients=eggs,milk,flour')
@@ -88,6 +115,7 @@ describe('ResultsPage', () => {
     expect(searchRecipes).toHaveBeenCalledWith('eggs,milk,flour', {
       diet: null,
       intolerances: null,
+      sort: null,
     })
   })
 

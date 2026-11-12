@@ -6,6 +6,9 @@ import RecipeCard from '../components/RecipeCard'
 // Temporary preview: uncomment this import and the block below to inspect filter controls. done
 import DietaryFilters from '../components/DietaryFilters'
 
+// The default sort, from docs/sort-contract.md. It is never written into the
+// address: no sort parameter at all means this one.
+const DEFAULT_SORT = 'max-used-ingredients'
 
 /**
  * Displays recipes for the ingredients supplied to the page.
@@ -32,8 +35,12 @@ export default function ResultsPage({
   // The restrictions always come from the address, even when the ingredients
   // arrive as a prop. The address is the one source of truth, so a filtered
   // search can be refreshed, bookmarked and shared.
+  // RB-226: the sort lives in the address too, so refresh, Back and a shared
+  // link all keep it.null means the default
+
   const diet = searchParams.get('diet')
   const intolerances = searchParams.get('intolerances')
+  const sort = searchParams.get('sort')
 
 
   // Store the recipes and favorite IDs separately. Recipes supply the card
@@ -76,7 +83,7 @@ export default function ResultsPage({
         // recipe search from succeeding.
         const [foundRecipes, savedFavorites] = await Promise.all([
           //searchRecipes(ingredients), //legacy, add new paramters 
-          searchRecipes(ingredients, { diet, intolerances }),   
+          searchRecipes(ingredients, { diet, intolerances, sort }),   
           getFavorites().catch(() => []),
         ])
 
@@ -109,7 +116,7 @@ export default function ResultsPage({
     return () => {
       stillOnThisPage = false
     }
-  }, [ingredients, diet, intolerances]) //added diet and intolerances 
+  }, [ingredients, diet, intolerances, sort]) //added diet and intolerances 
 
 // === RB-173 Apply Handler
   /**
@@ -137,8 +144,27 @@ export default function ResultsPage({
 
     setSearchParams(next)
   }
-
   
+  // === RB-226 Sort handler
+  /**
+   * Put the chosen sort in the address.
+   *
+   * Like Apply, this does not search directly: the effect above re-runs when
+   * the address changes. The default is removed rather than written, so a
+   * plain search keeps its old address and its old cache entry.
+   */
+  function handleSortChange(chosenSort) {
+    const next = new URLSearchParams(searchParams)
+
+    if (chosenSort && chosenSort !== DEFAULT_SORT) {
+      next.set('sort', chosenSort)
+    } else {
+      next.delete('sort')
+    }
+
+    setSearchParams(next)
+  } 
+
   /**
    * Keep the star state in sync after a favorite button is clicked.
    *
