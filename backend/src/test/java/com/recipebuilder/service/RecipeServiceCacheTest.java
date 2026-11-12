@@ -137,5 +137,30 @@ class RecipeServiceCacheTest {
 
         verify(client, times(1)).searchByIngredients(anyString(), anyInt(), any(DietaryRestrictions.class), anyString());
     }
+    // ----- RB-225
+    @Test
+    void aDifferentSortIsCachedSeparately() {
+        service.searchByIngredients("tomato", new DietaryRestrictions("none", "none"),null);
+        service.searchByIngredients("tomato", new DietaryRestrictions("none", "none"),"min-missing-ingredients");
+
+        verify(client, times (2)).searchByIngredients(anyString(), anyInt(), any(DietaryRestrictions.class), anyString());
+    }
+    @Test
+    void sameNonDefaultSortIsCachedOnce() { 
+        service.searchByIngredients("tomato", new DietaryRestrictions("none", "none"),"min-missing-ingredients");
+        service.searchByIngredients("tomato", new DietaryRestrictions("none", "none"),"min-missing-ingredients");
+
+        verify(client, times(1)).searchByIngredients(anyString(), anyInt(), any(DietaryRestrictions.class), anyString());
+    }
+    @Test
+    void theDefaultSortSharesTheEntryOfNoSortAtAll() { 
+        // Old entries were saved with no sort, Asking for the default by name, 
+        // or with a blank, must still find them
+        service.searchByIngredients("tomato", new DietaryRestrictions("none", "none"), null);
+        service.searchByIngredients("tomato", new DietaryRestrictions("none", "none"), "max-used-ingredients");
+        service.searchByIngredients("tomato", new DietaryRestrictions("none", "none"),"  ");
+
+        verify(client, times(1)).searchByIngredients(anyString(), anyInt(), any(DietaryRestrictions.class), anyString());
+    }
     
 }
