@@ -15,9 +15,10 @@ import FavoriteButton from './FavoriteButton'
  * @param {string} props.imageUrl
  * @param {boolean} [props.isFavorite]         whether the star is filled
  * @param {Function} [props.onFavoriteChange]  (id, isNowFavorite) => void
+ * @param {React.ReactNode} [props.children]  extra content shown at the bottom of the card
  */
 export default function RecipeCard({
-  id, title, description, imageUrl, isFavorite, onFavoriteChange,
+  id, title, description, imageUrl, isFavorite, onFavoriteChange, children,
 }) {
   // The recipe address carries the pantry list and the filters forward. The
   // nav bar passes on whatever the current address holds, so a detail page
@@ -53,6 +54,10 @@ export default function RecipeCard({
           only meant to save. Keeping his .button class means it still looks
           exactly the same. */}
       <Link className="button" to={{ pathname: '/recipe/' + id, search }}>View Recipe</Link>
+
+      {/* Anything a page wants folded into the card, such as the
+          shopping list on Favorites. Pages that pass nothing are unchanged. */}
+      {children}
     </article>
   )
 }

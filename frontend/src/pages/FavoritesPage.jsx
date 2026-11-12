@@ -3,6 +3,7 @@ import { Link, useLocation } from 'react-router-dom'
 import { getFavorites } from '../api/recipes'
 import { getSession } from '../api/accounts'
 import RecipeCard from '../components/RecipeCard'
+import RecipeShoppingList from '../components/RecipeShoppingList'
 
 /**
  * The recipes you have saved.
@@ -20,6 +21,11 @@ export default function FavoritesPage() {
   // Favorites does not use the pantry list, but it has to hand it back: the
   // list lives in the address, so a bare "/" on the way out loses it.
   const { search } = useLocation()
+
+
+  // The cook's current pantry, carried in the address. The shopping
+  // list compares against this when they choose "What I'm missing".
+  const pantry = new URLSearchParams(search).get('ingredients') ?? ''
 
   const [favorites, setFavorites] = useState([])
 
@@ -147,7 +153,16 @@ export default function FavoritesPage() {
             imageUrl={recipe.imageUrl}
             isFavorite={true}
             onFavoriteChange={handleFavoriteChange}
-          />
+          >
+            <RecipeShoppingList
+              recipeId={recipe.id}
+              pantry={pantry}
+              /* RB-262: stored with the recipe, so the list opens with no
+              Spoonacular call and no internet. Null for a recipe saved
+              before it was stored, and the component fetches then. */
+              savedIngredients={recipe.ingredients}
+            />
+          </RecipeCard>
         ))}
       </div>
 
