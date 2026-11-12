@@ -57,9 +57,9 @@ class RecipeDetailServiceTest {
 
     private static SpoonacularRecipeInformation theirFullRecipe() {
         return theirRecipe(
-                List.of(new SpoonacularRecipeInformation.ExtendedIngredient("2 whole dried chili pepper"),
-                        new SpoonacularRecipeInformation.ExtendedIngredient("3 cloves of garlic (minced)"),
-                        new SpoonacularRecipeInformation.ExtendedIngredient("3 tablespoons olive oil")),
+                List.of(new SpoonacularRecipeInformation.ExtendedIngredient("dried chili pepper", "2 whole dried chili pepper", "Produce"),
+                        new SpoonacularRecipeInformation.ExtendedIngredient("garlic", "3 cloves of garlic (minced)", "Produce"),
+                        new SpoonacularRecipeInformation.ExtendedIngredient("olive oil", "3 tablespoons olive oil", "Oil, Vinegar, Salad Dressing")),
                 List.of(new SpoonacularRecipeInformation.AnalyzedInstruction(
                         List.of(new SpoonacularRecipeInformation.Step(1, "Important: timing is everything"),
                                 new SpoonacularRecipeInformation.Step(2, "Start with boiling water in a large pot."),
