@@ -150,6 +150,8 @@ export async function getFavorites() {
   return response.json()
 }
 
+ 
+
 /**
  * Saves one recipe as a favorite.
  *

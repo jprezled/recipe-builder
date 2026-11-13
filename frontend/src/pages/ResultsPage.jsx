@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { getFavorites, searchRecipes } from '../api/recipes'
+import { getRestrictions, saveRestrictions } from '../api/accounts'
 import { getCollections } from '../api/collections'
 import RecipeCard from '../components/RecipeCard'
 
@@ -43,8 +44,58 @@ export default function ResultsPage({
   const intolerances = searchParams.get('intolerances')
   const sort = searchParams.get('sort')
 
+// RB-251
+// Loads into an empty address only — the rule from RB-209a. 
+// The latch comment is the bug this story shipped once.
+// two people the same thing - the same rule the home page follows for the
+// pantry. Signed out, getRestrictions rejects, which is an answer and not a
+// problem, so the rejection is swallowed.
+const hasLoadedSaved = useRef(false)
 
-  // Store the recipes and favorite IDs separately. Recipes supply the card
+useEffect(() => {
+  if (hasLoadedSaved.current || diet || intolerances) {
+    return
+  }
+  let stillOnThisPage = true
+
+  getRestrictions()
+    .then((saved) => {
+      if (!stillOnThisPage) {
+        return
+      }
+
+      // Latched here, not in the guard above. StrictMode runs this effect
+      // twice in development and cancels the first attempt in between - a
+      // latch set before the fetch would be spent on the attempt whose
+      // result gets thrown away, and the second run would skip entirely.
+      hasLoadedSaved.current = true
+
+      if (!saved.diet && !saved.intolerances) {
+        return
+      }
+
+      const next = new URLSearchParams(searchParams)
+      if (saved.diet) {
+        next.set('diet', saved.diet)
+      }
+      if (saved.intolerances) {
+        next.set('intolerances', saved.intolerances)
+      }
+      setSearchParams(next, { replace: true })
+    })
+    .catch(() => {})
+
+  return () => {
+    stillOnThisPage = false
+  }
+  // Runs once. Re-running on every address change would fight the cook as
+  // they clear a filter - they remove it, and it comes straight back.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+}, [])
+
+
+// Store the recipes and favorite IDs separately. Recipes supply the card
+
   // content; favorite IDs tell each card whether its star should be selected.
   const [recipes, setRecipes] = useState([])
   const [favoriteIds, setFavoriteIds] = useState([])
@@ -135,7 +186,11 @@ export default function ResultsPage({
    * Apply navigates rather than searching directly: the effect above already
    * re-runs when these change, so the address stays the one source of truth.
    */
+  //function handleApplyFilters(chosenDiet, chosenIntolerances) {
+  //  const next = new URLSearchParams(searchParams)
   function handleApplyFilters(chosenDiet, chosenIntolerances) {
+    saveRestrictions(chosenDiet, chosenIntolerances.join(',')).catch(() => {})
+
     const next = new URLSearchParams(searchParams)
 
     // Removed rather than set to an empty value, so an unfiltered search has
@@ -323,4 +378,6 @@ export default function ResultsPage({
       )}
     </PageWrapper>
   )
+
+  
 }

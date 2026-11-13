@@ -4,6 +4,7 @@ import com.recipebuilder.exception.DatabaseUnavailableException;
 import com.recipebuilder.exception.UsernameTakenException;
 import org.springframework.dao.DataAccessException;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
 
@@ -106,4 +107,71 @@ public class UserRepository {
         }
         return new DatabaseUnavailableException("Could not reach the database.", failure);
     }
+
+
+    /** Both are one-liners over a shared oneColumn helper, so the empty-result and exception handling is written once rather than twice.
+     * meaning both findDiet and findIntolerances use the same oneColumn helper
+     * same lookup process across different columns
+     *  
+     * RB-209: the diet this cook saved, or null when they have saved none.
+     *
+     * @param userId whose preference
+     * @return the saved diet, or null
+     */
+    public String findDiet(long userId) {
+        return oneColumn("SELECT diet FROM users WHERE user_id = ?", userId);
+    }
+
+    /**
+     * RB-209: the intolerances this cook saved, or null when they saved none.
+     *
+     * @param userId whose preference
+     * @return the saved list, or null
+     */
+    public String findIntolerances(long userId) {
+        return oneColumn("SELECT intolerances FROM users WHERE user_id = ?", userId);
+    }
+
+
+    /**also RB-209b:
+     * EmptyResultDataAccessException answered with null is a 
+     * signed-in session whose user has since been deleted — not an error to the caller.
+     * Reads one text column for one user.
+     * 
+     * runs sql query for one text value, with userId
+     * no match, return null
+     * 
+     *
+     * Shared by the two readers above so the "no such user" handling is
+     * written once. A signed-in session whose user has since been deleted is
+     * not an error to the caller - they simply have nothing saved.
+     */
+    private String oneColumn(String sql, long userId) {
+        try {
+            return db.queryForObject(sql, String.class, userId);
+        } catch (EmptyResultDataAccessException noSuchUser) {
+            return null;
+        } catch (DataAccessException failure) {
+            throw asOurs(failure);
+        }
+    }
+
+
+    /**Both columns in one statement, because they are always saved together.
+     * 
+     * saves a user's diet and intolerances together
+     * 
+     * runs UPDATE statements for the two columns matching user_id
+     * ? is just placeholders, fill with diet, intolerances, and userId respectively    
+     */
+    public void saveRestrictions(long userId, String diet, String intolerances) {
+        String sql = "UPDATE users SET diet = ?, intolerances = ? WHERE user_id = ?";
+
+        try {
+            db.update(sql, diet, intolerances, userId);
+        } catch (DataAccessException failure) {
+            throw asOurs(failure);
+        }
+    }
+
 }

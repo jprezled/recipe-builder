@@ -127,3 +127,32 @@ export async function getSession() {
   const response = await send('/api/session')
   return response.json()
 }
+
+
+/**
+ * RB-209: the signed-in cook's saved dietary choices.
+ *
+ * Rejects when nobody is signed in, exactly as getSession does.
+ * JSON both ways, matching the controller. 
+ *
+ * @returns {Promise<{diet: string, intolerances: string}>} empty strings when
+ *          nothing is saved
+ */
+export async function getRestrictions() {
+  const response = await send('/api/restrictions', { method: 'GET' })
+  return response.json()
+}
+
+/**
+ * RB-209: replaces the saved choices.
+ *
+ * @param {string} diet         one agreed diet, "none", or blank to clear
+ * @param {string} intolerances agreed intolerances, "none", or blank to clear
+ */
+export async function saveRestrictions(diet, intolerances) {
+  await send('/api/restrictions', {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ diet, intolerances }),
+  })
+}

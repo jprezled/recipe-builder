@@ -1,14 +1,20 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { render, screen, within } from '@testing-library/react'
+import { act, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 import ResultsPage from './ResultsPage'
 import { addFavorite, getFavorites, searchRecipes } from '../api/recipes'
+import { StrictMode } from 'react'
+import { getRestrictions, saveRestrictions } from '../api/accounts'
 import { getCollections } from '../api/collections'
 
+// Replace the duplicate recipes mock lines with these mocks.
+// These prevent tests from making real network requests.
 vi.mock('../api/recipes')
+vi.mock('../api/accounts')
 vi.mock('../api/collections')
 
+// These sample recipe objects provide predictable data for card-rendering tests.
 const PASTA = {
   id: 716429, title: 'Garlic Chicken Pasta', imageUrl: 'http://img/1.jpg',
   ingredientsYouHave: 2, ingredientsYouNeed: 3, matchPercent: 40,
@@ -18,6 +24,8 @@ const PARFAIT = {
   ingredientsYouHave: 1, ingredientsYouNeed: 4, matchPercent: 20,
 }
 
+// Render the page with a test URL. This lets each test control the query
+// parameters without changing the browser's real address.
 function renderResults(query = '?ingredients=eggs,milk') {
   return render(
     <MemoryRouter initialEntries={['/results' + query]}>
@@ -33,8 +41,11 @@ function renderResults(query = '?ingredients=eggs,milk') {
  */
 describe('ResultsPage', () => {
   beforeEach(() => {
+    // Start each test with clean mocks and predictable API responses.
     vi.resetAllMocks()
     getFavorites.mockResolvedValue([])
+    getRestrictions.mockResolvedValue({ diet: '', intolerances: '' })
+    saveRestrictions.mockResolvedValue(undefined)
     getCollections.mockResolvedValue([])
   })
 
@@ -83,6 +94,87 @@ describe('ResultsPage', () => {
   })
 
   // --- end of RB-173: restrictions travels tests
+
+
+    // Saved-preference tests: the address is authoritative, but saved choices
+  // fill in restrictions when the address does not specify any.
+  it('prefills the saved diet when the address has no diet filter', async () => {
+    searchRecipes.mockResolvedValue([])
+    getRestrictions.mockResolvedValue({ diet: 'vegan', intolerances: '' })
+
+    renderResults('?ingredients=eggs')
+
+    // Wait for the saved preference to load and appear in the filter controls.
+    // The radio exists unchecked from the first render, so waiting only for
+    // the element races the state update - wait for the checked state itself.
+    await screen.findByRole('radio', { name: /vegan/i, checked: true })
+  })
+
+  it('uses the diet in the address instead of the saved diet', async () => {
+    searchRecipes.mockResolvedValue([])
+    getRestrictions.mockResolvedValue({ diet: 'vegan', intolerances: '' })
+
+    renderResults('?ingredients=eggs&diet=vegetarian')
+
+    // A link's explicit filter wins, so saved preferences should not be loaded.
+    expect(screen.getByRole('radio', { name: /vegetarian/i })).toBeChecked()
+    expect(screen.getByRole('radio', { name: /vegan/i })).not.toBeChecked()
+    expect(getRestrictions).not.toHaveBeenCalled()
+  })
+
+  // Saving is an Apply action: changing a checkbox alone must not save.
+  it('saves restrictions only when Apply is pressed', async () => {
+    searchRecipes.mockResolvedValue([])
+    renderResults('?ingredients=eggs')
+
+    await userEvent.click(screen.getByRole('radio', { name: /vegan/i }))
+    expect(saveRestrictions).not.toHaveBeenCalled()
+
+    await userEvent.click(screen.getByRole('button', { name: /apply/i }))
+    expect(saveRestrictions).toHaveBeenCalledWith('vegan', '')
+  })
+
+  // StrictMode runs an effect, cleans it up, and runs it again in development.
+  // The cancelled first request must not consume the latch needed by the second.
+  it('loads saved restrictions in StrictMode after the first request is cancelled', async () => {
+    searchRecipes.mockResolvedValue([])
+
+    // Keep both requests pending so the test can resolve them after StrictMode
+    // has run the effect twice.
+    let resolveFirst
+    let resolveSecond
+    const firstRequest = new Promise((resolve) => {
+      resolveFirst = resolve
+    })
+    const secondRequest = new Promise((resolve) => {
+      resolveSecond = resolve
+    })
+
+    getRestrictions
+      .mockReturnValueOnce(firstRequest)
+      .mockReturnValueOnce(secondRequest)
+
+    render(
+      <StrictMode>
+        <MemoryRouter initialEntries={['/results?ingredients=eggs']}>
+          <ResultsPage />
+        </MemoryRouter>
+      </StrictMode>,
+    )
+
+    // Two calls confirm StrictMode started both effect attempts.
+    await vi.waitFor(() => {
+      expect(getRestrictions).toHaveBeenCalledTimes(2)
+    })
+
+    // The first result belongs to the cancelled effect; the second is current.
+    await act(async () => {
+      resolveFirst({ diet: 'vegetarian', intolerances: '' })
+      resolveSecond({ diet: 'vegan', intolerances: '' })
+    })
+
+    expect(await screen.findByRole('radio', { name: /vegan/i })).toBeChecked()
+  })
 
   // ---- RB-226: the sort travels in the address ----------------------------
 
@@ -326,6 +418,24 @@ describe('ResultsPage', () => {
 
     expect(searchRecipes).toHaveBeenCalledTimes(1)
     expect(getFavorites).toHaveBeenCalledTimes(1)
+  })
+
+  // A signed-out save may fail, but the filters should still apply to this search.
+  it('still applies restrictions when saving fails', async () => {
+    searchRecipes.mockResolvedValue([])
+    saveRestrictions.mockRejectedValue(new Error('Please sign in.'))
+    renderResults('?ingredients=eggs')
+
+    await userEvent.click(screen.getByRole('radio', { name: /vegan/i }))
+    await userEvent.click(screen.getByRole('button', { name: /apply/i }))
+
+    await vi.waitFor(() =>
+      expect(searchRecipes).toHaveBeenLastCalledWith('eggs', {
+        diet: 'vegan',
+        intolerances: null,
+        sort: null,
+      }),
+    )
   })
 
   it('still shows recipes when favorites cannot be read', async () => {
