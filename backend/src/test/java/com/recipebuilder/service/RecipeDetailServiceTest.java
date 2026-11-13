@@ -53,7 +53,8 @@ class RecipeDetailServiceTest {
                 false,   // glutenFree
                 true,    // dairyFree
                 ingredients,
-                instructions);
+                instructions,
+                null );
     }
 
     private static SpoonacularRecipeInformation theirFullRecipe() {
@@ -197,4 +198,65 @@ class RecipeDetailServiceTest {
 
         verifyNoInteractions(client);
     }
+
+    @Test
+    void theSixNutritionFiguresArePickedOutByExactName() {
+        SpoonacularRecipeInformation.Nutrition nutrition =
+                new SpoonacularRecipeInformation.Nutrition(List.of(
+                        new SpoonacularRecipeInformation.Nutrient(
+                                "Fat", 13.424, "g"),
+                        new SpoonacularRecipeInformation.Nutrient(
+                                "Saturated Fat", 5.234, "g"),
+                        new SpoonacularRecipeInformation.Nutrient(
+                                "Net Carbohydrates", 60.0, "g"),
+                        new SpoonacularRecipeInformation.Nutrient(
+                                "Carbohydrates", 69.024, "g"),
+                        new SpoonacularRecipeInformation.Nutrient(
+                                "Calories", 591.126, "kcal"),
+                        new SpoonacularRecipeInformation.Nutrient(
+                                "Sugar", 2.544, "g"),
+                        new SpoonacularRecipeInformation.Nutrient(
+                                "Protein", 18.104, "g"),
+                        new SpoonacularRecipeInformation.Nutrient(
+                                "Sodium", 400.0, "mg")));
+
+        SpoonacularRecipeInformation recipe =
+                new SpoonacularRecipeInformation(
+                        660101L,
+                        "Simple Garlic Pasta",
+                        "https://img.spoonacular.com/recipes/660101-556x370.jpg",
+                        2,
+                        45,
+                        true,
+                        true,
+                        false,
+                        true,
+                        List.of(),
+                        List.of(),
+                        nutrition);
+
+        when(client.getRecipe(660101L)).thenReturn(recipe);
+
+        RecipeDetailDto ours = service.getRecipe(660101L);
+
+        assertThat(ours.nutrition()).isNotNull();
+        assertThat(ours.nutrition().calories()).isEqualTo(591.13);
+        assertThat(ours.nutrition().fat()).isEqualTo(13.42);
+        assertThat(ours.nutrition().saturatedFat()).isEqualTo(5.23);
+        assertThat(ours.nutrition().carbohydrates()).isEqualTo(69.02);
+        assertThat(ours.nutrition().sugar()).isEqualTo(2.54);
+        assertThat(ours.nutrition().protein()).isEqualTo(18.1);
+    }
+
+    @Test
+    void aRecipeWithNoNutritionBlockStillConverts() {
+        when(client.getRecipe(660101L)).thenReturn(theirFullRecipe());
+
+        RecipeDetailDto ours = service.getRecipe(660101L);
+
+        assertThat(ours.title()).isEqualTo("Simple Garlic Pasta");
+        assertThat(ours.nutrition()).isNull();
+    }
+
+
 }

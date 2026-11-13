@@ -90,4 +90,100 @@ describe('FavoriteButton', () => {
     expect(button).toHaveTextContent('Save to Favorites')
     expect(button).toHaveClass('button')
   })
+
+  // RB-210: collections ---------------------------------------------------
+
+  const COLLECTIONS = [{ id: 3, name: 'Breakfast' }]
+
+  it('with no collections, the star saves immediately', async () => {
+    addFavorite.mockResolvedValue(undefined)
+
+    render(<FavoriteButton recipe={A_RECIPE} isFavorite={false} onChange={() => {}}
+                           collections={[]} />)
+    await userEvent.click(screen.getByRole('button'))
+
+    expect(addFavorite).toHaveBeenCalledWith(A_RECIPE)
+    expect(screen.queryByRole('button', { name: 'Breakfast' })).not.toBeInTheDocument()
+  })
+
+  it('with collections, the star opens the picker and saves nothing yet', async () => {
+    render(<FavoriteButton recipe={A_RECIPE} isFavorite={false} onChange={() => {}}
+                           collections={COLLECTIONS} />)
+    const star = screen.getByRole('button', { name: 'Save Garlic Chicken Pasta to favorites' })
+    expect(star).toHaveAttribute('aria-expanded', 'false')
+
+    await userEvent.click(star)
+
+    expect(star).toHaveAttribute('aria-expanded', 'true')
+    expect(screen.getByRole('button', { name: 'Breakfast' })).toBeInTheDocument()
+    expect(addFavorite).not.toHaveBeenCalled()
+  })
+
+  it('choosing a collection saves into it', async () => {
+    addFavorite.mockResolvedValue(undefined)
+    const onChange = vi.fn()
+
+    render(<FavoriteButton recipe={A_RECIPE} isFavorite={false} onChange={onChange}
+                           collections={COLLECTIONS} />)
+    await userEvent.click(screen.getByRole('button', { name: /Save Garlic/ }))
+    await userEvent.click(screen.getByRole('button', { name: 'Breakfast' }))
+
+    expect(addFavorite).toHaveBeenCalledWith(A_RECIPE, 3)
+    expect(onChange).toHaveBeenCalledWith(716429, true)
+  })
+
+  it('choosing plain Favorites saves with no collection', async () => {
+    addFavorite.mockResolvedValue(undefined)
+
+    render(<FavoriteButton recipe={A_RECIPE} isFavorite={false} onChange={() => {}}
+                           collections={COLLECTIONS} />)
+    await userEvent.click(screen.getByRole('button', { name: /Save Garlic/ }))
+    await userEvent.click(screen.getByRole('button', { name: 'Favorites (no collection)' }))
+
+    expect(addFavorite).toHaveBeenCalledWith(A_RECIPE)
+  })
+
+  it('keeps its aria-label and aria-pressed with the picker open', async () => {
+    render(<FavoriteButton recipe={A_RECIPE} isFavorite={false} onChange={() => {}}
+                           collections={COLLECTIONS} />)
+    await userEvent.click(screen.getByRole('button', { name: /Save Garlic/ }))
+
+    const star = screen.getByRole('button', { name: 'Save Garlic Chicken Pasta to favorites' })
+    expect(star).toHaveAttribute('aria-pressed', 'false')
+  })
+
+  it('an already saved star removes, and shows no picker', async () => {
+    removeFavorite.mockResolvedValue(undefined)
+
+    render(<FavoriteButton recipe={A_RECIPE} isFavorite={true} onChange={() => {}}
+                           collections={COLLECTIONS} />)
+    await userEvent.click(screen.getByRole('button'))
+
+    expect(removeFavorite).toHaveBeenCalledWith(716429)
+    expect(screen.queryByRole('button', { name: 'Breakfast' })).not.toBeInTheDocument()
+  })
+
+  it('a failed collections fetch leaves the star working with no error', async () => {
+    addFavorite.mockResolvedValue(undefined)
+
+    // The page passes nothing after a 401, so the button never hears of it.
+    render(<FavoriteButton recipe={A_RECIPE} isFavorite={false} onChange={() => {}} />)
+    await userEvent.click(screen.getByRole('button'))
+
+    expect(addFavorite).toHaveBeenCalledWith(A_RECIPE)
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+  })
+
+  it('a failed save closes the picker and says why', async () => {
+    addFavorite.mockRejectedValue(new Error('Could not save your favorite right now.'))
+    const onChange = vi.fn()
+
+    render(<FavoriteButton recipe={A_RECIPE} isFavorite={false} onChange={onChange}
+                           collections={COLLECTIONS} />)
+    await userEvent.click(screen.getByRole('button', { name: /Save Garlic/ }))
+    await userEvent.click(screen.getByRole('button', { name: 'Breakfast' }))
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Could not save your favorite')
+    expect(onChange).toHaveBeenLastCalledWith(716429, false)
+  })
 })

@@ -1,0 +1,72 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: recipe_builder_test_db
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: maven
+
+      # Migrations are applied by hand, not by Flyway, so CI has to do what a
+      # teammate's README step does: run every V*.sql against the test
+      # database, in order. This is the only database FavoriteRepositoryTest,
+      # UserRepositoryTest and CollectionRepositoryTest touch.
+      - name: Apply database migrations
+        env:
+          PGPASSWORD: postgres
+        run: |
+          for migration in database/migrations/V*.sql; do
+            echo "Applying $migration"
+            psql -h localhost -U postgres -d recipe_builder_test_db -f "$migration"
+          done
+
+      - name: Run backend tests
+        working-directory: backend
+        env:
+          DATABASE_USER: postgres
+          DATABASE_PASSWORD: postgres
+        run: ./mvnw test
+
+  frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Run frontend tests
+        working-directory: frontend
+        run: npm test -- --run

@@ -55,10 +55,11 @@ public class RecipeService {
      *
      * @param ingredients what the user typed, e.g. "eggs, milk, flour"
      * @param choices     the cook's diet and intolerances, "none" meaning no filter
+     * @param sort        the sort order from the web address; blank or null means the the default
      * @return recipes in our shape, or an empty list if nothing matched
      */
     @Cacheable(cacheNames = "recipeSearches", keyGenerator = "ingredientsCacheKey")
-    public List<RecipeSummaryDto> searchByIngredients(String ingredients, DietaryRestrictions choices) {
+    public List<RecipeSummaryDto> searchByIngredients(String ingredients, DietaryRestrictions choices, String sort) {
 
         // STEP 0: clean the text up before doing anything with it, and refuse
         // an empty search before spending one of our 150 daily points on it.
@@ -74,12 +75,20 @@ public class RecipeService {
         DietaryRestrictions checked = RestrictionsCleaner.clean(choices);
         refuseUnsupported(checked);
 
+        // RB-224: same idea for the sort. Spoonacular quieltly ignores a sort it
+        // does not recongise. so refuse it here before spending a point.
+
+        String chosenSort = SortOrderCleaner.clean(sort);
+        if (!SortOrderCleaner.isSupported(chosenSort)) {
+            throw new InvalidInputException("That sort order is not one we support.");
+        }
+
         // STEP 1: ask Spoonacular. What comes back is in THEIR shape.
         //
         // We send the cleaned list, not the raw text, so the thing we searched
         // for is exactly the thing the cache key was built from.
         List<SpoonacularSearchResult> theirResults =
-                client.searchByIngredients(cleaned, HOW_MANY_RECIPES, checked);
+                client.searchByIngredients(cleaned, HOW_MANY_RECIPES, checked, chosenSort);
 
         // STEP 2: copy each one into OUR shape, one at a time.
         List<RecipeSummaryDto> ourResults = new ArrayList<>();
@@ -100,8 +109,11 @@ public class RecipeService {
         }
 
         // Closest match first, so the cook reads the best option rather than
-        // whatever order Spoonacular happened to return.
-        ourResults.sort(Comparator.comparingInt(RecipeSummaryDto::matchPercent).reversed());
+        // whatever order Spoonacular happened to return. Only for the default:
+        // any other sort was chosen on purpose, and re-sorting would throw it away
+        if (chosenSort.equals(SortOrderCleaner.MOST_USED)) {
+            ourResults.sort(Comparator.comparingInt(RecipeSummaryDto::matchPercent).reversed());
+        }
 
         // STEP 3: always a list, never null.
         return ourResults;
@@ -193,6 +205,7 @@ public class RecipeService {
                 ingredients,
                 steps,
                 diets,
+                toNutrition(theirs.nutrition()),
                 allIngredients);
     }
 
@@ -211,4 +224,40 @@ public class RecipeService {
             }
         }
     }
+
+    /** Converts Spoonacular's nutrient list into our six figures. */
+    private static RecipeDetailDto.Nutrition toNutrition(
+            SpoonacularRecipeInformation.Nutrition theirs) {
+
+        if (theirs == null || theirs.nutrients() == null) {
+            return null;
+        }
+
+        return new RecipeDetailDto.Nutrition(
+                amountOf(theirs, "Calories"),
+                amountOf(theirs, "Fat"),
+                amountOf(theirs, "Saturated Fat"),
+                amountOf(theirs, "Carbohydrates"),
+                amountOf(theirs, "Sugar"),
+                amountOf(theirs, "Protein"));
+    }
+
+    /** Finds a nutrient by its exact name and rounds its amount. */
+    private static double amountOf(
+            SpoonacularRecipeInformation.Nutrition theirs, String name) {
+
+        for (SpoonacularRecipeInformation.Nutrient nutrient : theirs.nutrients()) {
+            if (name.equals(nutrient.name())) {
+                return round2(nutrient.amount());
+            }
+        }
+
+        return 0;
+    }
+
+    /** Rounds an amount to two decimal places. */
+    private static double round2(double amount) {
+        return Math.round(amount * 100.0) / 100.0;
+    }
+
 }

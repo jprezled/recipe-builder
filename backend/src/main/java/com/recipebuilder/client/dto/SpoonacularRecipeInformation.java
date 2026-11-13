@@ -27,7 +27,8 @@ public record SpoonacularRecipeInformation(
         boolean glutenFree,
         boolean dairyFree,
         List<ExtendedIngredient> extendedIngredients,
-        List<AnalyzedInstruction> analyzedInstructions) {
+        List<AnalyzedInstruction> analyzedInstructions,
+        Nutrition nutrition) {
 
     /**
     * RB-203: "name" and "aisle" joined it when the shopping list moved to
@@ -50,5 +51,13 @@ public record SpoonacularRecipeInformation(
 
     @JsonIgnoreProperties(ignoreUnknown = true)
     public record Step(int number, String step) {
+    }
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    public record Nutrition(List<Nutrient> nutrients) {
+    }
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    public record Nutrient(String name, double amount, String unit) {
     }
 }

@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { addFavorite, removeFavorite } from '../api/recipes'
+import CollectionPicker from './CollectionPicker'
 
 /**
  * The control that saves a recipe, and takes it back off again.
@@ -23,17 +24,38 @@ import { addFavorite, removeFavorite } from '../api/recipes'
  * @param {object} props.recipe        { id, title, imageUrl }
  * @param {boolean} props.isFavorite   whether it is currently saved
  * @param {Function} props.onChange    (id, isNowFavorite) => void
+ * @param {Array} [props.collections]  RB-210: the cook's collections. When there
+ *                                     are any, saving asks which one first.
+ *                                     Absent or empty and the star saves
+ *                                     straight away, as it always did.
  * @param {string} [props.variant]     "star" (default) for the glyph on a card,
  *                                     or "text" for Andrew's wider
  *                                     "Save to Favorites" button on the detail
  *                                     page. Same behaviour either way.
  */
-export default function FavoriteButton({ recipe, isFavorite, onChange, variant = 'star' }) {
+export default function FavoriteButton({
+  recipe, isFavorite, onChange, collections, variant = 'star',
+}) {
   const [errorMessage, setErrorMessage] = useState('')
   const [isWorking, setIsWorking] = useState(false)
+  const [isPickerOpen, setIsPickerOpen] = useState(false)
 
-  async function handleClick() {
+  // A choice only exists when there are collections, and only when saving:
+  // removing has nothing to choose.
+  const canChoose = !isFavorite && Array.isArray(collections) && collections.length > 0
+
+  function handleClick() {
+    if (canChoose) {
+      setIsPickerOpen((open) => !open)
+      return
+    }
+    save(null)
+  }
+
+  // collectionId is null for plain favorites.
+  async function save(collectionId) {
     const wasFavorite = isFavorite
+    setIsPickerOpen(false)
 
     setErrorMessage('')
     setIsWorking(true)
@@ -47,7 +69,11 @@ export default function FavoriteButton({ recipe, isFavorite, onChange, variant =
       if (wasFavorite) {
         await removeFavorite(recipe.id)
       } else {
-        await addFavorite(recipe)
+        if (collectionId === null) {
+          await addFavorite(recipe)
+        } else {
+          await addFavorite(recipe, collectionId)
+        }
       }
     } catch (failure) {
       // Undo the optimistic change - this must never claim a recipe was saved
@@ -75,12 +101,15 @@ export default function FavoriteButton({ recipe, isFavorite, onChange, variant =
         onClick={handleClick}
         disabled={isWorking}
         aria-pressed={isFavorite}
+        aria-expanded={canChoose ? isPickerOpen : undefined}
         aria-label={label}
       >
         {isText
           ? (isFavorite ? 'Remove from Favorites' : 'Save to Favorites')
           : (isFavorite ? '★' : '☆')}
       </button>
+
+      {isPickerOpen && <CollectionPicker collections={collections} onChoose={save} />}
 
       {errorMessage && <p role="alert">{errorMessage}</p>}
     </>

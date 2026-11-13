@@ -24,6 +24,7 @@ public record RecipeDetailDto(
         /** The steps in order. Empty when the recipe came with none. */
         List<String> steps,
         Diets diets,
+        Nutrition nutrition,
         /**
          * RB-203: every ingredient, with the supermarket aisle it belongs to.
          *
@@ -47,4 +48,14 @@ public record RecipeDetailDto(
             boolean glutenFree,
             boolean dairyFree) {
     }
+
+     /** The six nutrition figures, per serving. */
+    public record Nutrition(
+            double calories,
+            double fat,
+            double saturatedFat,
+            double carbohydrates,
+            double sugar,
+            double protein) {
+    }   
 }

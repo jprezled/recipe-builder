@@ -47,11 +47,11 @@ class ContextStartsWithoutDatabaseTest {
 
     @Test
     void searchStillWorksWithNoDatabaseBehindIt() {
-        when(client.searchByIngredients(anyString(), anyInt(), any(DietaryRestrictions.class))).thenReturn(List.of(
+        when(client.searchByIngredients(anyString(), anyInt(), any(DietaryRestrictions.class), anyString())).thenReturn(List.of(
                 new SpoonacularSearchResult(716429L, "Pasta", "http://img/1.jpg", 1, 2,
                         List.of(), List.of())));
 
-        List<?> found = recipeService.searchByIngredients("eggs", new DietaryRestrictions("none", "none"));
+        List<?> found = recipeService.searchByIngredients("eggs", new DietaryRestrictions("none", "none"), null);
 
         assertThat(found).hasSize(1);
     }

@@ -26,7 +26,7 @@ class MissingKeyTest {
     @Test
     void aBlankKeyFailsBeforeAnyNetworkCall() {
         assertThatExceptionOfType(ApiKeyMissingException.class)
-                .isThrownBy(() -> client.searchByIngredients("apple", 10, new DietaryRestrictions("none","none")))
+                .isThrownBy(() -> client.searchByIngredients("apple", 10, new DietaryRestrictions("none","none"), "max-used-ingredients"))
                 .withMessageContaining("SPOONACULAR_API_KEY");
     }
 }

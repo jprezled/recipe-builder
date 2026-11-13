@@ -71,7 +71,7 @@ class SpoonacularClientTest {
                 .andExpect(queryParam("apiKey", "test-key-not-a-real-key"))
                 .andRespond(withSuccess(stubbedResponse(), MediaType.APPLICATION_JSON));
 
-        List<SpoonacularSearchResult> results = client.searchByIngredients("apple", 2, new DietaryRestrictions("none", "none"));
+        List<SpoonacularSearchResult> results = client.searchByIngredients("apple", 2, new DietaryRestrictions("none", "none"), "max-used-ingredients");
 
         assertThat(results).hasSize(2);
 
@@ -107,7 +107,7 @@ class SpoonacularClientTest {
                 .andExpect(queryParam("apiKey", "test-key-not-a-real-key"))
                 .andRespond(withSuccess(stubbedResponse(), MediaType.APPLICATION_JSON));
 
-        client.searchByIngredients("apple", 2, new DietaryRestrictions("vegetarian", "peanut"));
+        client.searchByIngredients("apple", 2, new DietaryRestrictions("vegetarian", "peanut"), "max-used-ingredients");
 
         server.verify();
     }
@@ -120,7 +120,7 @@ class SpoonacularClientTest {
                         .doesNotContain("intolerances="))
                 .andRespond(withSuccess(stubbedResponse(), MediaType.APPLICATION_JSON));
 
-        client.searchByIngredients("apple", 2, new DietaryRestrictions("none", "none"));
+        client.searchByIngredients("apple", 2, new DietaryRestrictions("none", "none"), "max-used-ingredients");
 
         server.verify();
     }
@@ -135,7 +135,7 @@ class SpoonacularClientTest {
                         .doesNotContain("intolerances="))
                 .andRespond(withSuccess(stubbedResponse(), MediaType.APPLICATION_JSON));
 
-        client.searchByIngredients("apple", 2, new DietaryRestrictions("vegetarian", "none"));
+        client.searchByIngredients("apple", 2, new DietaryRestrictions("vegetarian", "none"), "max-used-ingredients");
 
         server.verify();
     }
@@ -155,7 +155,7 @@ class SpoonacularClientTest {
     void parsesOneRecipeFromAStubbedInformationResponse() throws IOException {
         server.expect(requestTo(startsWith("https://api.spoonacular.invalid/recipes/660101/information")))
                 .andExpect(method(HttpMethod.GET))
-                .andExpect(queryParam("includeNutrition", "false"))
+                .andExpect(queryParam("includeNutrition", "true"))
                 .andExpect(queryParam("apiKey", "test-key-not-a-real-key"))
                 .andRespond(withSuccess(stubbedRecipe("recipe-information.json"), MediaType.APPLICATION_JSON));
 
@@ -213,5 +213,52 @@ class SpoonacularClientTest {
     private String stubbedRecipe(String fileName) throws IOException {
         return new ClassPathResource("stubs/" + fileName)
                 .getContentAsString(StandardCharsets.UTF_8);
+    }
+/*
+    server.expect(requestTo(startsWith(
+                    "https://api.spoonacular.invalid/recipes/660101/information")))
+            .andExpect(method(HttpMethod.GET))
+            .andExpect(queryParam("includeNutrition", "true"))
+            .andRespond(withSuccess(response, MediaType.APPLICATION_JSON));
+
+    SpoonacularRecipeInformation recipe = client.getRecipe(660101L);
+*/
+    @Test
+    void readsNutritionFromARecipeResponse() {
+        String response = """
+                {
+                  "id": 660101,
+                  "nutrition": {
+                    "nutrients": [
+                      {
+                        "name": "Fat",
+                        "amount": 13.42,
+                        "unit": "g",
+                        "percentOfDailyNeeds": 20.65
+                      }
+                    ]
+                  }
+                }
+                """;
+
+        server.expect(requestTo(startsWith(
+                        "https://api.spoonacular.invalid/recipes/660101/information")))
+                .andExpect(method(HttpMethod.GET))
+                .andExpect(queryParam("includeNutrition", "true"))
+                .andRespond(withSuccess(response, MediaType.APPLICATION_JSON));
+
+        SpoonacularRecipeInformation recipe = client.getRecipe(660101L);
+
+        assertThat(recipe.nutrition()).isNotNull();
+        assertThat(recipe.nutrition().nutrients()).hasSize(1);
+
+        SpoonacularRecipeInformation.Nutrient nutrient =
+                recipe.nutrition().nutrients().get(0);
+
+        assertThat(nutrient.name()).isEqualTo("Fat");
+        assertThat(nutrient.amount()).isEqualTo(13.42);
+        assertThat(nutrient.unit()).isEqualTo("g");
+
+        server.verify();
     }
 }

@@ -123,4 +123,16 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ApiErrorResponse> onNotSignedIn(NotSignedInException failure) {
         return build(HttpStatus.UNAUTHORIZED, failure.getMessage());
     }
+
+    /** RB-210: the collection does not exist or is not the cook's. */
+    @ExceptionHandler(CollectionNotFoundException.class)
+    public ResponseEntity<ApiErrorResponse> onCollectionNotFound(CollectionNotFoundException failure) {
+        return build(HttpStatus.NOT_FOUND, failure.getMessage());
+    }
+
+    /** RB-210: the cook already has a collection with that name. */
+    @ExceptionHandler(CollectionNameTakenException.class)
+    public ResponseEntity<ApiErrorResponse> onCollectionNameTaken(CollectionNameTakenException failure) {
+        return build(HttpStatus.CONFLICT, failure.getMessage());
+    }
 }

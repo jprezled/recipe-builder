@@ -52,10 +52,11 @@ public class SpoonacularClient {
      * @param ingredients comma-separated names, e.g. "apple" or "apple,flour"
      * @param number      how many recipes to ask for
      * @param choices     the cook's diet and allergy picks; "none" means no filter
+     * @param sort        the sort order to ask for, already cleaned and checked
      * @return the recipes Spoonacular sent back, or an empty list if it sent none
      */
     public List<SpoonacularSearchResult> searchByIngredients(
-            String ingredients, int number, DietaryRestrictions choices) {
+            String ingredients, int number, DietaryRestrictions choices, String sort) {
 
         // STEP 0: refuse to call Spoonacular without a key. Sending an empty one
         // comes back as a confusing 401 rather than telling us what is wrong.
@@ -69,12 +70,12 @@ public class SpoonacularClient {
                 + "/recipes/complexSearch"
                 + "?includeIngredients={ingredients}"
                 + "&fillIngredients=true"
-                + "&sort=max-used-ingredients"
+                + "&sort={sort}"
                 + "&number={number}"
                 + "&apiKey={apiKey}";
 
         // The values for the placeholders, in the order they appear in the url.
-        List<Object> values = new ArrayList<>(List.of(ingredients, number, apiKey));
+        List<Object> values = new ArrayList<>(List.of(ingredients, sort, number, apiKey));
 
         // Each filter adds its placeholder AND its value in the same step,
         // so the two can never get out of line.
@@ -129,7 +130,7 @@ public class SpoonacularClient {
         // larger for no benefit.
         String url = baseUrl
                 + "/recipes/{id}/information"
-                + "?includeNutrition=false"
+                + "?includeNutrition=true"
                 + "&apiKey={apiKey}";
 
         // STEP 2: send it and convert the reply into Java objects.
