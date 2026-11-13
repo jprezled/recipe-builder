@@ -10,6 +10,7 @@ import CollectionDeck from '../components/CollectionDeck'
 import MoveToCollection from '../components/MoveToCollection'
 import RecipeCard from '../components/RecipeCard'
 import RecipeNote from '../components/RecipeNote'
+import RecipeShoppingList from '../components/RecipeShoppingList'
 
 /**
  * The recipes you have saved.
@@ -27,6 +28,10 @@ export default function FavoritesPage() {
   // Favorites does not use the pantry list, but it has to hand it back: the
   // list lives in the address, so a bare "/" on the way out loses it.
   const { search } = useLocation()
+
+  // The cook's current pantry, carried in the address. The shopping
+  // list compares against this when they choose "What I'm missing".
+  const pantry = new URLSearchParams(search).get('ingredients') ?? ''
 
   // RB-210: which decks are unfolded. Local state rather than the address -
   // unlike the pantry list, a deck left open is not something a cook wants
@@ -216,6 +221,14 @@ export default function FavoritesPage() {
         {/* RB-205: only on this page. A note belongs to a recipe the cook has
             saved, so there is nothing to attach one to in search results. */}
         <RecipeNote recipeId={recipe.id} note={recipe.note} />
+        <RecipeShoppingList
+          recipeId={recipe.id}
+          pantry={pantry}
+          /* RB-262: stored with the recipe, so the list opens with no
+          Spoonacular call and no internet. Null for a recipe saved
+          before it was stored, and the component fetches then. */
+          savedIngredients={recipe.ingredients}
+        />
         <MoveToCollection
           recipeId={recipe.id}
           recipeTitle={recipe.title}

@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom'
 import RecipeDetailPage from './RecipeDetailPage'
@@ -26,7 +26,11 @@ const RECIPE = {
     'While you are boiling, mince the garlic',
   ],
   diets: { vegetarian: true, vegan: true, glutenFree: false, dairyFree: true },
-  
+  allIngredients: [
+    { name: 'dried chili pepper', line: '2 whole dried chili pepper', aisle: 'Produce' },
+    { name: 'garlic', line: '3 cloves of garlic (minced)', aisle: 'Produce' },
+    { name: 'olive oil', line: '3 tablespoons olive oil', aisle: 'Oil, Vinegar, Salad Dressing' },
+  ],
   nutrition: {
     calories: 591,
     fat: 13.42,
@@ -34,7 +38,7 @@ const RECIPE = {
     carbohydrates: 69.02,
     sugar: 2.54,
     protein: 18.1,
-  },  
+  },
 }
 
 /** Stands in for the results page, and reports what the address still holds. */
@@ -43,9 +47,9 @@ function ResultsProbe() {
   return <p>results for {new URLSearchParams(search).get('ingredients')}</p>
 }
 
-function renderDetail(id = '660101') {
+function renderDetail(id = '660101', query = '') {
   return render(
-    <MemoryRouter initialEntries={['/recipe/' + id]}>
+    <MemoryRouter initialEntries={['/recipe/' + id + query]}>
       <Routes>
         <Route path="/recipe/:id" element={<RecipeDetailPage />} />
       </Routes>
@@ -284,6 +288,109 @@ describe('RecipeDetailPage', () => {
 
     expect(await screen.findByText('Simple Garlic Pasta')).toBeInTheDocument()
     expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+  })
+    describe('shopping list', () => {
+    /** The list under one category heading, so a line is checked in its group. */
+    function groupUnder(category) {
+      return within(screen.getByRole('heading', { name: category }).parentElement)
+    }
+
+    const openPanel = async () => {
+      await screen.findByText('Simple Garlic Pasta')
+      await userEvent.click(screen.getByRole('button', { name: /shopping list/i }))
+    }
+
+    // 1. Not on screen until the button is pressed. queryBy, not getBy:
+    //    getBy throws when nothing is there, so it cannot assert absence.
+    it('keeps the panel off screen until the button is pressed', async () => {
+      renderDetail()
+      await screen.findByText('Simple Garlic Pasta')
+
+      expect(screen.queryByRole('heading', { name: /shopping list/i })).not.toBeInTheDocument()
+      expect(screen.queryByRole('heading', { name: 'Produce' })).not.toBeInTheDocument()
+    })
+
+    // 2. Opens, and a line appears under its category heading.
+    it('opens the panel and shows an ingredient under its category heading', async () => {
+      renderDetail()
+      await openPanel()
+
+      expect(screen.getByRole('heading', { name: /shopping list/i })).toBeInTheDocument()
+      expect(
+        groupUnder('Oil, Vinegar, Salad Dressing').getByText('3 tablespoons olive oil'),
+      ).toBeInTheDocument()
+    })
+
+    // 3. Ingredients sharing a category share one heading.
+    it('puts ingredients with the same category under one heading', async () => {
+      renderDetail()
+      await openPanel()
+
+      expect(screen.getAllByRole('heading', { name: 'Produce' })).toHaveLength(1)
+      const produce = groupUnder('Produce')
+      expect(produce.getByText('3 cloves of garlic (minced)')).toBeInTheDocument()
+      expect(produce.getByText('2 whole dried chili pepper')).toBeInTheDocument()
+      expect(produce.queryByText('3 tablespoons olive oil')).not.toBeInTheDocument()
+    })
+
+    // 4. The pantry in the address is ignored: every ingredient is listed.
+    it('ignores the pantry in the address and lists every ingredient', async () => {
+      getRecipe.mockResolvedValue({
+        ...RECIPE,
+        ingredients: ['2 eggs', '1 cup milk', '1 cup flour'],
+        allIngredients: [
+          { name: 'eggs', line: '2 eggs', aisle: 'Milk, Eggs, Other Dairy' },
+          { name: 'milk', line: '1 cup milk', aisle: 'Milk, Eggs, Other Dairy' },
+          { name: 'flour', line: '1 cup flour', aisle: 'Baking' },
+        ],
+      })
+      renderDetail('660101', '?ingredients=eggs,milk')
+      await openPanel()
+
+      const dairy = groupUnder('Milk, Eggs, Other Dairy')
+      expect(dairy.getByText('2 eggs')).toBeInTheDocument()
+      expect(dairy.getByText('1 cup milk')).toBeInTheDocument()
+      expect(groupUnder('Baking').getByText('1 cup flour')).toBeInTheDocument()
+    })
+
+    // 5. Nothing to open, so no button.
+    it('has no Shopping list button when the recipe lists no ingredients', async () => {
+      getRecipe.mockResolvedValue({ ...RECIPE, ingredients: [], allIngredients: [] })
+      renderDetail()
+      await screen.findByText('Simple Garlic Pasta')
+
+      expect(screen.queryByRole('button', { name: /shopping list/i })).not.toBeInTheDocument()
+    })
+
+    // 6. Toggles shut again, and tells assistive tech which state it is in.
+    it('closes again when the button is pressed a second time', async () => {
+      renderDetail()
+      await openPanel()
+      const button = screen.getByRole('button', { name: /shopping list/i })
+      expect(button).toHaveAttribute('aria-expanded', 'true')
+
+      await userEvent.click(button)
+
+      expect(button).toHaveAttribute('aria-expanded', 'false')
+      expect(screen.queryByRole('heading', { name: /shopping list/i })).not.toBeInTheDocument()
+    })
+
+    // 7. Why it is a Map: a free-text category named "constructor" must work.
+    it('groups correctly when a category is named like an inherited property', async () => {
+      getRecipe.mockResolvedValue({
+        ...RECIPE,
+        allIngredients: [
+          { name: 'salt', line: '1 pinch of salt', aisle: 'constructor' },
+          { name: 'pepper', line: '1 pinch of pepper', aisle: 'constructor' },
+        ],
+      })
+      renderDetail()
+      await openPanel()
+
+      const group = groupUnder('constructor')
+      expect(group.getByText('1 pinch of salt')).toBeInTheDocument()
+      expect(group.getByText('1 pinch of pepper')).toBeInTheDocument()
+    })
   })
 
   it('starts with nutrition closed', async () => {

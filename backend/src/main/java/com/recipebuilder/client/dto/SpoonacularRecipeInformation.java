@@ -31,12 +31,13 @@ public record SpoonacularRecipeInformation(
         Nutrition nutrition) {
 
     /**
-     * One ingredient line. "original" is the whole phrase as a person would
-     * write it - "3 cloves of garlic (minced)" - so no amount, unit and name
-     * have to be reassembled.
-     */
+    * RB-203: "name" and "aisle" joined it when the shopping list moved to
+    * this page. The name is what gets matched against the cook's pantry, and
+    * the aisle is the supermarket section the list groups by. Both were
+    * already arriving in this reply and being dropped.
+    */
     @JsonIgnoreProperties(ignoreUnknown = true)
-    public record ExtendedIngredient(String original) {
+    public record ExtendedIngredient(String name, String original, String aisle) {
     }
 
     /**

@@ -60,8 +60,8 @@ export default function RecipeCard({
       <Link className="button" to={{ pathname: '/recipe/' + id, search }}>View Recipe</Link>
 
       {/* Anything a page wants to hang off a card - the favourites page puts
-          the cook's note here. Cards elsewhere pass nothing and look the same
-          as they always did. */}
+          the cook's note and shopping list here. Cards elsewhere pass nothing
+          and look the same as they always did. */}
       {children}
     </article>
   )

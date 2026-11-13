@@ -4,9 +4,9 @@ import java.util.List;
 
 import org.junit.jupiter.api.Test;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -21,6 +21,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.recipebuilder.dto.DietaryRestrictions;
 import com.recipebuilder.dto.RecipeDetailDto;
 import com.recipebuilder.dto.RecipeSummaryDto;
+import com.recipebuilder.dto.ShoppingItemDto;
 import com.recipebuilder.service.RecipeService;
 
 /**
@@ -110,7 +111,9 @@ class RecipeControllerTest {
                 45,
                 List.of("3 cloves of garlic (minced)"),
                 List.of("Start with boiling water in a large pot."),
-                new RecipeDetailDto.Diets(true, true, false, true),null));
+                new RecipeDetailDto.Diets(true, true, false, true),
+                null,
+                List.of(new ShoppingItemDto("garlic", "3 cloves of garlic (minced)", "Produce"))));
 
         mockMvc.perform(get("/api/recipes/660101"))
                 .andExpect(status().isOk())

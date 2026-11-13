@@ -34,6 +34,26 @@ const NUTRITION_ROWS = [
   { field: 'protein', label: 'Protein', unit: 'g' },
 ]
 /**
+ * Groups ingredients by their aisle. A Map rather than a plain object because aisle names are free text from
+ * Spoonacular - a name like "constructor" would collide with an inherited
+ * property on an object, and a Map has no inherited keys.
+ * @param {Array<{name: string, line: string, aisle: string}>}allIngredients
+ * @returns {Array<[string, Array]>}[category, items]
+ */
+function groupByAisle(allIngredients = []) {
+  const byAisle = new Map()
+
+  for (const item of allIngredients) {
+    if (!byAisle.has(item.aisle)) {
+      byAisle.set(item.aisle, [])
+    }
+    byAisle.get(item.aisle).push(item)
+  }
+
+  return [...byAisle.entries()]
+}
+
+/**
  * The page for one recipe, named by the id in the address.
  *
  * The heading, image, description slot, button group and two sections are
@@ -51,6 +71,7 @@ export default function RecipeDetailPage() {
   const [collections, setCollections] = useState([])
   const [errorMessage, setErrorMessage] = useState('')
   const [isLoading, setIsLoading] = useState(true)
+  const [isShoppingOpen, setIsShoppingOpen] = useState(false)
 
   useEffect(() => {
     // A cook can click away while the request is still in flight. Without
@@ -160,6 +181,20 @@ export default function RecipeDetailPage() {
               </button>
             )}
 
+            {/* no extra fetch - allIngredients came with the recipe. */}
+            {recipe.allIngredients?.length > 0 && (
+              <button
+                type="button"
+                className="button button-secondary"
+                aria-expanded={isShoppingOpen}
+                aria-controls="shopping-list"
+                onClick={() => setIsShoppingOpen(!isShoppingOpen)}
+              >
+                 Shopping list
+                <span aria-hidden="true">{isShoppingOpen ? ' ▲' : ' ▼'}</span>
+              </button>
+            )}
+
           </div>
 
           {recipe.nutrition != null && isNutritionOpen && (
@@ -192,6 +227,22 @@ export default function RecipeDetailPage() {
               </ul>
             )}
           </section>
+
+          {isShoppingOpen && (
+          <section className="detail-section" id="shopping-list">
+            <h2>Shopping List</h2>
+            {groupByAisle(recipe.allIngredients).map(([category, items]) => (
+                <div key={category}>
+                  <h3>{category}</h3>
+                  <ul className="shopping-items">
+                    {items.map((one, position) => (
+                      <li key={position}>{one.line}</li>
+                    ))}
+                  </ul>
+                </div>
+            ))}
+          </section>
+          )}
 
           <section className="detail-section">
             <h2>Instructions</h2>

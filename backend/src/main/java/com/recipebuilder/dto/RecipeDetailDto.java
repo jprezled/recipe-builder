@@ -24,7 +24,16 @@ public record RecipeDetailDto(
         /** The steps in order. Empty when the recipe came with none. */
         List<String> steps,
         Diets diets,
-        Nutrition nutrition) {
+        Nutrition nutrition,
+        /**
+         * RB-203: every ingredient, with the supermarket aisle it belongs to.
+         *
+         * All of them, not just the missing ones. This reply has no idea what
+         * the cook has - only the search does - so the page works that out
+         * from the pantry in the address. Keeping the split out of here is
+         * what lets this stay cached on the recipe id alone.
+         */
+        List<ShoppingItemDto> allIngredients) {
 
     /**
      * What this recipe suits.

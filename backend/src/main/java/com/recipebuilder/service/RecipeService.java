@@ -13,6 +13,7 @@ import com.recipebuilder.client.dto.SpoonacularSearchResult;
 import com.recipebuilder.dto.DietaryRestrictions;
 import com.recipebuilder.dto.RecipeDetailDto;
 import com.recipebuilder.dto.RecipeSummaryDto;
+import com.recipebuilder.dto.ShoppingItemDto;
 import com.recipebuilder.exception.InvalidInputException;
 
 /**
@@ -149,10 +150,24 @@ public class RecipeService {
 
         // STEP 2: copy the ingredient lines across, one at a time.
         List<String> ingredients = new ArrayList<>();
+        List<ShoppingItemDto> allIngredients = new ArrayList<>();
 
         if (theirs.extendedIngredients() != null) {
             for (SpoonacularRecipeInformation.ExtendedIngredient one : theirs.extendedIngredients()) {
                 ingredients.add(one.original());
+
+                // RB-203: the same line again, carrying its aisle, so the
+                // shopping list can group without re-reading the strings.
+                String line = one.original();
+                if (line == null || line.isBlank()) {
+                    line = one.name();
+                }
+            
+                String aisle = one.aisle();
+                if (aisle == null || aisle.isBlank()) {
+                    aisle = "Other";
+                }
+                allIngredients.add(new ShoppingItemDto(one.name(), line, aisle));
             }
         }
 
@@ -190,7 +205,8 @@ public class RecipeService {
                 ingredients,
                 steps,
                 diets,
-                toNutrition(theirs.nutrition())); // Nutrition is not yet implemented, so always null for now.
+                toNutrition(theirs.nutrition()),
+                allIngredients);
     }
 
     /** Refuses a diet or intolerance that is not "none" and not on the approved lists. */
