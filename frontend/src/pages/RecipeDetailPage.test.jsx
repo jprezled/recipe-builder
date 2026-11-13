@@ -26,6 +26,15 @@ const RECIPE = {
     'While you are boiling, mince the garlic',
   ],
   diets: { vegetarian: true, vegan: true, glutenFree: false, dairyFree: true },
+  
+  nutrition: {
+    calories: 591,
+    fat: 13.42,
+    saturatedFat: 5.23,
+    carbohydrates: 69.02,
+    sugar: 2.54,
+    protein: 18.1,
+  },  
 }
 
 /** Stands in for the results page, and reports what the address still holds. */
@@ -276,4 +285,70 @@ describe('RecipeDetailPage', () => {
     expect(await screen.findByText('Simple Garlic Pasta')).toBeInTheDocument()
     expect(screen.queryByRole('alert')).not.toBeInTheDocument()
   })
+
+  it('starts with nutrition closed', async () => {
+    renderDetail()
+
+    const button = await screen.findByRole('button', {
+      name: 'Nutrition Facts',
+    })
+
+    expect(button).toHaveAttribute('aria-expanded', 'false')
+    expect(button).toHaveAttribute('aria-controls', 'nutrition-facts')
+    expect(
+      screen.queryByRole('heading', { name: 'Nutrition Facts' }),
+    ).not.toBeInTheDocument()
+  })
+
+  it('opens nutrition and shows all six values per serving', async () => {
+    const user = userEvent.setup()
+    renderDetail()
+
+    const button = await screen.findByRole('button', {
+      name: 'Nutrition Facts',
+    })
+    await user.click(button)
+
+    expect(button).toHaveAttribute('aria-expanded', 'true')
+    expect(
+      screen.getByRole('heading', { name: 'Nutrition Facts' }),
+    ).toBeInTheDocument()
+    expect(screen.getByText('Per serving')).toBeInTheDocument()
+    expect(screen.getByText('591 kcal')).toBeInTheDocument()
+    expect(screen.getByText('13.42g')).toBeInTheDocument()
+    expect(screen.getByText('5.23g')).toBeInTheDocument()
+    expect(screen.getByText('69.02g')).toBeInTheDocument()
+    expect(screen.getByText('2.54g')).toBeInTheDocument()
+    expect(screen.getByText('18.1g')).toBeInTheDocument()
+
+    expect(getRecipe).toHaveBeenCalledTimes(1)
+  })
+
+  it('closes nutrition on a second click', async () => {
+    const user = userEvent.setup()
+    renderDetail()
+
+    const button = await screen.findByRole('button', {
+      name: 'Nutrition Facts',
+    })
+    await user.click(button)
+    await user.click(button)
+
+    expect(button).toHaveAttribute('aria-expanded', 'false')
+    expect(
+      screen.queryByRole('heading', { name: 'Nutrition Facts' }),
+    ).not.toBeInTheDocument()
+  })
+
+  it('shows no nutrition button when nutrition is missing', async () => {
+    getRecipe.mockResolvedValue({ ...RECIPE, nutrition: null })
+    renderDetail()
+
+    await screen.findByRole('heading', { name: 'Simple Garlic Pasta' })
+
+    expect(
+      screen.queryByRole('button', { name: 'Nutrition Facts' }),
+    ).not.toBeInTheDocument()
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+  })  
 })

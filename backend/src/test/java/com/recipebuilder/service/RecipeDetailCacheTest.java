@@ -53,7 +53,8 @@ class RecipeDetailCacheTest {
                 false,   // glutenFree
                 true,    // dairyFree
                 List.of(),
-                List.of());
+                List.of(),
+                null);
     }
 
     @BeforeEach

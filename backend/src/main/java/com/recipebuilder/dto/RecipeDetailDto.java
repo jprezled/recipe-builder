@@ -23,7 +23,8 @@ public record RecipeDetailDto(
         List<String> ingredients,
         /** The steps in order. Empty when the recipe came with none. */
         List<String> steps,
-        Diets diets) {
+        Diets diets,
+        Nutrition nutrition) {
 
     /**
      * What this recipe suits.
@@ -38,4 +39,14 @@ public record RecipeDetailDto(
             boolean glutenFree,
             boolean dairyFree) {
     }
+
+     /** The six nutrition figures, per serving. */
+    public record Nutrition(
+            double calories,
+            double fat,
+            double saturatedFat,
+            double carbohydrates,
+            double sugar,
+            double protein) {
+    }   
 }
