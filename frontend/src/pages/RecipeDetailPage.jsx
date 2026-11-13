@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { getFavorites, getRecipe } from '../api/recipes'
+import { getCollections } from '../api/collections'
 import FavoriteButton from '../components/FavoriteButton'
 
 /**
@@ -24,6 +25,14 @@ const DIET_LABELS = [
   { field: 'dairyFree', label: 'Dairy free' },
 ]
 
+const NUTRITION_ROWS = [
+  { field: 'calories', label: 'Calories', unit: ' kcal' },
+  { field: 'fat', label: 'Fat', unit: 'g' },
+  { field: 'saturatedFat', label: 'Saturated fat', unit: 'g' },
+  { field: 'carbohydrates', label: 'Carbohydrates', unit: 'g' },
+  { field: 'sugar', label: 'Sugar', unit: 'g' },
+  { field: 'protein', label: 'Protein', unit: 'g' },
+]
 /**
  * The page for one recipe, named by the id in the address.
  *
@@ -36,8 +45,10 @@ export default function RecipeDetailPage() {
 
   // Four pieces of state, so the page can tell its situations apart: still
   // loading, failed, loaded, and loaded-but-empty.
+  const [isNutritionOpen, setIsNutritionOpen] = useState(false)
   const [recipe, setRecipe] = useState(null)
   const [isFavorite, setIsFavorite] = useState(false)
+  const [collections, setCollections] = useState([])
   const [errorMessage, setErrorMessage] = useState('')
   const [isLoading, setIsLoading] = useState(true)
 
@@ -50,20 +61,24 @@ export default function RecipeDetailPage() {
       setIsLoading(true)
       setErrorMessage('')
       setRecipe(null)
+      setIsNutritionOpen(false)
 
       try {
         // The saved list is a database read and costs no Spoonacular quota,
         // so it goes out alongside the recipe rather than after it. Its
         // failure is swallowed: a favorites problem must not stop the recipe
         // appearing, it only leaves the button reading "Save".
-        const [found, saved] = await Promise.all([
+        const [found, saved, savedCollections] = await Promise.all([
           getRecipe(id),
           getFavorites().catch(() => []),
+          // RB-210: swallowed for the same reason - signed out is normal here.
+          getCollections().catch(() => []),
         ])
 
         if (stillOnThisPage) {
           setRecipe(found)
           setIsFavorite(saved.some((one) => one.id === found.id))
+          setCollections(savedCollections)
         }
       } catch (failure) {
         if (stillOnThisPage) {
@@ -127,8 +142,43 @@ export default function RecipeDetailPage() {
               isFavorite={isFavorite}
               onChange={(_id, isNowFavorite) => setIsFavorite(isNowFavorite)}
               variant="text"
+              collections={collections}
             />
+
+            {recipe.nutrition != null && (
+              <button
+                type="button"
+                className="nutrition-toggle"
+                aria-expanded={isNutritionOpen}
+                aria-controls="nutrition-facts"
+                onClick={() => setIsNutritionOpen((open) => !open)}
+              >
+                Nutrition Facts{' '}
+                <span aria-hidden="true">
+                  {isNutritionOpen ? '▲' : '▼'}
+                </span>
+              </button>
+            )}
+
           </div>
+
+          {recipe.nutrition != null && isNutritionOpen && (
+            <section className="detail-section" id="nutrition-facts">
+              <h2>Nutrition Facts</h2>
+              <p className="nutrition-note">Per serving</p>
+
+              <ul className="nutrition-list">
+                {NUTRITION_ROWS.map((row) => (
+                  <li key={row.field}>
+                    <span>{row.label}</span>
+                    <span>
+                      {recipe.nutrition[row.field]}{row.unit}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
 
           <section className="detail-section">
             <h2>Ingredients</h2>

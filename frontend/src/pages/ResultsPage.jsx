@@ -2,12 +2,16 @@ import { useEffect, useRef, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { getFavorites, searchRecipes } from '../api/recipes'
 import { getRestrictions, saveRestrictions } from '../api/accounts'
+import { getCollections } from '../api/collections'
 import RecipeCard from '../components/RecipeCard'
 
 // Temporary preview: uncomment this import and the block below to inspect filter controls. done
 import DietaryFilters from '../components/DietaryFilters'
 
-
+// The default sort, from docs/sort-contract.md. It is never written into the
+// address: no sort parameter at all means this one.
+const DEFAULT_SORT = 'max-used-ingredients'
+const FEWEST_MISSING_SORT = 'min-missing-ingredients'
 /**
  * Displays recipes for the ingredients supplied to the page.
  *
@@ -33,8 +37,12 @@ export default function ResultsPage({
   // The restrictions always come from the address, even when the ingredients
   // arrive as a prop. The address is the one source of truth, so a filtered
   // search can be refreshed, bookmarked and shared.
+  // RB-226: the sort lives in the address too, so refresh, Back and a shared
+  // link all keep it.null means the default
+
   const diet = searchParams.get('diet')
   const intolerances = searchParams.get('intolerances')
+  const sort = searchParams.get('sort')
 
 // RB-251
 // Loads into an empty address only — the rule from RB-209a. 
@@ -92,6 +100,10 @@ useEffect(() => {
   const [recipes, setRecipes] = useState([])
   const [favoriteIds, setFavoriteIds] = useState([])
 
+  // RB-210: fetched once here and handed down, because fetching inside each
+  // star would be one request per card.
+  const [collections, setCollections] = useState([])
+
   // Keep errors separate from results so a failed request is not mistaken for
   // a successful search that simply found no recipes.
   const [errorMessage, setErrorMessage] = useState('')
@@ -114,6 +126,7 @@ useEffect(() => {
       setErrorMessage('')
       setRecipes([])
       setFavoriteIds([])
+      setCollections([])
 
       // An empty list should not be sent to the recipe service.
       if (!ingredients.trim()) {
@@ -125,10 +138,13 @@ useEffect(() => {
         // Recipe search and favorite lookup are independent, so run them at
         // the same time. A favorites-service failure should not prevent the
         // recipe search from succeeding.
-        const [foundRecipes, savedFavorites] = await Promise.all([
+        const [foundRecipes, savedFavorites, savedCollections] = await Promise.all([
           //searchRecipes(ingredients), //legacy, add new paramters 
-          searchRecipes(ingredients, { diet, intolerances }),   
+          searchRecipes(ingredients, { diet, intolerances, sort }),   
           getFavorites().catch(() => []),
+          // A signed-out visitor is refused here, and that is normal: no picker,
+          // and the star saves as it always did.
+          getCollections().catch(() => []),
         ])
 
         // Ignore results if this component has since unmounted or started a
@@ -136,6 +152,7 @@ useEffect(() => {
         if (stillOnThisPage) {
           setRecipes(foundRecipes)
           setFavoriteIds(savedFavorites.map((favorite) => favorite.id))
+          setCollections(savedCollections)
         }
       } catch (failure) {
         // A recipe-search error is shown to the user. Favorite lookup errors
@@ -160,7 +177,7 @@ useEffect(() => {
     return () => {
       stillOnThisPage = false
     }
-  }, [ingredients, diet, intolerances]) //added diet and intolerances 
+  }, [ingredients, diet, intolerances, sort]) //added diet and intolerances 
 
 // === RB-173 Apply Handler
   /**
@@ -193,7 +210,26 @@ useEffect(() => {
     setSearchParams(next)
   }
 
-  
+  // === RB-226 Sort handler
+  /**
+   * Put the chosen sort in the address.
+   *
+   * Like Apply, this does not search directly: the effect above re-runs when
+   * the address changes. The default is removed rather than written, so a
+   * plain search keeps its old address and its old cache entry.
+   */
+  function handleSortChange(chosenSort) {
+    const next = new URLSearchParams(searchParams)
+
+    if (chosenSort && chosenSort !== DEFAULT_SORT) {
+      next.set('sort', chosenSort)
+    } else {
+      next.delete('sort')
+    }
+
+    setSearchParams(next)
+  } 
+
   /**
    * Keep the star state in sync after a favorite button is clicked.
    *
@@ -273,6 +309,21 @@ useEffect(() => {
         onApply={handleApplyFilters}
       />
 
+      {/* RB-227: one choice, so it applies straight away - no Apply button.
+          Its value comes from the address, so it always shows what the
+          address asked for, including after a refresh or a Back. */}
+      <div className="sort-control">
+        <label htmlFor="sort-order">Sort by</label>
+        <select
+          id="sort-order"
+          value={sort ?? DEFAULT_SORT}
+          onChange={(event) => handleSortChange(event.target.value)}
+        >
+          <option value={DEFAULT_SORT}>Most of my ingredients used</option>
+          <option value={FEWEST_MISSING_SORT}>Fewest extra ingredients to buy</option>
+        </select>
+      </div>
+
 
       {/* Keep the user informed while the recipe search is running. */}
       {isSearching && <p>Searching...</p>}
@@ -308,6 +359,7 @@ useEffect(() => {
             imageUrl={recipe.imageUrl}
             isFavorite={favoriteIds.includes(recipe.id)}
             onFavoriteChange={handleFavoriteChange}
+            collections={collections}
           />
         ))}
       </div>

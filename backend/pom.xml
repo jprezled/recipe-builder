@@ -32,6 +32,12 @@
             <artifactId>spring-boot-starter-web</artifactId>
         </dependency>
 
+        <!-- Validation starter for @NotBlank, @Size, and @Valid annotations -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-validation</artifactId>
+        </dependency>
+
         <!-- Caching, so a repeated search is served from memory instead of
              spending one of our 150 daily Spoonacular points. -->
         <dependency>

@@ -44,6 +44,15 @@ describe('favorites api', () => {
       .toEqual({ id: 716429, title: 'Pasta', imageUrl: 'http://img/1.jpg' })
   })
 
+  it('sends the collection too when one is chosen', async () => {
+    const fetchSpy = vi.fn().mockResolvedValue({ ok: true, json: async () => ({}) })
+    vi.stubGlobal('fetch', fetchSpy)
+
+    await addFavorite({ id: 716429, title: 'Pasta', imageUrl: null }, 3)
+
+    expect(JSON.parse(fetchSpy.mock.calls[0][1].body).collectionId).toBe(3)
+  })
+
   it('deletes by spoonacular id', async () => {
     const fetchSpy = vi.fn().mockResolvedValue({ ok: true, json: async () => ({}) })
     vi.stubGlobal('fetch', fetchSpy)

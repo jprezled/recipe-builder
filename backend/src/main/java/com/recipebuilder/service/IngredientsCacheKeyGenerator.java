@@ -25,9 +25,10 @@ public class IngredientsCacheKeyGenerator implements KeyGenerator {
     /**
      * @param target the object whose method was called (unused)
      * @param method the method that was called (unused)
-     * @param params params[0] is the ingredient text, params[1] the diet and intolerances
-     * @return the cleaned ingredients alone when nothing is filtered, otherwise
-     *         the cleaned ingredients plus the cleaned filters
+     * @param params params[0] is the ingredient text, params[1] the diet and
+     *               intolerances, params[2] the sort (RB-225)
+     * @return the cleaned ingredients, plus the cleaned filters when any are set,
+     *         plus the sort when it is not the default
      */
     @Override
     public Object generate(Object target, Method method, Object... params) {
@@ -44,13 +45,26 @@ public class IngredientsCacheKeyGenerator implements KeyGenerator {
         }
         DietaryRestrictions choices = RestrictionsCleaner.clean(raw);
 
-        // An unfiltered search keys on the ingredients alone, so entries cached
-        // before restrictions existed are still found.
-        if (choices.diet().equals(RestrictionsCleaner.NONE)
-                && choices.intolerances().equals(RestrictionsCleaner.NONE)) {
-            return ingredients;
+        // RB-225: the sort is part of the question too. Read by position, so it
+        // must stay the third argument of RecipeService.searchByIngredients.
+        String sort = SortOrderCleaner.MOST_USED;
+        if (params.length > 2 && params[2] instanceof String found) {
+            sort = SortOrderCleaner.clean(found);
         }
 
-        return ingredients + "|" + choices.diet() + "|" + choices.intolerances();
+        // An unfiltered search keys on the ingredients alone, so entries cached
+        // before restrictions existed are still found.
+        String key = ingredients;
+        if (!(choices.diet().equals(RestrictionsCleaner.NONE)
+                && choices.intolerances().equals(RestrictionsCleaner.NONE))) {
+            key = key + "|" + choices.diet() + "|" + choices.intolerances();
+        }
+
+        // Same rule for the sort: the default adds nothing, so entries cached
+        // before sorting existed are still found.
+        if (!sort.equals(SortOrderCleaner.MOST_USED)) {
+            key = key + "|" + sort;
+        }
+        return key;
     }
 }

@@ -34,6 +34,11 @@ vi.mock('./api/accounts', () => ({
   signIn: vi.fn(() => Promise.resolve({ id: 1, username: 'demo' })),
   signUp: vi.fn(() => Promise.resolve({ id: 1, username: 'demo' })),
   signOut: vi.fn(() => Promise.resolve()),
+  // RB-209: ResultsPage reads the saved restrictions on mount. This mock is
+  // explicit rather than automatic, so every export the pages use has to be
+  // listed here or the whole file throws.
+  getRestrictions: vi.fn(() => Promise.resolve({ diet: '', intolerances: '' })),
+  saveRestrictions: vi.fn(() => Promise.resolve()),
 }))
 
 beforeEach(() => {

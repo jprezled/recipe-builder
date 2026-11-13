@@ -27,7 +27,8 @@ public record SpoonacularRecipeInformation(
         boolean glutenFree,
         boolean dairyFree,
         List<ExtendedIngredient> extendedIngredients,
-        List<AnalyzedInstruction> analyzedInstructions) {
+        List<AnalyzedInstruction> analyzedInstructions,
+        Nutrition nutrition) {
 
     /**
      * One ingredient line. "original" is the whole phrase as a person would
@@ -49,5 +50,13 @@ public record SpoonacularRecipeInformation(
 
     @JsonIgnoreProperties(ignoreUnknown = true)
     public record Step(int number, String step) {
+    }
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    public record Nutrition(List<Nutrient> nutrients) {
+    }
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    public record Nutrient(String name, double amount, String unit) {
     }
 }

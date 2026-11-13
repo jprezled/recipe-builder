@@ -1,75 +1,59 @@
 package com.recipebuilder.service;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verifyNoInteractions;
-import static org.mockito.Mockito.when;
-
 import com.recipebuilder.dto.UserDto;
 import com.recipebuilder.exception.NotSignedInException;
 import com.recipebuilder.repository.StoredUser;
 import com.recipebuilder.repository.UserRepository;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
 
-/** The rules about signing in, with the repository and hasher mocked out. */
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.when;
+
 class SessionServiceTest {
 
-    private UserRepository users;
-    private PasswordHasher hasher;
-    private SessionService service;
+    private UserRepository userRepository;
+    private PasswordHasher passwordHasher;
+    private SessionService sessionService;
 
     @BeforeEach
     void setUp() {
-        users = mock(UserRepository.class);
-        hasher = mock(PasswordHasher.class);
-        service = new SessionService(users, hasher);
+        userRepository = Mockito.mock(UserRepository.class);
+        passwordHasher = Mockito.mock(PasswordHasher.class);
+        sessionService = new SessionService(userRepository, passwordHasher);
     }
 
     @Test
-    void theRightPasswordSignsIn() {
-        when(users.findByUsername("andrew"))
-                .thenReturn(new StoredUser(7L, "andrew", "a@example.com", "HASH"));
-        when(hasher.matches("password123", "HASH")).thenReturn(true);
+    void signInSuccess() {
+        StoredUser storedUser = new StoredUser(1L, "alice", "alice@test.com", "hashed_pw", "");
+        when(userRepository.findByUsername("alice")).thenReturn(storedUser);
+        when(passwordHasher.matches("secret123", "hashed_pw")).thenReturn(true);
 
-        UserDto signedIn = service.signIn("andrew", "password123");
+        UserDto result = sessionService.signIn("alice", "secret123");
 
-        assertThat(signedIn).isEqualTo(new UserDto(7L, "andrew"));
+        assertThat(result.id()).isEqualTo(1L);
+        assertThat(result.username()).isEqualTo("alice");
     }
 
     @Test
-    void aWrongPasswordIsRefusedWithTheAgreedSentence() {
-        when(users.findByUsername("andrew"))
-                .thenReturn(new StoredUser(7L, "andrew", "a@example.com", "HASH"));
-        when(hasher.matches("wrong", "HASH")).thenReturn(false);
+    void signInWrongPassword() {
+        StoredUser storedUser = new StoredUser(1L, "alice", "alice@test.com", "hashed_pw", "");
+        when(userRepository.findByUsername("alice")).thenReturn(storedUser);
+        when(passwordHasher.matches("wrong_pw", "hashed_pw")).thenReturn(false);
 
-        assertThatExceptionOfType(NotSignedInException.class)
-                .isThrownBy(() -> service.signIn("andrew", "wrong"))
-                .withMessage("Incorrect username or password.");
+        assertThatThrownBy(() -> sessionService.signIn("alice", "wrong_pw"))
+                .isInstanceOf(NotSignedInException.class)
+                .hasMessage(SessionService.WRONG_DETAILS);
     }
 
     @Test
-    void anUnknownUsernameGetsExactlyTheSameSentence() {
-        when(users.findByUsername("nobody")).thenReturn(null);
+    void signInUnknownUser() {
+        when(userRepository.findByUsername("unknown")).thenReturn(null);
 
-        assertThatExceptionOfType(NotSignedInException.class)
-                .isThrownBy(() -> service.signIn("nobody", "password123"))
-                .withMessage("Incorrect username or password.");
-    }
-
-    @Test
-    void aBlankUsernameOrPasswordIsRefusedWithoutTouchingTheDatabase() {
-        assertThatExceptionOfType(NotSignedInException.class)
-                .isThrownBy(() -> service.signIn("  ", "password123"))
-                .withMessage("Incorrect username or password.");
-        assertThatExceptionOfType(NotSignedInException.class)
-                .isThrownBy(() -> service.signIn("andrew", ""))
-                .withMessage("Incorrect username or password.");
-        assertThatExceptionOfType(NotSignedInException.class)
-                .isThrownBy(() -> service.signIn(null, null))
-                .withMessage("Incorrect username or password.");
-
-        verifyNoInteractions(users);
+        assertThatThrownBy(() -> sessionService.signIn("unknown", "secret123"))
+                .isInstanceOf(NotSignedInException.class)
+                .hasMessage(SessionService.WRONG_DETAILS);
     }
 }

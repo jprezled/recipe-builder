@@ -39,7 +39,7 @@ class RecipeErrorResponseTest {
 
     @Test
     void blankIngredientIsABadRequest() throws Exception {
-        when(service.searchByIngredients(anyString(), any(DietaryRestrictions.class)))
+        when(service.searchByIngredients(anyString(), any(DietaryRestrictions.class), any()))
                 .thenThrow(new InvalidInputException("Please enter at least one ingredient."));
 
         mockMvc.perform(get("/api/recipes/search").param("ingredients", " "))
@@ -57,7 +57,7 @@ class RecipeErrorResponseTest {
 
     @Test
     void quotaExhaustedIsTooManyRequests() throws Exception {
-        when(service.searchByIngredients(anyString(),any(DietaryRestrictions.class))).thenThrow(new ApiLimitReachedException());
+        when(service.searchByIngredients(anyString(),any(DietaryRestrictions.class), any())).thenThrow(new ApiLimitReachedException());
 
         mockMvc.perform(get("/api/recipes/search").param("ingredients", "apple"))
                 .andExpect(status().isTooManyRequests())
@@ -67,7 +67,7 @@ class RecipeErrorResponseTest {
 
     @Test
     void aRejectedKeyIsOurProblemNotTheUsers() throws Exception {
-        when(service.searchByIngredients(anyString(),any(DietaryRestrictions.class)))
+        when(service.searchByIngredients(anyString(),any(DietaryRestrictions.class), any()))
                 .thenThrow(new ApiKeyMissingException("Spoonacular rejected our API key."));
 
         mockMvc.perform(get("/api/recipes/search").param("ingredients", "apple"))
@@ -78,7 +78,7 @@ class RecipeErrorResponseTest {
 
     @Test
     void spoonacularBeingUnreachableIsABadGateway() throws Exception {
-        when(service.searchByIngredients(anyString(),any(DietaryRestrictions.class)))
+        when(service.searchByIngredients(anyString(),any(DietaryRestrictions.class), any()))
                 .thenThrow(new ExternalApiException("Could not reach Spoonacular.", null));
 
         mockMvc.perform(get("/api/recipes/search").param("ingredients", "apple"))
@@ -89,7 +89,7 @@ class RecipeErrorResponseTest {
 
     @Test
     void noFailureEverLeaksAStackTraceOrAStatusCode() throws Exception {
-        when(service.searchByIngredients(anyString(), any(DietaryRestrictions.class))).thenThrow(new ApiLimitReachedException());
+        when(service.searchByIngredients(anyString(), any(DietaryRestrictions.class), any())).thenThrow(new ApiLimitReachedException());
 
         mockMvc.perform(get("/api/recipes/search").param("ingredients", "apple"))
                 .andExpect(content().string(org.hamcrest.Matchers.not(
@@ -103,7 +103,7 @@ class RecipeErrorResponseTest {
     }
     @Test
     void anUnsupportedDietaryFilterIsABadRequest() throws Exception {
-        when(service.searchByIngredients(anyString(), any(DietaryRestrictions.class)))
+        when(service.searchByIngredients(anyString(), any(DietaryRestrictions.class), any()))
                 .thenThrow(new InvalidInputException("That dietary filter is not one we support."));
 
         mockMvc.perform(get("/api/recipes/search")

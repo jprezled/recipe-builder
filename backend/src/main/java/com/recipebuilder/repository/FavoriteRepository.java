@@ -80,12 +80,12 @@ public class FavoriteRepository {
         // ON CONFLICT DO NOTHING covers the composite primary key
         // (user_id, recipe_id) - saving a favorite you already have is a no-op
         // rather than a crash.
-        String linkToUser = "INSERT INTO saved_recipes (user_id, recipe_id) "
-                + "VALUES (?, ?) "
+        String linkToUser = "INSERT INTO saved_recipes (user_id, recipe_id, collection_id) "
+                + "VALUES (?, ?, ?) "
                 + "ON CONFLICT DO NOTHING";
 
         try {
-            db.update(linkToUser, userId, localRecipeId);
+            db.update(linkToUser, userId, localRecipeId, recipe.collectionId());
         } catch (DataAccessException failure) {
             throw asOurs(failure);
         }
@@ -102,7 +102,7 @@ public class FavoriteRepository {
      * @return the saved recipes, or an empty list if there are none
      */
     public List<FavoriteDto> findForUser(long userId) {
-        String sql = "SELECT r.spoonacular_id, r.title, r.image_url "
+        String sql = "SELECT r.spoonacular_id, r.title, r.image_url, s.note, s.collection_id "
                 + "FROM saved_recipes s "
                 + "JOIN recipes r ON r.recipe_id = s.recipe_id "
                 + "WHERE s.user_id = ? "
@@ -110,6 +110,33 @@ public class FavoriteRepository {
 
         try {
             return db.query(sql, new FavoriteRowMapper(), userId);
+        } catch (DataAccessException failure) {
+            throw asOurs(failure);
+        }
+    }
+
+    /**
+     * RB-205: writes one cook's note about one saved recipe.
+     *
+     * Takes Spoonacular's id, like remove does, because that is what the
+     * frontend knows. The subquery turns it into our own recipe_id.
+     *
+     * Writing a note for a recipe the cook has not saved updates no rows and is
+     * not an error here - the same shape as remove. The service decides whether
+     * that deserves a message; this reports only how many rows changed.
+     *
+     * @param userId        whose note
+     * @param spoonacularId the recipe, by Spoonacular's id
+     * @param note          the text, or null to clear it
+     * @return how many rows were updated: 1 when saved, 0 when not
+     */
+    public int saveNote(long userId, long spoonacularId, String note) {
+        String sql = "UPDATE saved_recipes SET note = ? "
+                + "WHERE user_id = ? "
+                + "AND recipe_id = (SELECT recipe_id FROM recipes WHERE spoonacular_id = ?)";
+
+        try {
+            return db.update(sql, note, userId, spoonacularId);
         } catch (DataAccessException failure) {
             throw asOurs(failure);
         }
@@ -138,6 +165,29 @@ public class FavoriteRepository {
 
         try {
             db.update(sql, userId, spoonacularId);
+        } catch (DataAccessException failure) {
+            throw asOurs(failure);
+        }
+    }
+
+    /**
+     * RB-210: puts one saved recipe into a collection, or takes it out.
+     *
+     * The collection id is bound directly. A sub-select scoped by user_id
+     * would return no row for somebody else's collection and the UPDATE would
+     * write NULL - quietly making the recipe loose instead of refusing. Who
+     * owns the collection is the service's rule; this only writes.
+     *
+     * @param collectionId the collection, or null to make the recipe loose
+     * @return how many rows were updated: 1 when saved, 0 when not
+     */
+    public int moveToCollection(long userId, long spoonacularId, Long collectionId) {
+        String sql = "UPDATE saved_recipes SET collection_id = ? "
+                + "WHERE user_id = ? "
+                + "AND recipe_id = (SELECT recipe_id FROM recipes WHERE spoonacular_id = ?)";
+
+        try {
+            return db.update(sql, collectionId, userId, spoonacularId);
         } catch (DataAccessException failure) {
             throw asOurs(failure);
         }

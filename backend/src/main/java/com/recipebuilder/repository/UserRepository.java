@@ -30,14 +30,40 @@ public class UserRepository {
      * @return the user, or null when there is no such user
      */
     public StoredUser findByUsername(String username) {
-        String sql = "SELECT user_id, username, email, password_hash "
+        String sql = "SELECT user_id, username, email, password_hash, pantry "
                 + "FROM users WHERE username = ?";
 
         try {
-            // query() returns an empty list when nothing matches. queryForObject
-            // would throw instead, and "no such user" is a normal answer here.
             List<StoredUser> rows = db.query(sql, new UserRowMapper(), username);
             return rows.isEmpty() ? null : rows.get(0);
+        } catch (DataAccessException failure) {
+            throw asOurs(failure);
+        }
+    }
+
+    /**
+     * @param userId the exact id to look for
+     * @return the user, or null when there is no such user
+     */
+    public StoredUser findById(Long userId) {
+        String sql = "SELECT user_id, username, email, password_hash, pantry "
+                + "FROM users WHERE user_id = ?";
+
+        try {
+            List<StoredUser> rows = db.query(sql, new UserRowMapper(), userId);
+            return rows.isEmpty() ? null : rows.get(0);
+        } catch (DataAccessException failure) {
+            throw asOurs(failure);
+        }
+    }
+
+    public StoredUser insert(String username, String email, String passwordHash, String pantry) {
+        String sql = "INSERT INTO users (username, email, password_hash, pantry) "
+                + "VALUES (?, ?, ?, ?) "
+                + "RETURNING user_id, username, email, password_hash, pantry";
+
+        try {
+            return db.queryForObject(sql, new UserRowMapper(), username, email, passwordHash, pantry);
         } catch (DataAccessException failure) {
             throw asOurs(failure);
         }
@@ -50,14 +76,18 @@ public class UserRepository {
      * @throws UsernameTakenException when a constraint refuses the row
      */
     public StoredUser insert(String username, String email, String passwordHash) {
-        // RETURNING hands the new row back in the same round trip, so we get
-        // the generated user_id without a second query.
-        String sql = "INSERT INTO users (username, email, password_hash) "
-                + "VALUES (?, ?, ?) "
-                + "RETURNING user_id, username, email, password_hash";
+        // Delegate to the full 4-parameter insert, defaulting pantry to an empty string
+        return insert(username, email, passwordHash, "");
+    }
+
+    /**
+     * Updates the pantry column for an existing user.
+     */
+    public void updatePantry(Long userId, String pantry) {
+        String sql = "UPDATE users SET pantry = ? WHERE user_id = ?";
 
         try {
-            return db.queryForObject(sql, new UserRowMapper(), username, email, passwordHash);
+            db.update(sql, pantry, userId);
         } catch (DataAccessException failure) {
             throw asOurs(failure);
         }

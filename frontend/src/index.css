@@ -486,6 +486,44 @@ a.button {
   }
 }
 
+/* ---------- Sort dropdown (RB-227) ---------- */
+
+/* Sits under the dietary filters and matches their panel style. */
+.sort-control {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 1rem;
+  margin: 0 0 1.5rem;
+  padding: 0.75rem 1.25rem;
+  text-align: left;
+  background-color: var(--color-card);
+  border: 1px solid var(--color-primary-dark);
+  border-radius: 10px;
+}
+
+.sort-control label {
+  font-weight: bold;
+  color: var(--color-heading);
+}
+
+/* 44px tall, the same touch target as the filter options. */
+.sort-control select {
+  min-height: 44px;
+  padding: 0.25rem 0.5rem;
+  font: inherit;
+  color: var(--color-text);
+  background-color: white;
+  border: 1px solid var(--color-primary-dark);
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.sort-control select:focus-visible {
+  outline: 2px solid var(--color-heading);
+  outline-offset: 3px;
+}
+
 /* ---------- Diet badges on the recipe detail page ---------- */
 
 .diet-badges {
@@ -647,4 +685,239 @@ a.button {
 .site-nav-signout:focus-visible {
   outline: 2px solid currentColor;
   outline-offset: 4px;
+}
+
+/* RB-205: the cook's note on a saved recipe, at the foot of its card. */
+.note {
+  border-top: 1px solid #e3ebe3;
+  margin-top: 0.8rem;
+  padding-top: 0.7rem;
+  text-align: left;
+  width: 100%;
+}
+.note-text {
+  font-size: 0.88rem;
+  margin: 0 0 0.5rem;
+  /* pre-wrap so the cook's own line breaks survive. */
+  white-space: pre-wrap;
+}
+.note-empty {
+  color: #7a8a7a;
+  font-size: 0.85rem;
+  font-style: italic;
+  margin: 0 0 0.5rem;
+}
+.note label {
+  display: block;
+  font-size: 0.8rem;
+  font-weight: 600;
+  margin-bottom: 0.3rem;
+}
+.note-input {
+  border: 1px solid #c3d2c3;
+  border-radius: 6px;
+  font: inherit;
+  font-size: 0.88rem;
+  padding: 7px 9px;
+  resize: vertical;
+  width: 100%;
+}
+.note-actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+.note-edit,
+.note-save,
+.note-cancel {
+  border-radius: 6px;
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.82rem;
+  padding: 5px 11px;
+}
+.note-edit,
+.note-cancel {
+  background: none;
+  border: 1px solid #c3d2c3;
+  color: #2a5c2a;
+}
+.note-save {
+  background-color: #2a5c2a;
+  border: 1px solid #2a5c2a;
+  color: #ffffff;
+}
+
+/* RB-210: collections ----------------------------------------------------- */
+.collection-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  margin-top: 0.5rem;
+}
+.collection-picker button,
+.collection-create button,
+.collection-confirm button,
+.collection-rename button {
+  background: #ffffff;
+  border: 1px solid #c3d2c3;
+  border-radius: 6px;
+  color: #2a5c2a;
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.85rem;
+  padding: 5px 11px;
+}
+.collection-create {
+  margin: 1rem 0;
+}
+.collection-create form,
+.collection-rename,
+.collection-confirm {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+/* Same grid as .recipe-grid, so a closed collection card is the same size as
+   a recipe card sitting beside it. */
+.collection-decks {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 1.5rem;
+  margin: 1rem 0 2rem;
+}
+
+/* .recipe-card gives the white rounded shell; the rules below are only what a
+   collection card needs on top of that. */
+.collection-deck-over {
+  outline: 2px dashed var(--color-primary);
+}
+/* An open deck spans every column, so the recipe-grid inside it (the
+   children) has room instead of being squeezed into one card's width. */
+.collection-deck-open {
+  grid-column: 1 / -1;
+}
+
+.collection-deck-toggle {
+  background: none;
+  border: none;
+  color: inherit;
+  cursor: pointer;
+  display: block;
+  font: inherit;
+  padding: 0;
+  text-align: left;
+  width: 100%;
+}
+
+/* The cover photo area: the first two recipes' thumbnails side by side, with
+   the name and count overlaid at the bottom - "the image shows with the
+   title in front of it". Four looked cluttered at card width; two reads
+   cleanly. */
+.collection-deck-collage {
+  border-radius: 8px;
+  display: grid;
+  gap: 2px;
+  grid-template-columns: repeat(2, 1fr);
+  height: 160px;
+  overflow: hidden;
+  position: relative;
+}
+.collection-deck-cover {
+  height: 100%;
+  object-fit: cover;
+  width: 100%;
+}
+.collection-deck-cover-blank {
+  background: #dbe6db;
+  height: 100%;
+  width: 100%;
+}
+.collection-deck-caption {
+  align-items: baseline;
+  background: linear-gradient(to top, rgba(10, 30, 15, 0.8), rgba(10, 30, 15, 0));
+  bottom: 0;
+  color: #ffffff;
+  display: flex;
+  gap: 0.5rem;
+  grid-column: 1 / -1;
+  justify-content: space-between;
+  padding: 0.6rem 0.75rem;
+  position: absolute;
+  width: 100%;
+}
+.collection-deck-name {
+  font-size: 1.05rem;
+  font-weight: 600;
+}
+.collection-deck-count {
+  font-size: 0.78rem;
+  opacity: 0.9;
+}
+
+.collection-deck-actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+.collection-deck-action {
+  background: none;
+  border: 1px solid #c3d2c3;
+  border-radius: 6px;
+  color: #2a5c2a;
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.8rem;
+  padding: 3px 9px;
+}
+.collection-deck-recipes {
+  margin-top: 1rem;
+}
+.move-to-collection {
+  font: inherit;
+  font-size: 0.82rem;
+  margin-top: 0.5rem;
+}
+
+/* RB-204: Nutrition Facts button beside Save. */
+.nutrition-toggle {
+  background-color: #ffffff;
+  border: 1px solid #2a5c2a;
+  border-radius: 6px;
+  color: #2a5c2a;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 600;
+  padding: 10px 18px;
+}
+
+.nutrition-toggle:hover {
+  background-color: #f0f6f0;
+}
+
+.nutrition-toggle:focus-visible {
+  outline: 2px solid #2a5c2a;
+  outline-offset: 2px;
+}
+
+/* Per-serving note and aligned nutrition rows. */
+.nutrition-note {
+  color: #5a6b5a;
+  font-size: 0.85rem;
+  margin: 0 0 0.6rem;
+}
+
+.nutrition-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.nutrition-list li {
+  border-bottom: 1px solid #e3ebe3;
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 7px 0;
 }

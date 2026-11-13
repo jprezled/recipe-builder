@@ -1,16 +1,18 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { act, render, screen } from '@testing-library/react'
+import { act, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 import ResultsPage from './ResultsPage'
 import { addFavorite, getFavorites, searchRecipes } from '../api/recipes'
 import { StrictMode } from 'react'
 import { getRestrictions, saveRestrictions } from '../api/accounts'
+import { getCollections } from '../api/collections'
 
 // Replace the duplicate recipes mock lines with these mocks.
 // These prevent tests from making real network requests.
 vi.mock('../api/recipes')
 vi.mock('../api/accounts')
+vi.mock('../api/collections')
 
 // These sample recipe objects provide predictable data for card-rendering tests.
 const PASTA = {
@@ -44,6 +46,7 @@ describe('ResultsPage', () => {
     getFavorites.mockResolvedValue([])
     getRestrictions.mockResolvedValue({ diet: '', intolerances: '' })
     saveRestrictions.mockResolvedValue(undefined)
+    getCollections.mockResolvedValue([])
   })
 
   // ---- RB-173: the restrictions travel in the address --------------------
@@ -56,6 +59,7 @@ describe('ResultsPage', () => {
       expect(searchRecipes).toHaveBeenCalledWith('eggs', {
         diet: 'vegetarian',
         intolerances: 'dairy,peanut',
+        sort: null,
       }),
     )
   })
@@ -75,6 +79,7 @@ describe('ResultsPage', () => {
       expect(searchRecipes).toHaveBeenLastCalledWith('eggs', {
         diet: 'vegan',
         intolerances: null,
+        sort: null,
       }),
     )
   })
@@ -100,7 +105,9 @@ describe('ResultsPage', () => {
     renderResults('?ingredients=eggs')
 
     // Wait for the saved preference to load and appear in the filter controls.
-    expect(await screen.findByRole('radio', { name: /vegan/i })).toBeChecked()
+    // The radio exists unchecked from the first render, so waiting only for
+    // the element races the state update - wait for the checked state itself.
+    await screen.findByRole('radio', { name: /vegan/i, checked: true })
   })
 
   it('uses the diet in the address instead of the saved diet', async () => {
@@ -169,6 +176,101 @@ describe('ResultsPage', () => {
     expect(await screen.findByRole('radio', { name: /vegan/i })).toBeChecked()
   })
 
+  // ---- RB-226: the sort travels in the address ----------------------------
+
+  it('sends the sort from the address to the search', async () => {
+    searchRecipes.mockResolvedValue([])
+    renderResults('?ingredients=eggs&sort=min-missing-ingredients')
+
+    await vi.waitFor(() =>
+      expect(searchRecipes).toHaveBeenCalledWith('eggs', {
+        diet: null,
+        intolerances: null,
+        sort: 'min-missing-ingredients',
+      }),
+    )
+  })
+
+  it('keeps the sort when going back to the ingredients', async () => {
+    searchRecipes.mockResolvedValue([PASTA])
+    renderResults('?ingredients=eggs&sort=min-missing-ingredients')
+
+    const back = await screen.findByRole('link', { name: 'Back to Ingredients' })
+    expect(back.getAttribute('href')).toContain('sort=min-missing-ingredients')
+  })
+
+  // --- end of RB-226
+
+  // ---- RB-227: the sort dropdown ------------------------------------------
+
+  it('offers both sort options', async () => {
+    searchRecipes.mockResolvedValue([])
+    renderResults('?ingredients=eggs')
+
+    const options = within(await screen.findByLabelText('Sort by')).getAllByRole('option')
+    expect(options.map((option) => option.value)).toEqual([
+      'max-used-ingredients',
+      'min-missing-ingredients',
+    ])
+  })
+
+  it('opens on the default sort when the address has none', async () => {
+    searchRecipes.mockResolvedValue([])
+    renderResults('?ingredients=eggs')
+
+    expect(await screen.findByLabelText('Sort by')).toHaveValue('max-used-ingredients')
+  })
+
+  it('shows the sort the address asked for', async () => {
+    searchRecipes.mockResolvedValue([])
+    renderResults('?ingredients=eggs&sort=min-missing-ingredients')
+
+    expect(await screen.findByLabelText('Sort by')).toHaveValue('min-missing-ingredients')
+  })
+
+  it('searches again as soon as the sort is changed, with no Apply', async () => {
+    searchRecipes.mockResolvedValue([])
+    renderResults('?ingredients=eggs')
+    await vi.waitFor(() => expect(searchRecipes).toHaveBeenCalled())
+
+    await userEvent.selectOptions(screen.getByLabelText('Sort by'), 'min-missing-ingredients')
+
+    await vi.waitFor(() =>
+      expect(searchRecipes).toHaveBeenLastCalledWith('eggs', {
+        diet: null,
+        intolerances: null,
+        sort: 'min-missing-ingredients',
+      }),
+    )
+  })
+
+  it('drops the sort from the address when the default is chosen again', async () => {
+    searchRecipes.mockResolvedValue([])
+    renderResults('?ingredients=eggs&sort=min-missing-ingredients')
+    await vi.waitFor(() => expect(searchRecipes).toHaveBeenCalled())
+
+    await userEvent.selectOptions(screen.getByLabelText('Sort by'), 'max-used-ingredients')
+
+    // null, not 'max-used-ingredients': the default is written as no
+    // parameter at all, so a plain search keeps its old address.
+    await vi.waitFor(() =>
+      expect(searchRecipes).toHaveBeenLastCalledWith('eggs', {
+        diet: null,
+        intolerances: null,
+        sort: null,
+      }),
+    )
+  })
+
+  it('ties a real label to the dropdown', async () => {
+    searchRecipes.mockResolvedValue([])
+    renderResults('?ingredients=eggs')
+
+    const dropdown = await screen.findByLabelText('Sort by')
+    expect(dropdown.tagName).toBe('SELECT')
+  })
+
+  // --- end of RB-227
 
   it('searches for the ingredients in the address', async () => {
     searchRecipes.mockResolvedValue([])
@@ -179,6 +281,7 @@ describe('ResultsPage', () => {
     expect(searchRecipes).toHaveBeenCalledWith('eggs,milk,flour', {
       diet: null,
       intolerances: null,
+      sort: null,
     })
   })
 
@@ -270,6 +373,44 @@ describe('ResultsPage', () => {
       { name: 'Remove Garlic Chicken Pasta from favorites' })).toBeInTheDocument()
   })
 
+  // ---- RB-210: collections -------------------------------------------------
+
+  it('asks which collection when the cook has some', async () => {
+    searchRecipes.mockResolvedValue([PASTA])
+    getCollections.mockResolvedValue([{ id: 3, name: 'Breakfast' }])
+    addFavorite.mockResolvedValue(undefined)
+
+    renderResults()
+    await userEvent.click(await screen.findByRole('button',
+      { name: 'Save Garlic Chicken Pasta to favorites' }))
+    expect(addFavorite).not.toHaveBeenCalled()
+
+    await userEvent.click(screen.getByRole('button', { name: 'Breakfast' }))
+
+    expect(addFavorite).toHaveBeenCalledWith(expect.objectContaining({ id: 716429 }), 3)
+  })
+
+  it('fetches the collections once, not once per card', async () => {
+    searchRecipes.mockResolvedValue([PASTA, PARFAIT])
+    renderResults()
+    await screen.findByText('Garlic Chicken Pasta')
+
+    expect(getCollections).toHaveBeenCalledTimes(1)
+  })
+
+  it('stays silent and keeps saving when signed out (collections refused)', async () => {
+    searchRecipes.mockResolvedValue([PASTA])
+    getCollections.mockRejectedValue(new Error('Please sign in to save favorites.'))
+    addFavorite.mockResolvedValue(undefined)
+
+    renderResults()
+    await userEvent.click(await screen.findByRole('button',
+      { name: 'Save Garlic Chicken Pasta to favorites' }))
+
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+    expect(addFavorite).toHaveBeenCalledWith(expect.objectContaining({ id: 716429 }))
+  })
+
   it('makes two requests, not one per recipe', async () => {
     searchRecipes.mockResolvedValue([PASTA, PARFAIT])
     renderResults()
@@ -292,6 +433,7 @@ describe('ResultsPage', () => {
       expect(searchRecipes).toHaveBeenLastCalledWith('eggs', {
         diet: 'vegan',
         intolerances: null,
+        sort: null,
       }),
     )
   })
