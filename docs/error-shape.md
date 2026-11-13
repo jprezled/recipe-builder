@@ -296,3 +296,18 @@ Earlier sections in this file say the free tier is **150 points a day**.
 Every quota sum written before that date is three times too generous. The `429`
 message itself is unchanged — only the figure in the surrounding prose was
 wrong.
+
+## Collections (RB-210)
+
+| Situation | Status | Message |
+|---|---|---|
+| Not signed in | 401 | `Please sign in to save favorites.` |
+| A blank name | 400 | `Please give the collection a name.` |
+| Name longer than 50 characters | 400 | `That collection name is too long. Please use 50 characters or fewer.` |
+| A name this cook already has | 409 | `You already have a collection with that name.` |
+| A collection that does not exist, or is not theirs | 404 | `That collection could not be found.` |
+| Moving a recipe the cook has not saved | 404 | `Save this recipe before adding it to a collection.` |
+
+The 401 is the existing string, reused. The 409 follows `UsernameTakenException`
+from RB-158, the only other place answering 409 for "you already have one of
+those".

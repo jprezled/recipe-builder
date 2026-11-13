@@ -30,7 +30,7 @@ class FavoriteRepositoryErrorsTest {
 
     private static final long DEMO_USER_ID = 1L;
     private static final FavoriteRequest A_RECIPE =
-            new FavoriteRequest(716429L, "Pasta", null);
+            new FavoriteRequest(716429L, "Pasta", null, null);
 
     private JdbcTemplate db;
     private FavoriteRepository repository;

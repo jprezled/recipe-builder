@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { getFavorites, getRecipe } from '../api/recipes'
+import { getCollections } from '../api/collections'
 import FavoriteButton from '../components/FavoriteButton'
 
 /**
@@ -38,6 +39,7 @@ export default function RecipeDetailPage() {
   // loading, failed, loaded, and loaded-but-empty.
   const [recipe, setRecipe] = useState(null)
   const [isFavorite, setIsFavorite] = useState(false)
+  const [collections, setCollections] = useState([])
   const [errorMessage, setErrorMessage] = useState('')
   const [isLoading, setIsLoading] = useState(true)
 
@@ -56,14 +58,17 @@ export default function RecipeDetailPage() {
         // so it goes out alongside the recipe rather than after it. Its
         // failure is swallowed: a favorites problem must not stop the recipe
         // appearing, it only leaves the button reading "Save".
-        const [found, saved] = await Promise.all([
+        const [found, saved, savedCollections] = await Promise.all([
           getRecipe(id),
           getFavorites().catch(() => []),
+          // RB-210: swallowed for the same reason - signed out is normal here.
+          getCollections().catch(() => []),
         ])
 
         if (stillOnThisPage) {
           setRecipe(found)
           setIsFavorite(saved.some((one) => one.id === found.id))
+          setCollections(savedCollections)
         }
       } catch (failure) {
         if (stillOnThisPage) {
@@ -127,6 +132,7 @@ export default function RecipeDetailPage() {
               isFavorite={isFavorite}
               onChange={(_id, isNowFavorite) => setIsFavorite(isNowFavorite)}
               variant="text"
+              collections={collections}
             />
           </div>
 

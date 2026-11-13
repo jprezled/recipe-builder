@@ -15,9 +15,12 @@ import FavoriteButton from './FavoriteButton'
  * @param {string} props.imageUrl
  * @param {boolean} [props.isFavorite]         whether the star is filled
  * @param {Function} [props.onFavoriteChange]  (id, isNowFavorite) => void
+ * @param {Function} [props.onDragStart]       RB-210: makes the card draggable
+ * @param {Array} [props.collections]         RB-210: handed on to the star
+ * @param {React.ReactNode} [props.children]  extra content for the card's foot
  */
 export default function RecipeCard({
-  id, title, description, imageUrl, isFavorite, onFavoriteChange,
+  id, title, description, imageUrl, isFavorite, onFavoriteChange, collections, onDragStart, children,
 }) {
   // The recipe address carries the pantry list and the filters forward. The
   // nav bar passes on whatever the current address holds, so a detail page
@@ -34,7 +37,8 @@ export default function RecipeCard({
   const canFavorite = typeof onFavoriteChange === 'function'
 
   return (
-    <article className="recipe-card">
+    <article className="recipe-card" draggable={onDragStart ? true : undefined}
+             onDragStart={onDragStart}>
       {hasImage && <img src={imageUrl} alt={title} />}
       <h3>{title}</h3>
       <p>{description}</p>
@@ -44,6 +48,7 @@ export default function RecipeCard({
           recipe={{ id, title, imageUrl }}
           isFavorite={Boolean(isFavorite)}
           onChange={onFavoriteChange}
+          collections={collections}
         />
       )}
 
@@ -53,6 +58,11 @@ export default function RecipeCard({
           only meant to save. Keeping his .button class means it still looks
           exactly the same. */}
       <Link className="button" to={{ pathname: '/recipe/' + id, search }}>View Recipe</Link>
+
+      {/* Anything a page wants to hang off a card - the favourites page puts
+          the cook's note here. Cards elsewhere pass nothing and look the same
+          as they always did. */}
+      {children}
     </article>
   )
 }

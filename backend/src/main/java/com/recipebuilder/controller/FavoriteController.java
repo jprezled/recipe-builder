@@ -2,6 +2,7 @@ package com.recipebuilder.controller;
 
 import com.recipebuilder.dto.FavoriteDto;
 import com.recipebuilder.dto.FavoriteRequest;
+import com.recipebuilder.exception.InvalidInputException;
 import com.recipebuilder.exception.NotSignedInException;
 import com.recipebuilder.service.FavoriteService;
 import com.recipebuilder.service.SessionService;
@@ -10,6 +11,7 @@ import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
@@ -93,5 +95,50 @@ public class FavoriteController {
         }
 
         return id;
+    }
+
+    /**
+     * RB-205: writes the signed-in cook's note about one saved recipe.
+     *
+     * PUT rather than POST: writing the same note twice leaves the same note.
+     * The body is the note itself rather than a wrapper object, because there
+     * is exactly one field - so the request is text/plain, not JSON.
+     *
+     * @param id   the recipe, by Spoonacular's id, from the end of the address
+     * @param note the text, or blank to clear it
+     * @param http the request, which is where the session lives
+     */
+    @PutMapping("/api/favorites/{id}/note")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void note(@PathVariable long id,
+                     @RequestBody(required = false) String note,
+                     HttpServletRequest http) {
+
+        service.saveNote(signedInUserId(http), id, note);
+    }
+
+    /**
+     * RB-210: moves a saved recipe into a collection, or out of one.
+     *
+     * Same shape as note: PUT, and the body is the bare collection id as
+     * text. An empty body makes the recipe loose.
+     */
+    @PutMapping("/api/favorites/{id}/collection")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void collection(@PathVariable long id,
+                           @RequestBody(required = false) String collectionId,
+                           HttpServletRequest http) {
+
+        Long chosen = null;
+
+        if (collectionId != null && !collectionId.isBlank()) {
+            try {
+                chosen = Long.valueOf(collectionId.trim());
+            } catch (NumberFormatException notANumber) {
+                throw new InvalidInputException("That collection could not be found.");
+            }
+        }
+
+        service.moveToCollection(signedInUserId(http), id, chosen);
     }
 }

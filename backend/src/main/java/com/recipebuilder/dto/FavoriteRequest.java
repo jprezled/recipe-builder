@@ -12,5 +12,7 @@ package com.recipebuilder.dto;
 public record FavoriteRequest(
         long id,
         String title,
-        String imageUrl) {
+        String imageUrl,
+        /** RB-210: the collection to save into, or null to save loose. */
+        Long collectionId) {
 }

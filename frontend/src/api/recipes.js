@@ -160,7 +160,7 @@ export async function getFavorites() {
  * @param {{id: number, title: string, imageUrl: string}} recipe from a search
  * @throws {Error} with a message that can be displayed as-is
  */
-export async function addFavorite(recipe) {
+export async function addFavorite(recipe, collectionId) {
   let response
   try {
     response = await fetch('/api/favorites', {
@@ -170,6 +170,9 @@ export async function addFavorite(recipe) {
         id: recipe.id,
         title: recipe.title,
         imageUrl: recipe.imageUrl,
+        // RB-210: undefined is left out of the JSON, so a save with no
+        // collection is the same three-field body it always was.
+        collectionId: collectionId,
       }),
     })
   } catch {
@@ -195,6 +198,35 @@ export async function removeFavorite(id) {
   try {
     response = await fetch('/api/favorites/' + encodeURIComponent(id), {
       method: 'DELETE',
+    })
+  } catch {
+    throw new Error(CANNOT_REACH)
+  }
+
+  if (!response.ok) {
+    throw new Error(await readErrorMessage(response))
+  }
+}
+
+/**
+ * RB-205: writes the signed-in cook's note about one saved recipe.
+ *
+ * PUT rather than POST: writing the same note twice leaves the same note.
+ *
+ * The Content-Type header is required. Leave it off and Spring refuses the
+ * body with 415, which reads like a sign-in problem when you are debugging.
+ *
+ * @param {number} id Spoonacular's recipe id
+ * @param {string} note the text, or blank to clear it
+ * @throws {Error} with a message that can be displayed as-is
+ */
+export async function saveNote(id, note) {
+  let response
+  try {
+    response = await fetch('/api/favorites/' + encodeURIComponent(id) + '/note', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'text/plain' },
+      body: note,
     })
   } catch {
     throw new Error(CANNOT_REACH)

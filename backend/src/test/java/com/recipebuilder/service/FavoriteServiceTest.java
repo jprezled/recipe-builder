@@ -1,5 +1,8 @@
 package com.recipebuilder.service;
 
+import com.recipebuilder.exception.RecipeNotFoundException;
+import com.recipebuilder.exception.CollectionNotFoundException;
+import com.recipebuilder.repository.CollectionRepository;
 import com.recipebuilder.dto.FavoriteDto;
 import com.recipebuilder.dto.FavoriteRequest;
 import com.recipebuilder.exception.InvalidInputException;
@@ -14,6 +17,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.ArgumentMatchers.any;
@@ -33,17 +38,19 @@ class FavoriteServiceTest {
     private static final long A_USER = 7L;
 
     private FavoriteRepository repository;
+    private CollectionRepository collections;
     private FavoriteService service;
 
     @BeforeEach
     void setUp() {
         repository = mock(FavoriteRepository.class);
-        service = new FavoriteService(repository);
+        collections = mock(CollectionRepository.class);
+        service = new FavoriteService(repository, collections);
     }
 
     @Test
     void savingPassesTheRecipeAndTheGivenUserToTheRepository() {
-        service.add(A_USER, new FavoriteRequest(716429L, "Pasta", "http://img/1.jpg"));
+        service.add(A_USER, new FavoriteRequest(716429L, "Pasta", "http://img/1.jpg", null));
 
         ArgumentCaptor<Long> userId = ArgumentCaptor.forClass(Long.class);
         ArgumentCaptor<FavoriteRequest> saved = ArgumentCaptor.forClass(FavoriteRequest.class);
@@ -56,7 +63,7 @@ class FavoriteServiceTest {
     @Test
     void listingAsksForThatUsersFavorites() {
         when(repository.findForUser(A_USER))
-                .thenReturn(List.of(new FavoriteDto(716429L, "Pasta", null)));
+                .thenReturn(List.of(new FavoriteDto(716429L, "Pasta", null, null, null)));
 
         assertThat(service.list(A_USER)).hasSize(1);
         verify(repository).findForUser(A_USER);
@@ -74,7 +81,7 @@ class FavoriteServiceTest {
         // Spoonacular's payload is not guaranteed. A blank row would sit on the
         // favorites page forever as a card nobody can identify.
         assertThatExceptionOfType(InvalidInputException.class)
-                .isThrownBy(() -> service.add(A_USER, new FavoriteRequest(716429L, "  ", null)));
+                .isThrownBy(() -> service.add(A_USER, new FavoriteRequest(716429L, "  ", null, null)));
 
         verify(repository, never()).save(anyLong(), any());
     }
@@ -83,7 +90,7 @@ class FavoriteServiceTest {
     void refusesARecipeWithNoId() {
         // An id of 0 or less cannot be looked up again.
         assertThatExceptionOfType(InvalidInputException.class)
-                .isThrownBy(() -> service.add(A_USER, new FavoriteRequest(0L, "Pasta", null)));
+                .isThrownBy(() -> service.add(A_USER, new FavoriteRequest(0L, "Pasta", null, null)));
 
         verify(repository, never()).save(anyLong(), any());
     }
@@ -106,10 +113,125 @@ class FavoriteServiceTest {
 
     @Test
     void twoDifferentUsersEachReachTheRepositoryAsThemselves() {
-        service.add(7L, new FavoriteRequest(1111L, "Mine", null));
-        service.add(8L, new FavoriteRequest(2222L, "Yours", null));
+        service.add(7L, new FavoriteRequest(1111L, "Mine", null, null));
+        service.add(8L, new FavoriteRequest(2222L, "Yours", null, null));
 
         verify(repository).save(eq(7L), any(FavoriteRequest.class));
         verify(repository).save(eq(8L), any(FavoriteRequest.class));
+    }
+
+    // RB-205: notes ------------------------------------------------------
+
+    @Test
+    void aNoteIsWrittenForTheSignedInCook() {
+        when(repository.saveNote(A_USER, 660101L, "double the garlic")).thenReturn(1);
+
+        service.saveNote(A_USER, 660101L, "double the garlic");
+
+        verify(repository).saveNote(A_USER, 660101L, "double the garlic");
+    }
+
+    /**
+     * Clearing a note and never writing one must end up the same in the
+     * column, so the page has one empty case to render rather than two.
+     */
+    @Test
+    void anEmptyNoteIsStoredAsNothingAtAll() {
+        when(repository.saveNote(eq(A_USER), eq(660101L), isNull())).thenReturn(1);
+
+        service.saveNote(A_USER, 660101L, "   ");
+
+        verify(repository).saveNote(A_USER, 660101L, null);
+    }
+
+    @Test
+    void surroundingSpaceIsTrimmedOffANote() {
+        when(repository.saveNote(eq(A_USER), eq(660101L), anyString())).thenReturn(1);
+
+        service.saveNote(A_USER, 660101L, "  used less salt  ");
+
+        verify(repository).saveNote(A_USER, 660101L, "used less salt");
+    }
+
+    @Test
+    void aNoteLongerThanTheLimitIsRefused() {
+        assertThatExceptionOfType(InvalidInputException.class)
+                .isThrownBy(() -> service.saveNote(A_USER, 660101L, "x".repeat(501)))
+                .withMessage(FavoriteService.NOTE_TOO_LONG);
+
+        verify(repository, never()).saveNote(anyLong(), anyLong(), anyString());
+    }
+
+    @Test
+    void aNoteExactlyAtTheLimitIsAccepted() {
+        when(repository.saveNote(eq(A_USER), eq(660101L), anyString())).thenReturn(1);
+
+        service.saveNote(A_USER, 660101L, "x".repeat(500));
+
+        verify(repository).saveNote(eq(A_USER), eq(660101L), anyString());
+    }
+
+    /**
+     * The note hangs off the saved_recipes row. With no such row, accepting the
+     * note would throw it away without telling the cook.
+     */
+    @Test
+    void aNoteOnARecipeTheCookHasNotSavedIsRefused() {
+        when(repository.saveNote(eq(A_USER), eq(660101L), anyString())).thenReturn(0);
+
+        assertThatExceptionOfType(InvalidInputException.class)
+                .isThrownBy(() -> service.saveNote(A_USER, 660101L, "a note"))
+                .withMessage(FavoriteService.NOT_SAVED);
+    }
+
+    // RB-210: collections ------------------------------------------------
+
+    @Test
+    void savingIntoACollectionThatIsNotTheirsIsRefused() {
+        when(collections.isOwnedBy(A_USER, 99L)).thenReturn(false);
+
+        assertThatExceptionOfType(CollectionNotFoundException.class)
+                .isThrownBy(() -> service.add(A_USER,
+                        new FavoriteRequest(716429L, "Pasta", null, 99L)))
+                .withMessage("That collection could not be found.");
+
+        verify(repository, never()).save(anyLong(), any());
+    }
+
+    @Test
+    void savingIntoTheirOwnCollectionReachesTheRepository() {
+        when(collections.isOwnedBy(A_USER, 3L)).thenReturn(true);
+
+        service.add(A_USER, new FavoriteRequest(716429L, "Pasta", null, 3L));
+
+        verify(repository).save(eq(A_USER), any(FavoriteRequest.class));
+    }
+
+    @Test
+    void movingARecipeTheCookHasNotSavedIsRefused() {
+        when(repository.moveToCollection(A_USER, 660101L, null)).thenReturn(0);
+
+        assertThatExceptionOfType(RecipeNotFoundException.class)
+                .isThrownBy(() -> service.moveToCollection(A_USER, 660101L, null))
+                .withMessage("Save this recipe before adding it to a collection.");
+    }
+
+    @Test
+    void movingIntoACollectionThatIsNotTheirsIsRefused() {
+        when(collections.isOwnedBy(A_USER, 99L)).thenReturn(false);
+
+        assertThatExceptionOfType(CollectionNotFoundException.class)
+                .isThrownBy(() -> service.moveToCollection(A_USER, 660101L, 99L));
+
+        verify(repository, never()).moveToCollection(anyLong(), anyLong(), any());
+    }
+
+    @Test
+    void movingToLooseNeedsNoOwnershipCheck() {
+        when(repository.moveToCollection(A_USER, 660101L, null)).thenReturn(1);
+
+        service.moveToCollection(A_USER, 660101L, null);
+
+        verify(collections, never()).isOwnedBy(anyLong(), anyLong());
     }
 }

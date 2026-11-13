@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { getFavorites, searchRecipes } from '../api/recipes'
+import { getCollections } from '../api/collections'
 import RecipeCard from '../components/RecipeCard'
 
 // Temporary preview: uncomment this import and the block below to inspect filter controls. done
@@ -41,6 +42,10 @@ export default function ResultsPage({
   const [recipes, setRecipes] = useState([])
   const [favoriteIds, setFavoriteIds] = useState([])
 
+  // RB-210: fetched once here and handed down, because fetching inside each
+  // star would be one request per card.
+  const [collections, setCollections] = useState([])
+
   // Keep errors separate from results so a failed request is not mistaken for
   // a successful search that simply found no recipes.
   const [errorMessage, setErrorMessage] = useState('')
@@ -63,6 +68,7 @@ export default function ResultsPage({
       setErrorMessage('')
       setRecipes([])
       setFavoriteIds([])
+      setCollections([])
 
       // An empty list should not be sent to the recipe service.
       if (!ingredients.trim()) {
@@ -74,10 +80,13 @@ export default function ResultsPage({
         // Recipe search and favorite lookup are independent, so run them at
         // the same time. A favorites-service failure should not prevent the
         // recipe search from succeeding.
-        const [foundRecipes, savedFavorites] = await Promise.all([
+        const [foundRecipes, savedFavorites, savedCollections] = await Promise.all([
           //searchRecipes(ingredients), //legacy, add new paramters 
           searchRecipes(ingredients, { diet, intolerances }),   
           getFavorites().catch(() => []),
+          // A signed-out visitor is refused here, and that is normal: no picker,
+          // and the star saves as it always did.
+          getCollections().catch(() => []),
         ])
 
         // Ignore results if this component has since unmounted or started a
@@ -85,6 +94,7 @@ export default function ResultsPage({
         if (stillOnThisPage) {
           setRecipes(foundRecipes)
           setFavoriteIds(savedFavorites.map((favorite) => favorite.id))
+          setCollections(savedCollections)
         }
       } catch (failure) {
         // A recipe-search error is shown to the user. Favorite lookup errors
@@ -253,6 +263,7 @@ export default function ResultsPage({
             imageUrl={recipe.imageUrl}
             isFavorite={favoriteIds.includes(recipe.id)}
             onFavoriteChange={handleFavoriteChange}
+            collections={collections}
           />
         ))}
       </div>

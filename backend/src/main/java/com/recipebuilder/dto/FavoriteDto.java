@@ -15,5 +15,17 @@ package com.recipebuilder.dto;
 public record FavoriteDto(
         long id,
         String title,
-        String imageUrl) {
+        String imageUrl,
+        /**
+         * RB-205: the cook's own note about this recipe, or null when they
+         * have not written one. Null rather than an empty string, so "no note"
+         * and "a note they cleared" are the same thing and the page has one
+         * case to handle rather than two.
+         */
+        String note,
+        /**
+         * RB-210: the collection this recipe sits in, or null when it is
+         * loose. Long, not long, so that absent is not 0.
+         */
+        Long collectionId) {
 }
