@@ -75,10 +75,11 @@ describe('HomePage', () => {
     await add('eggs')
     await add('milk')
     await userEvent.click(screen.getByRole('button', { name: 'Generate Recipes' }))
-    // RB-173 updated the test to include all three arguments
+    // RB-173 added diet and intolerances, RB-226 added sort
     await vi.waitFor(() => expect(searchRecipes).toHaveBeenCalledWith('eggs,milk', {
       diet: null,
       intolerances: null,
+      sort: null,
     }),
   )
   })

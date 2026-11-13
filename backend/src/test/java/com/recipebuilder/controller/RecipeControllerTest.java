@@ -41,7 +41,7 @@ class RecipeControllerTest {
 
     @Test
     void returnsOurRecipesAsJson() throws Exception {
-        when(service.searchByIngredients(anyString(), any(DietaryRestrictions.class))).thenReturn(List.of(
+        when(service.searchByIngredients(anyString(), any(DietaryRestrictions.class), any())).thenReturn(List.of(
                 new RecipeSummaryDto(716433L, "Easiest Breakfast Ever: Sunny Fruit Parfait",
                         "https://img.spoonacular.com/recipes/716433-312x231.jpg", 1, 3, 25)));
 
@@ -57,17 +57,17 @@ class RecipeControllerTest {
 
     @Test
     void passesTheIngredientFromTheQueryStringToTheService() throws Exception {
-        when(service.searchByIngredients(anyString(), any(DietaryRestrictions.class))).thenReturn(List.of());
+        when(service.searchByIngredients(anyString(), any(DietaryRestrictions.class), any())).thenReturn(List.of());
 
         mockMvc.perform(get("/api/recipes/search").param("ingredients", "tomato"))
                 .andExpect(status().isOk());
 
-        verify(service).searchByIngredients(eq("tomato"), eq(new DietaryRestrictions("none", "none")));
+        verify(service).searchByIngredients(eq("tomato"), eq(new DietaryRestrictions("none", "none")), any());
     }
 
     @Test
     void noMatchesReturnsAnEmptyJsonArray() throws Exception {
-        when(service.searchByIngredients(anyString(), any(DietaryRestrictions.class))).thenReturn(List.of());
+        when(service.searchByIngredients(anyString(), any(DietaryRestrictions.class), any())).thenReturn(List.of());
 
         mockMvc.perform(get("/api/recipes/search").param("ingredients", "unobtanium"))
                 .andExpect(status().isOk())
@@ -76,7 +76,7 @@ class RecipeControllerTest {
 
     @Test
     void passesDietAndIntolerancesFromTheQueryStringToTheService() throws Exception {
-        when(service.searchByIngredients(anyString(), any(DietaryRestrictions.class))).thenReturn(List.of());
+        when(service.searchByIngredients(anyString(), any(DietaryRestrictions.class), any())).thenReturn(List.of());
 
         mockMvc.perform(get("/api/recipes/search")
                         .param("ingredients", "tomato")
@@ -84,19 +84,19 @@ class RecipeControllerTest {
                         .param("intolerances", "peanut"))
                 .andExpect(status().isOk());
 
-        verify(service).searchByIngredients(eq("tomato"), eq(new DietaryRestrictions("vegan", "peanut")));
+        verify(service).searchByIngredients(eq("tomato"), eq(new DietaryRestrictions("vegan", "peanut")), any());
     }
 
     @Test
     void missingDietAndAllergiesBecomeNone() throws Exception { 
-        when(service.searchByIngredients(anyString(), any(DietaryRestrictions.class)))
+        when(service.searchByIngredients(anyString(), any(DietaryRestrictions.class), any()))
                         .thenReturn(List.of());
 
          mockMvc.perform(get("/api/recipes/search").param("ingredients", "tomato"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(0));
 
-        verify(service).searchByIngredients(eq("tomato"), eq(new DietaryRestrictions("none", "none")));
+        verify(service).searchByIngredients(eq("tomato"), eq(new DietaryRestrictions("none", "none")), any());
         
             }
 
@@ -133,12 +133,12 @@ class RecipeControllerTest {
      */
     @Test
     void theSearchAddressStillWinsOverTheIdPattern() throws Exception {
-        when(service.searchByIngredients(anyString(), any(DietaryRestrictions.class))).thenReturn(List.of());
+        when(service.searchByIngredients(anyString(), any(DietaryRestrictions.class), any())).thenReturn(List.of());
 
         mockMvc.perform(get("/api/recipes/search").param("ingredients", "apple"))
                 .andExpect(status().isOk());
 
-        verify(service).searchByIngredients(eq("apple"), eq(new DietaryRestrictions("none", "none")));
+        verify(service).searchByIngredients(eq("apple"), eq(new DietaryRestrictions("none", "none")), any());
         verify(service, never()).getRecipe(anyLong());
     }
 }

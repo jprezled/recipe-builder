@@ -40,6 +40,8 @@ async function readErrorMessage(response) {
  * Searches for recipes using one or more ingredients.
  *
  * @param {string} ingredients what the user typed, e.g. "eggs, milk, flour"
+ * @param {{diet?: string|null, intolerances?: string|null}} restrictions
+ *        what the cook chose; each is left out of the request when missing
  * @returns {Promise<Array>} the recipes, or an empty array if none matched
  * @throws {Error} with a message that can be displayed as-is
  */
@@ -65,6 +67,12 @@ export async function searchRecipes(ingredients, restrictions) {
   }
   if (restrictions && restrictions.intolerances) {
     address += '&intolerances=' + encodeURIComponent(restrictions.intolerances)
+  }
+
+  // RB-226: same rule for the sort. Only sent when chosen, so a plain search
+  // stays byte for byte the request it has always been
+  if ( restrictions && restrictions.sort) {
+    address += '&sort=' + encodeURIComponent(restrictions.sort)
   }
 
 

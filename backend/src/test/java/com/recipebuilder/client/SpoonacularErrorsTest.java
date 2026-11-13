@@ -39,7 +39,7 @@ class SpoonacularErrorsTest {
         server.expect(anything()).andRespond(withStatus(HttpStatus.PAYMENT_REQUIRED));
 
         assertThatExceptionOfType(ApiLimitReachedException.class)
-                .isThrownBy(() -> client.searchByIngredients("apple", 10, new DietaryRestrictions("none","none")));
+                .isThrownBy(() -> client.searchByIngredients("apple", 10, new DietaryRestrictions("none","none"), "max-used-ingredients"));
     }
 
     @Test
@@ -47,7 +47,7 @@ class SpoonacularErrorsTest {
         server.expect(anything()).andRespond(withStatus(HttpStatus.UNAUTHORIZED));
 
         assertThatExceptionOfType(ApiKeyMissingException.class)
-                .isThrownBy(() -> client.searchByIngredients("apple", 10, new DietaryRestrictions("none","none")));
+                .isThrownBy(() -> client.searchByIngredients("apple", 10, new DietaryRestrictions("none","none"), "max-used-ingredients"));
     }
 
     @Test
@@ -55,7 +55,7 @@ class SpoonacularErrorsTest {
         server.expect(anything()).andRespond(withStatus(HttpStatus.FORBIDDEN));
 
         assertThatExceptionOfType(ApiKeyMissingException.class)
-                .isThrownBy(() -> client.searchByIngredients("apple", 10, new DietaryRestrictions("none","none")));
+                .isThrownBy(() -> client.searchByIngredients("apple", 10, new DietaryRestrictions("none","none"), "max-used-ingredients"));
     }
 
     @Test
@@ -63,7 +63,7 @@ class SpoonacularErrorsTest {
         server.expect(anything()).andRespond(withStatus(HttpStatus.INTERNAL_SERVER_ERROR));
 
         assertThatExceptionOfType(ExternalApiException.class)
-                .isThrownBy(() -> client.searchByIngredients("apple", 10, new DietaryRestrictions("none","none")));
+                .isThrownBy(() -> client.searchByIngredients("apple", 10, new DietaryRestrictions("none","none"), "max-used-ingredients"));
     }
 
     /**

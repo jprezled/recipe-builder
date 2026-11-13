@@ -42,14 +42,16 @@ public class RecipeController {
      *                     separated, e.g. "eggs,milk,flour"
      * @param diet         optional ?diet=..., exactly one value; "none" when left out
      * @param intolerances optional ?intolerances=..., comma separated; "none" when left out
+     * @param sort        optional ?sort=..., one of the two in docs/sort-contract.md; the default when left out
      * @return recipes in our own shape, which Spring serialises to JSON
      */
     @GetMapping("/api/recipes/search")
     public List<RecipeSummaryDto> search(
             @RequestParam String ingredients,
             @RequestParam(defaultValue = "none") String diet,
-            @RequestParam(defaultValue = "none") String intolerances) {
-        return service.searchByIngredients(ingredients, new DietaryRestrictions(diet, intolerances));
+            @RequestParam(defaultValue = "none") String intolerances,
+            @RequestParam(required = false) String sort) {
+        return service.searchByIngredients(ingredients, new DietaryRestrictions(diet, intolerances), sort);
     }
 
     /**
