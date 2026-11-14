@@ -457,5 +457,67 @@ describe('RecipeDetailPage', () => {
       screen.queryByRole('button', { name: 'Nutrition Facts' }),
     ).not.toBeInTheDocument()
     expect(screen.queryByRole('alert')).not.toBeInTheDocument()
-  })  
+  })
+
+  // RB-269: the same note on both pages.
+
+  it('starts with the note panel closed', async () => {
+    renderDetail()
+
+    const button = await screen.findByRole('button', { name: 'My note' })
+
+    expect(button).toHaveAttribute('aria-expanded', 'false')
+    expect(screen.queryByRole('heading', { name: 'My Note' })).not.toBeInTheDocument()
+  })
+
+  it('shows the saved note from the favorites reply (RB-271)', async () => {
+    getFavorites.mockResolvedValue([{ ...RECIPE, note: 'Use less chili.' }])
+    renderDetail()
+
+    await userEvent.click(await screen.findByRole('button', { name: 'My note' }))
+
+    expect(screen.getByRole('heading', { name: 'My Note' })).toBeInTheDocument()
+    expect(screen.getByText('Use less chili.')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Edit note' })).toBeInTheDocument()
+  })
+
+  it('offers to add a note on a saved recipe with none', async () => {
+    getFavorites.mockResolvedValue([{ ...RECIPE, note: null }])
+    renderDetail()
+
+    await userEvent.click(await screen.findByRole('button', { name: 'My note' }))
+
+    expect(screen.getByRole('button', { name: 'Add a note' })).toBeInTheDocument()
+  })
+
+  it('explains itself on an unsaved recipe', async () => {
+    renderDetail()
+
+    await userEvent.click(await screen.findByRole('button', { name: 'My note' }))
+
+    expect(screen.getByText('Save this recipe to add a note.')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Add a note' })).not.toBeInTheDocument()
+  })
+
+  it('closes the note panel on a second click', async () => {
+    const user = userEvent.setup()
+    renderDetail()
+
+    const button = await screen.findByRole('button', { name: 'My note' })
+    await user.click(button)
+    await user.click(button)
+
+    expect(button).toHaveAttribute('aria-expanded', 'false')
+    expect(screen.queryByRole('heading', { name: 'My Note' })).not.toBeInTheDocument()
+  })
+
+  it('makes no extra request when the note panel opens', async () => {
+    getFavorites.mockResolvedValue([{ ...RECIPE, note: 'Use less chili.' }])
+    renderDetail()
+
+    await userEvent.click(await screen.findByRole('button', { name: 'My note' }))
+
+    expect(getRecipe).toHaveBeenCalledTimes(1)
+    expect(getFavorites).toHaveBeenCalledTimes(1)
+  })
 })
