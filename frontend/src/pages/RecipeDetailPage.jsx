@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { getFavorites, getRecipe } from '../api/recipes'
 import { getCollections } from '../api/collections'
 import FavoriteButton from '../components/FavoriteButton'
+import RecipeNote from '../components/RecipeNote' 
 
 /**
  * Shown when a failure arrives with no message we can display. The same
@@ -72,6 +73,10 @@ export default function RecipeDetailPage() {
   const [errorMessage, setErrorMessage] = useState('')
   const [isLoading, setIsLoading] = useState(true)
   const [isShoppingOpen, setIsShoppingOpen] = useState(false)
+  // RB-271: the cook's note, read from the favorites reply the page already makes.
+  const [note, setNote] = useState(null)
+  const [isNoteOpen, setIsNoteOpen] = useState(false)
+
 
   useEffect(() => {
     // A cook can click away while the request is still in flight. Without
@@ -83,6 +88,8 @@ export default function RecipeDetailPage() {
       setErrorMessage('')
       setRecipe(null)
       setIsNutritionOpen(false)
+      setNote(null)
+      setIsNoteOpen(false)
 
       try {
         // The saved list is a database read and costs no Spoonacular quota,
@@ -98,7 +105,11 @@ export default function RecipeDetailPage() {
 
         if (stillOnThisPage) {
           setRecipe(found)
-          setIsFavorite(saved.some((one) => one.id === found.id))
+          // RB-271: find, not some - the entry carries the cook's note, and
+          // some() threw it away. No extra request: the note was always here.
+          const alreadySaved = saved.find((one) => one.id === found.id)
+          setIsFavorite(alreadySaved !== undefined)
+          setNote(alreadySaved ? alreadySaved.note : null)
           setCollections(savedCollections)
         }
       } catch (failure) {
@@ -161,7 +172,11 @@ export default function RecipeDetailPage() {
             <FavoriteButton
               recipe={recipe}
               isFavorite={isFavorite}
-              onChange={(_id, isNowFavorite) => setIsFavorite(isNowFavorite)}
+              onChange={(_id, isNowFavorite) => {
+                setIsFavorite(isNowFavorite)
+              // Un-saving deletes the note on the backend (RB-205), so drop ours too
+                if (!isNowFavorite) setNote(null)
+              }}
               variant="text"
               collections={collections}
             />
@@ -194,8 +209,33 @@ export default function RecipeDetailPage() {
                 <span aria-hidden="true">{isShoppingOpen ? ' ▲' : ' ▼'}</span>
               </button>
             )}
-
+            {/* RB-272: always in the row, saved or not - a button that comes
+                and goes looks like a bug. See docs/recipe-notes-contract.md. */}
+            <button
+              type="button"
+              className="button button-secondary"
+              aria-expanded={isNoteOpen}
+              aria-controls="recipe-note"
+              onClick={() => setIsNoteOpen((open) => !open)}
+            >
+              My note
+              <span aria-hidden="true">{isNoteOpen ? ' ▲' : ' ▼'}</span>
+            </button>
           </div>
+
+          {isNoteOpen && (
+            <section className="detail-section" id="recipe-note">
+              <h2>My Note</h2>
+              {isFavorite ? (
+                // The same component the favourites page uses, not a copy.
+                // key: RecipeNote reads its note prop only once, so a new
+                // note must build a fresh component or the box opens blank.
+                <RecipeNote key={note ?? ''} recipeId={recipe.id} note={note} />
+              ) : (
+                <p className="note-empty">Save this recipe to add a note.</p>
+              )}
+            </section>
+          )}
 
           {recipe.nutrition != null && isNutritionOpen && (
             <section className="detail-section" id="nutrition-facts">
