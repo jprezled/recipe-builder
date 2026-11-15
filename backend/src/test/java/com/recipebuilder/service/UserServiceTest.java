@@ -37,14 +37,14 @@ class UserServiceTest {
     private UserService service;
 
     private static SignUpRequest asked(String username, String email, String password) {
-        return new SignUpRequest(username, email, password);
+        return new SignUpRequest(username, email, password,"");
     }
 
     @Test
     void aNewAccountComesBackWithItsIdAndName() {
         when(hasher.hash("password123")).thenReturn("SCRAMBLED");
-        when(users.insert("andrew", "a@example.com", "SCRAMBLED"))
-                .thenReturn(new StoredUser(7L, "andrew", "a@example.com", "SCRAMBLED"));
+        when(users.insert("andrew", "a@example.com", "SCRAMBLED", ""))
+                .thenReturn(new StoredUser(7L, "andrew", "a@example.com", "SCRAMBLED", ""));
 
         UserDto created = service.signUp(asked("andrew", "a@example.com", "password123"));
 
@@ -54,14 +54,18 @@ class UserServiceTest {
     @Test
     void whatReachesTheRepositoryIsTheScrambleNotTheTypedPassword() {
         when(hasher.hash("password123")).thenReturn("SCRAMBLED");
-        when(users.insert(anyString(), anyString(), anyString()))
-                .thenReturn(new StoredUser(7L, "andrew", "a@example.com", "SCRAMBLED"));
+        when(users.insert(anyString(), anyString(), anyString(), eq("")))
+                .thenReturn(new StoredUser(7L, "andrew", "a@example.com", "SCRAMBLED", ""));
 
         service.signUp(asked("andrew", "a@example.com", "password123"));
 
         // The third argument is the one that matters. A real password must
         // never reach any layer below this service.
-        verify(users).insert(eq("andrew"), eq("a@example.com"), eq("SCRAMBLED"));
+        verify(users).insert(
+            eq("andrew"),
+            eq("a@example.com"),
+            eq("SCRAMBLED"),
+            eq(""));
     }
 
     @Test

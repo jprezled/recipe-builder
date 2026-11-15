@@ -30,7 +30,7 @@ class SessionServiceTest {
     @Test
     void theRightPasswordSignsIn() {
         when(users.findByUsername("andrew"))
-                .thenReturn(new StoredUser(7L, "andrew", "a@example.com", "HASH"));
+                .thenReturn(new StoredUser(7L, "andrew", "a@example.com", "HASH", ""));
         when(hasher.matches("password123", "HASH")).thenReturn(true);
 
         UserDto signedIn = service.signIn("andrew", "password123");
@@ -41,7 +41,7 @@ class SessionServiceTest {
     @Test
     void aWrongPasswordIsRefusedWithTheAgreedSentence() {
         when(users.findByUsername("andrew"))
-                .thenReturn(new StoredUser(7L, "andrew", "a@example.com", "HASH"));
+                .thenReturn(new StoredUser(7L, "andrew", "a@example.com", "HASH",""));
         when(hasher.matches("wrong", "HASH")).thenReturn(false);
 
         assertThatExceptionOfType(NotSignedInException.class)
