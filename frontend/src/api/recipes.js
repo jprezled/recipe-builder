@@ -204,3 +204,25 @@ export async function removeFavorite(id) {
     throw new Error(await readErrorMessage(response))
   }
 }
+
+/**
+ * Requests ingredient suggestions from our backend.
+ * The input component handles failures silently.
+ */
+export async function suggestIngredients(query) {
+  let response
+
+  try {
+    response = await fetch(
+      '/api/ingredients/suggest?query=' + encodeURIComponent(query),
+    )
+  } catch {
+    throw new Error(CANNOT_REACH)
+  }
+
+  if (!response.ok) {
+    throw new Error(await readErrorMessage(response))
+  }
+
+  return response.json()
+}

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { getFavorites, searchRecipes } from '../api/recipes'
 import RecipeCard from '../components/RecipeCard'
+import IngredientInput from '../components/IngredientInput'
 
 // Temporary preview: uncomment this import and the block below to inspect filter controls. done
 import DietaryFilters from '../components/DietaryFilters'
@@ -111,7 +112,32 @@ export default function ResultsPage({
     }
   }, [ingredients, diet, intolerances]) //added diet and intolerances 
 
-// === RB-173 Apply Handler
+  function handleAddIngredient(name) {
+    const nextIngredients = ingredients
+      .split(',')
+      .map((ingredient) => ingredient.trim())
+      .filter(Boolean)
+
+    const additions = name
+      .split(',')
+      .map((ingredient) => ingredient.trim())
+      .filter(Boolean)
+
+    for (const addition of additions) {
+      const alreadyAdded = nextIngredients.some(
+        (ingredient) => ingredient.toLowerCase() === addition.toLowerCase(),
+    )
+
+      if (!alreadyAdded) {
+        nextIngredients.push(addition)
+      }
+    }
+    const next = new URLSearchParams(searchParams)
+    next.set('ingredients', nextIngredients.join(','))
+    setSearchParams(next, { replace: true })
+  }
+
+  // === RB-173 Apply Handler
   /**
    * Put the chosen restrictions in the address.
    *
@@ -208,9 +234,21 @@ export default function ResultsPage({
       
       
 
+      
+
+      {!embedded && (
+       <IngredientInput
+          id="results-ingredient"
+          label="Add an ingredient"
+          placeholder="Type another ingredient"
+          onAdd={handleAddIngredient}
+        />
+      )}
+
       {/* The key remounts the controls when the applied choices change, so
       they always show what the address actually asked for - including
       after a refresh or a Back. */}
+
       <DietaryFilters
         key={(diet ?? '') + '|' + (intolerances ?? '')}
         selectedDiet={diet}

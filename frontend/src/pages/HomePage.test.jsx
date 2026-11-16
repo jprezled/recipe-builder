@@ -11,6 +11,7 @@ import { getFavorites, searchRecipes } from '../api/recipes'
 vi.mock('../api/recipes', () => ({
   searchRecipes: vi.fn(() => Promise.resolve([])),
   getFavorites: vi.fn(() => Promise.resolve([])),
+  suggestIngredients: vi.fn(() => Promise.resolve([])),
 }))
 
 beforeEach(() => {
