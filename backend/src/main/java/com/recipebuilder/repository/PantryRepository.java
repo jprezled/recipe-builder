@@ -2,7 +2,6 @@ package com.recipebuilder.repository;
 
 import com.recipebuilder.model.PantryItem;
 import com.recipebuilder.model.PantryRowMapper;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
 
@@ -12,8 +11,11 @@ import java.util.Optional;
 @Repository
 public class PantryRepository {
 
-    @Autowired
-    private JdbcTemplate jdbcTemplate;
+    private final JdbcTemplate jdbcTemplate;
+
+    public PantryRepository(JdbcTemplate jdbcTemplate) {
+        this.jdbcTemplate = jdbcTemplate;
+    }
 
     public List<PantryItem> findByUserId(Long userId) {
         String sql = "SELECT id, user_id, pantry FROM pantry_items WHERE user_id = ?";
