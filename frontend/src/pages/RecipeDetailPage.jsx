@@ -289,7 +289,13 @@ export default function RecipeDetailPage() {
                   <li key={item.name} className={item.inPantry ? 'cost-have' : undefined}>
                     <span className="cost-name">{item.name}</span>
                     <span className="nutrition-amount">${item.price.toFixed(2)}</span>
-                    {item.inPantry && <span className="cost-tag">have it</span>}
+                    {item.inPantry && (
+                      // The tick carries meaning, so it needs a label - the
+                      // strike-through alone says nothing to a screen reader.
+                      <span className="cost-tag" role="img" aria-label="already in your kitchen">
+                        ✓
+                      </span>
+                    )}
                   </li>
                 ))}
               </ul>
