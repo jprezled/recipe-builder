@@ -15,6 +15,7 @@ import com.recipebuilder.dto.RecipeDetailDto;
 import com.recipebuilder.dto.RecipeSummaryDto;
 import com.recipebuilder.dto.ShoppingItemDto;
 import com.recipebuilder.exception.InvalidInputException;
+import com.recipebuilder.repository.FavoriteRepository;
 
 /**
  * Turns Spoonacular's data into ours.
@@ -34,9 +35,12 @@ public class RecipeService {
 
     private final SpoonacularClient client;
 
-    public RecipeService(SpoonacularClient client) {
-        this.client = client;
-    }
+    private final FavoriteRepository favorites;
+    
+    public RecipeService(SpoonacularClient client, FavoriteRepository favorites) {
+    this.client = client;
+    this.favorites = favorites;
+}
 
     /**
      * Finds recipes using one or more ingredients, optionally narrowed by diet
@@ -188,7 +192,12 @@ public class RecipeService {
                 }
             }
         }
-
+            try {
+             favorites.fillInIngredients(theirs.id(), allIngredients);
+            } catch (RuntimeException couldNotStore) {
+                // Nothing to do about it and nothing worth telling the cook. The
+                // next fetch will try again.
+            }
         // STEP 4: hand back our own shape.
         RecipeDetailDto.Diets diets = new RecipeDetailDto.Diets(
                 theirs.vegetarian(),

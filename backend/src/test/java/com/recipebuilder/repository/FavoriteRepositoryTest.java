@@ -1,7 +1,8 @@
 package com.recipebuilder.repository;
 
-import com.recipebuilder.dto.FavoriteDto;
-import com.recipebuilder.dto.FavoriteRequest;
+import java.util.List;
+
+import static org.assertj.core.api.Assertions.assertThat;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -11,9 +12,9 @@ import org.springframework.context.annotation.Import;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ActiveProfiles;
 
-import java.util.List;
-
-import static org.assertj.core.api.Assertions.assertThat;
+import com.recipebuilder.dto.FavoriteDto;
+import com.recipebuilder.dto.FavoriteRequest;
+import com.recipebuilder.dto.ShoppingItemDto;
 
 /**
  * The only test in the project that touches a real database.
@@ -64,7 +65,7 @@ class FavoriteRepositoryTest {
     @Test
     void savingARecipeMakesItFindable() {
         repository.save(DEMO_USER_ID,
-                new FavoriteRequest(716429L, "Garlic Chicken Pasta", "http://img/1.jpg", null));
+                new FavoriteRequest(716429L, "Garlic Chicken Pasta", "http://img/1.jpg", null), null);
 
         List<FavoriteDto> saved = repository.findForUser(DEMO_USER_ID);
 
@@ -78,7 +79,7 @@ class FavoriteRepositoryTest {
         // Our recipes.recipe_id starts at 1. If the repository returned that
         // instead, this would read 1 - and the frontend would ask Spoonacular
         // for the wrong recipe.
-        repository.save(DEMO_USER_ID, new FavoriteRequest(716429L, "Pasta", null, null));
+        repository.save(DEMO_USER_ID, new FavoriteRequest(716429L, "Pasta", null, null), null);
 
         assertThat(repository.findForUser(DEMO_USER_ID).get(0).id()).isEqualTo(716429L);
     }
@@ -87,8 +88,8 @@ class FavoriteRepositoryTest {
     void savingTheSameRecipeTwiceIsHarmless() {
         FavoriteRequest recipe = new FavoriteRequest(716429L, "Pasta", null, null);
 
-        repository.save(DEMO_USER_ID, recipe);
-        repository.save(DEMO_USER_ID, recipe);
+        repository.save(DEMO_USER_ID, recipe, null);
+        repository.save(DEMO_USER_ID, recipe, null);
 
         // A double-tapped button must not crash, and must not produce two rows.
         assertThat(repository.findForUser(DEMO_USER_ID)).hasSize(1);
@@ -96,8 +97,8 @@ class FavoriteRepositoryTest {
 
     @Test
     void savingReusesTheExistingRecipeRow() {
-        repository.save(DEMO_USER_ID, new FavoriteRequest(716429L, "Pasta", null, null));
-        repository.save(DEMO_USER_ID, new FavoriteRequest(716429L, "Pasta", null, null));
+        repository.save(DEMO_USER_ID, new FavoriteRequest(716429L, "Pasta", null, null), null);
+        repository.save(DEMO_USER_ID, new FavoriteRequest(716429L, "Pasta", null, null), null);
 
         assertThat(db.queryForObject("SELECT count(*) FROM recipes", Integer.class))
                 .isEqualTo(1);
@@ -105,8 +106,8 @@ class FavoriteRepositoryTest {
 
     @Test
     void savingAgainUpdatesTheTitle() {
-        repository.save(DEMO_USER_ID, new FavoriteRequest(716429L, "Old name", null, null));
-        repository.save(DEMO_USER_ID, new FavoriteRequest(716429L, "New name", null, null));
+        repository.save(DEMO_USER_ID, new FavoriteRequest(716429L, "Old name", null, null), null);
+        repository.save(DEMO_USER_ID, new FavoriteRequest(716429L, "New name", null, null), null);
 
         List<FavoriteDto> saved = repository.findForUser(DEMO_USER_ID);
         assertThat(saved).hasSize(1);
@@ -119,7 +120,7 @@ class FavoriteRepositoryTest {
         // without cutting it a recipe with a long name could not be saved at
         // all. A shortened title beats a failed save.
         repository.save(DEMO_USER_ID,
-                new FavoriteRequest(716429L, "x".repeat(300), null, null));
+                new FavoriteRequest(716429L, "x".repeat(300), null, null), null);
 
         assertThat(repository.findForUser(DEMO_USER_ID).get(0).title()).hasSize(255);
     }
@@ -128,7 +129,7 @@ class FavoriteRepositoryTest {
     void aRecipeWithNoImageIsStillSaved() {
         // recipes.image_url is nullable, and Spoonacular does sometimes omit
         // the image. The favorites page has to cope rather than the save failing.
-        repository.save(DEMO_USER_ID, new FavoriteRequest(716429L, "Pasta", null, null));
+        repository.save(DEMO_USER_ID, new FavoriteRequest(716429L, "Pasta", null, null), null);
 
         assertThat(repository.findForUser(DEMO_USER_ID).get(0).imageUrl()).isNull();
     }
@@ -138,7 +139,7 @@ class FavoriteRepositoryTest {
         // Parameterised SQL should handle this, but nothing else proves it. A
         // hand-built query would break or inject here.
         String nasty = "Grandma's \"best\" pasta; DROP TABLE users--";
-        repository.save(DEMO_USER_ID, new FavoriteRequest(716429L, nasty, null, null));
+        repository.save(DEMO_USER_ID, new FavoriteRequest(716429L, nasty, null, null), null);
 
         assertThat(repository.findForUser(DEMO_USER_ID).get(0).title()).isEqualTo(nasty);
         assertThat(db.queryForObject("SELECT count(*) FROM users", Integer.class))
@@ -147,7 +148,7 @@ class FavoriteRepositoryTest {
 
     @Test
     void anAccentedTitleSurvivesTheRoundTrip() {
-        repository.save(DEMO_USER_ID, new FavoriteRequest(716429L, "Crème Brûlée", null, null));
+        repository.save(DEMO_USER_ID, new FavoriteRequest(716429L, "Crème Brûlée", null, null), null);
 
         assertThat(repository.findForUser(DEMO_USER_ID).get(0).title())
                 .isEqualTo("Crème Brûlée");
@@ -155,7 +156,7 @@ class FavoriteRepositoryTest {
 
     @Test
     void removingTakesItOutOfTheList() {
-        repository.save(DEMO_USER_ID, new FavoriteRequest(716429L, "Pasta", null, null));
+        repository.save(DEMO_USER_ID, new FavoriteRequest(716429L, "Pasta", null, null), null);
 
         repository.remove(DEMO_USER_ID, 716429L);
 
@@ -173,7 +174,7 @@ class FavoriteRepositoryTest {
 
     @Test
     void removingLeavesTheRecipeRowForOtherUsers() {
-        repository.save(DEMO_USER_ID, new FavoriteRequest(716429L, "Pasta", null, null));
+        repository.save(DEMO_USER_ID, new FavoriteRequest(716429L, "Pasta", null, null), null);
         repository.remove(DEMO_USER_ID, 716429L);
 
         assertThat(db.queryForObject("SELECT count(*) FROM recipes", Integer.class))
@@ -194,8 +195,8 @@ class FavoriteRepositoryTest {
                 + "VALUES ('other', 'other@example.com', 'not-a-real-hash') "
                 + "RETURNING user_id", Long.class);
 
-        repository.save(DEMO_USER_ID, new FavoriteRequest(1111L, "Demo's recipe", null, null));
-        repository.save(otherUserId, new FavoriteRequest(2222L, "Other's recipe", null, null));
+        repository.save(DEMO_USER_ID, new FavoriteRequest(1111L, "Demo's recipe", null, null), null);
+        repository.save(otherUserId, new FavoriteRequest(2222L, "Other's recipe", null, null), null);
 
         assertThat(repository.findForUser(DEMO_USER_ID))
                 .extracting(FavoriteDto::id)
@@ -213,8 +214,8 @@ class FavoriteRepositoryTest {
                 + "VALUES ('other', 'other@example.com', 'not-a-real-hash') "
                 + "RETURNING user_id", Long.class);
 
-        repository.save(DEMO_USER_ID, new FavoriteRequest(716429L, "Shared", null, null));
-        repository.save(otherUserId, new FavoriteRequest(716429L, "Shared", null, null));
+        repository.save(DEMO_USER_ID, new FavoriteRequest(716429L, "Shared", null, null), null);
+        repository.save(otherUserId, new FavoriteRequest(716429L, "Shared", null, null), null);
 
         // saved_recipes is keyed on (user_id, recipe_id), so one recipe row is
         // shared and each user gets their own link to it.
@@ -228,8 +229,8 @@ class FavoriteRepositoryTest {
 
     @Test
     void severalFavoritesAllComeBack() {
-        repository.save(DEMO_USER_ID, new FavoriteRequest(1111L, "First", null, null));
-        repository.save(DEMO_USER_ID, new FavoriteRequest(2222L, "Second", null, null));
+        repository.save(DEMO_USER_ID, new FavoriteRequest(1111L, "First", null, null), null);
+        repository.save(DEMO_USER_ID, new FavoriteRequest(2222L, "Second", null, null), null);
 
         assertThat(repository.findForUser(DEMO_USER_ID))
                 .extracting(FavoriteDto::id)
@@ -240,7 +241,7 @@ class FavoriteRepositoryTest {
 
     @Test
     void aSavedRecipeComesBackWithNoNoteUntilOneIsWritten() {
-        repository.save(DEMO_USER_ID, new FavoriteRequest(660101L, "Risotto", null, null));
+        repository.save(DEMO_USER_ID, new FavoriteRequest(660101L, "Risotto", null, null), null);
 
         assertThat(repository.findForUser(DEMO_USER_ID))
                 .singleElement()
@@ -250,7 +251,7 @@ class FavoriteRepositoryTest {
 
     @Test
     void aNoteIsStoredAndComesBackOnTheSavedRecipe() {
-        repository.save(DEMO_USER_ID, new FavoriteRequest(660101L, "Risotto", null, null));
+        repository.save(DEMO_USER_ID, new FavoriteRequest(660101L, "Risotto", null, null), null);
 
         assertThat(repository.saveNote(DEMO_USER_ID, 660101L, "double the garlic"))
                 .isEqualTo(1);
@@ -263,7 +264,7 @@ class FavoriteRepositoryTest {
 
     @Test
     void aNoteCanBeClearedBackToNothing() {
-        repository.save(DEMO_USER_ID, new FavoriteRequest(660101L, "Risotto", null, null));
+        repository.save(DEMO_USER_ID, new FavoriteRequest(660101L, "Risotto", null, null), null);
         repository.saveNote(DEMO_USER_ID, 660101L, "double the garlic");
 
         assertThat(repository.saveNote(DEMO_USER_ID, 660101L, null)).isEqualTo(1);
@@ -294,8 +295,8 @@ class FavoriteRepositoryTest {
                 + "VALUES (?, 'other', 'other@example.com', 'not-a-real-hash') "
                 + "ON CONFLICT (user_id) DO NOTHING", otherUser);
 
-        repository.save(DEMO_USER_ID, new FavoriteRequest(660101L, "Risotto", null, null));
-        repository.save(otherUser, new FavoriteRequest(660101L, "Risotto", null, null));
+        repository.save(DEMO_USER_ID, new FavoriteRequest(660101L, "Risotto", null, null), null);
+        repository.save(otherUser, new FavoriteRequest(660101L, "Risotto", null, null), null);
 
         repository.saveNote(DEMO_USER_ID, 660101L, "mine");
         repository.saveNote(otherUser, 660101L, "theirs");
@@ -309,11 +310,11 @@ class FavoriteRepositoryTest {
     /** Un-saving removes the row the note lives on, so the note goes with it. */
     @Test
     void unsavingARecipeTakesItsNoteWithIt() {
-        repository.save(DEMO_USER_ID, new FavoriteRequest(660101L, "Risotto", null, null));
+        repository.save(DEMO_USER_ID, new FavoriteRequest(660101L, "Risotto", null, null), null);
         repository.saveNote(DEMO_USER_ID, 660101L, "double the garlic");
 
         repository.remove(DEMO_USER_ID, 660101L);
-        repository.save(DEMO_USER_ID, new FavoriteRequest(660101L, "Risotto", null, null));
+        repository.save(DEMO_USER_ID, new FavoriteRequest(660101L, "Risotto", null, null), null);
 
         assertThat(repository.findForUser(DEMO_USER_ID))
                 .singleElement()
@@ -332,14 +333,14 @@ class FavoriteRepositoryTest {
     void savingWithACollectionStoresIt() {
         long breakfast = aCollection("Breakfast");
 
-        repository.save(DEMO_USER_ID, new FavoriteRequest(716429L, "Pancakes", null, breakfast));
+        repository.save(DEMO_USER_ID, new FavoriteRequest(716429L, "Pancakes", null, breakfast), null);
 
         assertThat(repository.findForUser(DEMO_USER_ID).get(0).collectionId()).isEqualTo(breakfast);
     }
 
     @Test
     void savingWithoutOneLeavesItNull() {
-        repository.save(DEMO_USER_ID, new FavoriteRequest(716429L, "Pasta", null, null));
+        repository.save(DEMO_USER_ID, new FavoriteRequest(716429L, "Pasta", null, null), null);
 
         assertThat(repository.findForUser(DEMO_USER_ID).get(0).collectionId()).isNull();
     }
@@ -347,7 +348,7 @@ class FavoriteRepositoryTest {
     @Test
     void moveToCollectionMovesIt() {
         long breakfast = aCollection("Breakfast");
-        repository.save(DEMO_USER_ID, new FavoriteRequest(716429L, "Pancakes", null, null));
+        repository.save(DEMO_USER_ID, new FavoriteRequest(716429L, "Pancakes", null, null), null);
 
         int rows = repository.moveToCollection(DEMO_USER_ID, 716429L, breakfast);
 
@@ -358,7 +359,7 @@ class FavoriteRepositoryTest {
     @Test
     void moveToCollectionWithNullMakesItLoose() {
         long breakfast = aCollection("Breakfast");
-        repository.save(DEMO_USER_ID, new FavoriteRequest(716429L, "Pancakes", null, breakfast));
+        repository.save(DEMO_USER_ID, new FavoriteRequest(716429L, "Pancakes", null, breakfast), null);
 
         repository.moveToCollection(DEMO_USER_ID, 716429L, null);
 
@@ -370,5 +371,114 @@ class FavoriteRepositoryTest {
         long breakfast = aCollection("Breakfast");
 
         assertThat(repository.moveToCollection(DEMO_USER_ID, 999999L, breakfast)).isZero();
+    }
+    // RB-262c: stored shopping list ----------------------------------------
+    private static final List<ShoppingItemDto> TWO_ITEMS = List.of(
+            new ShoppingItemDto("eggs", "6 large eggs", "Dairy"),
+            new ShoppingItemDto("pizza dough", "1 lb pizza dough", "Bakery"));
+
+    private FavoriteRequest pizzaFrittata() {
+        return new FavoriteRequest(716429L, "Pittata - Pizza Frittata", "http://img/x.jpg", null);
+    }
+
+    private long createUser(String username, String email) {
+        return db.queryForObject(
+                "INSERT INTO users (username, email, password_hash) "
+                        + "VALUES (?, ?, 'not-a-real-hash') RETURNING user_id",
+                Long.class, username, email);
+    }
+
+    @Test
+    void savingWithIngredientsReturnsThemInOrder() {
+        repository.save(DEMO_USER_ID, pizzaFrittata(), TWO_ITEMS);
+
+        List<FavoriteDto> favorites = repository.findForUser(DEMO_USER_ID);
+
+        assertThat(favorites).hasSize(1);
+        List<ShoppingItemDto> stored = favorites.get(0).ingredients();
+        assertThat(stored).hasSize(2);
+        assertThat(stored.get(0).name()).isEqualTo("eggs");
+        assertThat(stored.get(0).line()).isEqualTo("6 large eggs");
+        assertThat(stored.get(0).aisle()).isEqualTo("Dairy");
+        assertThat(stored.get(1).name()).isEqualTo("pizza dough");
+        assertThat(stored.get(1).line()).isEqualTo("1 lb pizza dough");
+        assertThat(stored.get(1).aisle()).isEqualTo("Bakery");
+    }
+
+    @Test
+    void savingWithNullIngredientsComesBackAsNullNotEmpty() {
+        repository.save(DEMO_USER_ID, pizzaFrittata(), null);
+
+        // null means "fetch once", not "this recipe has no ingredients"
+        assertThat(repository.findForUser(DEMO_USER_ID).get(0).ingredients()).isNull();
+    }
+
+    @Test
+    void savingAgainWithoutIngredientsKeepsTheOnesAlreadyStored() {
+        // The COALESCE test: a plain overwrite would wipe the list here.
+        repository.save(DEMO_USER_ID, pizzaFrittata(), TWO_ITEMS);
+        repository.save(DEMO_USER_ID, pizzaFrittata(), null);
+
+        assertThat(repository.findForUser(DEMO_USER_ID).get(0).ingredients()).hasSize(2);
+    }
+
+    @Test
+    void secondAccountSavingTheSameRecipeGetsTheStoredListWithoutFetching() {
+        long otherUser = createUser("second_cook", "second@example.com");
+
+        repository.save(DEMO_USER_ID, pizzaFrittata(), TWO_ITEMS);
+        repository.save(otherUser, pizzaFrittata(), null); // Spoonacular "down"
+
+        List<ShoppingItemDto> forOther = repository.findForUser(otherUser).get(0).ingredients();
+
+        assertThat(forOther).hasSize(2);
+        assertThat(forOther.get(0).name()).isEqualTo("eggs");
+    }
+
+    // Suggested fifth test: the contract says five but describes four.
+    @Test
+    void unreadableStoredValueComesBackAsNullInsteadOfThrowing() {
+        repository.save(DEMO_USER_ID, pizzaFrittata(), TWO_ITEMS);
+        db.update("UPDATE recipes SET ingredients_json = 'not json' "
+                + "WHERE spoonacular_id = ?", 716429L);
+
+        assertThat(repository.findForUser(DEMO_USER_ID).get(0).ingredients()).isNull();
+    }
+    // RB-262e: filling in the gap -------------------------------------------
+
+    @Test
+    void fillingInAMissingListStoresItAndReportsOne() {
+        repository.save(DEMO_USER_ID, pizzaFrittata(), null);   // saved with no list
+    
+        int changed = repository.fillInIngredients(716429L, TWO_ITEMS);
+    
+        assertThat(changed).isEqualTo(1);
+        assertThat(repository.findForUser(DEMO_USER_ID).get(0).ingredients()).hasSize(2);
+    }
+    
+    @Test
+    void fillingInNeverReplacesAListThatIsAlreadyStored() {
+        repository.save(DEMO_USER_ID, pizzaFrittata(), TWO_ITEMS);
+        List<ShoppingItemDto> shorter = List.of(new ShoppingItemDto("salt", "1 pinch salt", "Spices"));
+    
+        int changed = repository.fillInIngredients(716429L, shorter);
+    
+        assertThat(changed).isZero();
+        List<ShoppingItemDto> stored = repository.findForUser(DEMO_USER_ID).get(0).ingredients();
+        assertThat(stored).hasSize(2);
+        assertThat(stored.get(0).name()).isEqualTo("eggs");
+    }
+    
+    @Test
+    void fillingInARecipeNobodySavedReturnsZeroRatherThanFailing() {
+        assertThat(repository.fillInIngredients(999999L, TWO_ITEMS)).isZero();
+    }
+    
+    @Test
+    void fillingInWithAnEmptyListStoresNothing() {
+        repository.save(DEMO_USER_ID, pizzaFrittata(), null);
+    
+        assertThat(repository.fillInIngredients(716429L, List.of())).isZero();
+        assertThat(repository.findForUser(DEMO_USER_ID).get(0).ingredients()).isNull();
     }
 }

@@ -8,20 +8,25 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.recipebuilder.client.SpoonacularClient;
+import com.recipebuilder.client.dto.SpoonacularRecipeInformation;
 import com.recipebuilder.client.dto.SpoonacularSearchResult;
 import com.recipebuilder.dto.DietaryRestrictions;
 import com.recipebuilder.dto.RecipeSummaryDto;
 import com.recipebuilder.exception.InvalidInputException;
+import com.recipebuilder.repository.FavoriteRepository;
 
 /**
  * RB-37: we produce our own object with the right values.
@@ -34,6 +39,9 @@ class RecipeServiceTest {
 
     @Mock
     private SpoonacularClient client;
+
+    @Mock
+    private FavoriteRepository favorites;
 
     @InjectMocks
     private RecipeService service;
@@ -310,4 +318,32 @@ class RecipeServiceTest {
                 .extracting(RecipeSummaryDto::title)
                 .containsExactly("Quarter", "Whole", "Half");
     }
+    // ---- RB-262: filling in a stored ingredient list -----------------------
+    private SpoonacularRecipeInformation aRecipeFromSpoonacular() {
+        SpoonacularRecipeInformation theirs = mock(SpoonacularRecipeInformation.class);
+        when(theirs.id()).thenReturn(716429L);
+        when(theirs.extendedIngredients()).thenReturn(List.of());
+        return theirs;
+   }
+   
+   @Test
+   void fetchingARecipeFillsInItsStoredIngredientList() {
+        SpoonacularRecipeInformation theirs = aRecipeFromSpoonacular();
+         when(client.getRecipe(716429L)).thenReturn(theirs);
+
+        service.getRecipe(716429L);
+
+         verify(favorites).fillInIngredients(eq(716429L), anyList());
+   }
+
+   /** Not fatal: a database that is down must not stop a recipe page drawing. */
+   @Test
+   void aDatabaseFailureDoesNotStopTheRecipeBeingReturned() {
+        SpoonacularRecipeInformation theirs = aRecipeFromSpoonacular();
+        when(client.getRecipe(716429L)).thenReturn(theirs);
+        when(favorites.fillInIngredients(anyLong(), anyList()))
+        .thenThrow(new RuntimeException("database down"));
+
+        assertThat(service.getRecipe(716429L)).isNotNull();
+   }
 }

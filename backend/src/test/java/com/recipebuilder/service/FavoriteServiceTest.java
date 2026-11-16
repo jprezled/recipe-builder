@@ -1,30 +1,31 @@
 package com.recipebuilder.service;
 
-import com.recipebuilder.exception.RecipeNotFoundException;
-import com.recipebuilder.exception.CollectionNotFoundException;
-import com.recipebuilder.repository.CollectionRepository;
-import com.recipebuilder.dto.FavoriteDto;
-import com.recipebuilder.dto.FavoriteRequest;
-import com.recipebuilder.exception.InvalidInputException;
-import com.recipebuilder.repository.FavoriteRepository;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.mockito.ArgumentCaptor;
-
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+
+import com.recipebuilder.dto.FavoriteDto;
+import com.recipebuilder.dto.FavoriteRequest;
+import com.recipebuilder.dto.RecipeDetailDto;
+import com.recipebuilder.dto.ShoppingItemDto;
+import com.recipebuilder.exception.CollectionNotFoundException;
+import com.recipebuilder.exception.InvalidInputException;
+import com.recipebuilder.exception.RecipeNotFoundException;
+import com.recipebuilder.repository.CollectionRepository;
+import com.recipebuilder.repository.FavoriteRepository;
 
 /**
  * The rules about saving favorites, with the repository mocked out.
@@ -33,19 +34,21 @@ import static org.mockito.Mockito.when;
  * layer that knows no SQL.
  */
 class FavoriteServiceTest {
-
+    
     /** Any user id. The point of this subtask is that it is not fixed. */
     private static final long A_USER = 7L;
 
     private FavoriteRepository repository;
     private CollectionRepository collections;
     private FavoriteService service;
+    private RecipeService recipes;
 
     @BeforeEach
     void setUp() {
         repository = mock(FavoriteRepository.class);
         collections = mock(CollectionRepository.class);
-        service = new FavoriteService(repository, collections);
+        recipes = mock(RecipeService.class);
+        service = new FavoriteService(repository, collections, recipes);
     }
 
     @Test
@@ -54,7 +57,7 @@ class FavoriteServiceTest {
 
         ArgumentCaptor<Long> userId = ArgumentCaptor.forClass(Long.class);
         ArgumentCaptor<FavoriteRequest> saved = ArgumentCaptor.forClass(FavoriteRequest.class);
-        verify(repository).save(userId.capture(), saved.capture());
+        verify(repository).save(userId.capture(), saved.capture(), isNull());
 
         assertThat(userId.getValue()).isEqualTo(A_USER);
         assertThat(saved.getValue().id()).isEqualTo(716429L);
@@ -63,7 +66,7 @@ class FavoriteServiceTest {
     @Test
     void listingAsksForThatUsersFavorites() {
         when(repository.findForUser(A_USER))
-                .thenReturn(List.of(new FavoriteDto(716429L, "Pasta", null, null, null)));
+                .thenReturn(List.of(new FavoriteDto(716429L, "Pasta", null, null, null, null)));
 
         assertThat(service.list(A_USER)).hasSize(1);
         verify(repository).findForUser(A_USER);
@@ -83,7 +86,7 @@ class FavoriteServiceTest {
         assertThatExceptionOfType(InvalidInputException.class)
                 .isThrownBy(() -> service.add(A_USER, new FavoriteRequest(716429L, "  ", null, null)));
 
-        verify(repository, never()).save(anyLong(), any());
+        verify(repository, never()).save(anyLong(), any(), any());
     }
 
     @Test
@@ -92,7 +95,7 @@ class FavoriteServiceTest {
         assertThatExceptionOfType(InvalidInputException.class)
                 .isThrownBy(() -> service.add(A_USER, new FavoriteRequest(0L, "Pasta", null, null)));
 
-        verify(repository, never()).save(anyLong(), any());
+        verify(repository, never()).save(anyLong(), any(), any());
     }
 
     @Test
@@ -100,7 +103,7 @@ class FavoriteServiceTest {
         assertThatExceptionOfType(InvalidInputException.class)
                 .isThrownBy(() -> service.add(A_USER, null));
 
-        verify(repository, never()).save(anyLong(), any());
+        verify(repository, never()).save(anyLong(), any(), any());
     }
 
     @Test
@@ -116,8 +119,8 @@ class FavoriteServiceTest {
         service.add(7L, new FavoriteRequest(1111L, "Mine", null, null));
         service.add(8L, new FavoriteRequest(2222L, "Yours", null, null));
 
-        verify(repository).save(eq(7L), any(FavoriteRequest.class));
-        verify(repository).save(eq(8L), any(FavoriteRequest.class));
+        verify(repository).save(eq(7L), any(FavoriteRequest.class), isNull());
+        verify(repository).save(eq(8L), any(FavoriteRequest.class), isNull());
     }
 
     // RB-205: notes ------------------------------------------------------
@@ -195,7 +198,7 @@ class FavoriteServiceTest {
                         new FavoriteRequest(716429L, "Pasta", null, 99L)))
                 .withMessage("That collection could not be found.");
 
-        verify(repository, never()).save(anyLong(), any());
+        verify(repository, never()).save(anyLong(), any(), any());
     }
 
     @Test
@@ -204,7 +207,7 @@ class FavoriteServiceTest {
 
         service.add(A_USER, new FavoriteRequest(716429L, "Pasta", null, 3L));
 
-        verify(repository).save(eq(A_USER), any(FavoriteRequest.class));
+        verify(repository).save(eq(A_USER), any(FavoriteRequest.class), any());
     }
 
     @Test
@@ -233,5 +236,42 @@ class FavoriteServiceTest {
         service.moveToCollection(A_USER, 660101L, null);
 
         verify(collections, never()).isOwnedBy(anyLong(), anyLong());
+    }
+    // RB-266: ingredients are fetched on save -------------------------------
+
+    private static final List<ShoppingItemDto> TWO_ITEMS = List.of(
+            new ShoppingItemDto("eggs", "6 large eggs", "Dairy"),
+            new ShoppingItemDto("pizza dough", "1 lb pizza dough", "Bakery"));
+
+    @Test
+    void theRecipesIngredientsArePassedToTheRepositoryWhenSaving() {
+        RecipeDetailDto detail = mock(RecipeDetailDto.class);   // ADAPT
+        when(detail.allIngredients()).thenReturn(TWO_ITEMS);
+        when(recipes.getRecipe(716429L)).thenReturn(detail);
+
+        service.add(A_USER, new FavoriteRequest(716429L, "Pasta", null, null));
+
+        verify(repository).save(eq(A_USER), any(FavoriteRequest.class), eq(TWO_ITEMS));
+    }
+
+    /** The one that matters: a failed fetch must not fail the save. */
+    @Test
+    void aFailedFetchStillSavesTheFavouriteWithNoList() {
+        when(recipes.getRecipe(716429L))
+                .thenThrow(new RuntimeException("Spoonacular unreachable"));
+
+        service.add(A_USER, new FavoriteRequest(716429L, "Pasta", null, null));
+
+        verify(repository).save(eq(A_USER), any(FavoriteRequest.class), isNull());
+    }
+
+    @Test
+    void aRecipeSpoonacularDoesNotKnowStillSavesTheFavouriteWithNoList() {
+        when(recipes.getRecipe(716429L))
+                .thenThrow(new RecipeNotFoundException("Spoonacular does not know that recipe."));
+
+        service.add(A_USER, new FavoriteRequest(716429L, "Pasta", null, null));
+
+        verify(repository).save(eq(A_USER), any(FavoriteRequest.class), isNull());
     }
 }

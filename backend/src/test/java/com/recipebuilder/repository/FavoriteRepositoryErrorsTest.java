@@ -1,21 +1,21 @@
 package com.recipebuilder.repository;
 
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+import org.springframework.dao.DataAccessResourceFailureException;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.jdbc.core.JdbcTemplate;
+
 import com.recipebuilder.dto.FavoriteRequest;
 import com.recipebuilder.exception.DatabaseUnavailableException;
 import com.recipebuilder.exception.DemoUserMissingException;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.springframework.dao.DataIntegrityViolationException;
-import org.springframework.dao.DataAccessResourceFailureException;
-import org.springframework.jdbc.core.JdbcTemplate;
-
-import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.anyLong;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 /**
  * The repository turns the database's own failures into ours, so nothing above
@@ -43,22 +43,22 @@ class FavoriteRepositoryErrorsTest {
 
     @Test
     void anUnreachableDatabaseBecomesOurOwnException() {
-        when(db.queryForObject(anyString(), eq(Long.class), any(), any(), any()))
+        when(db.queryForObject(anyString(), eq(Long.class), any(), any(), any(), any()))
                 .thenThrow(new DataAccessResourceFailureException("connection refused"));
 
         assertThatExceptionOfType(DatabaseUnavailableException.class)
-                .isThrownBy(() -> repository.save(DEMO_USER_ID, A_RECIPE));
+                .isThrownBy(() -> repository.save(DEMO_USER_ID, A_RECIPE, null));
     }
 
     @Test
     void aConstraintViolationOnSaveBecomesTheMissingDemoUser() {
         // In sprint 2 an integrity violation here is nearly always the foreign
         // key on saved_recipes.user_id, because V2__demo_user.sql was skipped.
-        when(db.queryForObject(anyString(), eq(Long.class), any(), any(), any()))
+        when(db.queryForObject(anyString(), eq(Long.class), any(), any(), any(), any()))
                 .thenThrow(new DataIntegrityViolationException("fk violation"));
 
         assertThatExceptionOfType(DemoUserMissingException.class)
-                .isThrownBy(() -> repository.save(DEMO_USER_ID, A_RECIPE))
+                .isThrownBy(() -> repository.save(DEMO_USER_ID, A_RECIPE, null))
                 .withMessageContaining("V2__demo_user.sql");
     }
 

@@ -1,10 +1,13 @@
 package com.recipebuilder.repository;
 
-import com.recipebuilder.dto.FavoriteDto;
-import org.springframework.jdbc.core.RowMapper;
-
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.List;
+
+import org.springframework.jdbc.core.RowMapper;
+
+import com.recipebuilder.dto.FavoriteDto;
+import com.recipebuilder.dto.ShoppingItemDto;
 
 /**
  * Copies one row of a query result into one FavoriteDto.
@@ -26,6 +29,9 @@ public class FavoriteRowMapper implements RowMapper<FavoriteDto> {
         String title = row.getString("title");
         String imageUrl = row.getString("image_url");
 
+        List<ShoppingItemDto> ingredients =
+            IngredientsJson.fromText(row.getString("ingredients_json"));
+
         // RB-205: getString gives null for a SQL NULL, which is exactly what
         // "no note written" means to the rest of the app.
         String note = row.getString("note");
@@ -38,6 +44,6 @@ public class FavoriteRowMapper implements RowMapper<FavoriteDto> {
             collectionId = null;
         }
 
-        return new FavoriteDto(spoonacularId, title, imageUrl, note, collectionId);
+        return new FavoriteDto(spoonacularId, title, imageUrl, ingredients, note, collectionId);
     }
 }

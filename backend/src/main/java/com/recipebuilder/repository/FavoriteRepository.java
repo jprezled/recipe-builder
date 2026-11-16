@@ -1,15 +1,17 @@
 package com.recipebuilder.repository;
 
-import com.recipebuilder.dto.FavoriteDto;
-import com.recipebuilder.dto.FavoriteRequest;
-import com.recipebuilder.exception.DatabaseUnavailableException;
-import com.recipebuilder.exception.DemoUserMissingException;
+import java.util.List;
+
 import org.springframework.dao.DataAccessException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
 
-import java.util.List;
+import com.recipebuilder.dto.FavoriteDto;
+import com.recipebuilder.dto.FavoriteRequest;
+import com.recipebuilder.dto.ShoppingItemDto;
+import com.recipebuilder.exception.DatabaseUnavailableException;
+import com.recipebuilder.exception.DemoUserMissingException;
 
 /**
  * The ONLY class that talks to Postgres.
@@ -48,8 +50,9 @@ public class FavoriteRepository {
      *
      * @param userId the user the favorite belongs to
      * @param recipe what the browser sent: Spoonacular id, title, image
+     * @param ingredients the shopping items for this recipe, or null
      */
-    public void save(long userId, FavoriteRequest recipe) {
+    public void save(long userId, FavoriteRequest recipe, List<ShoppingItemDto> ingredients) {
 
         // STEP 1: make sure the recipe is in OUR recipes table, and find out
         // what local id it got.
@@ -58,19 +61,23 @@ public class FavoriteRepository {
         // returns no row at all on a repeat - and then RETURNING gives us
         // nothing to link in step 2. Updating the title also means a recipe
         // Spoonacular has renamed gets the new name.
-        String upsertRecipe = "INSERT INTO recipes (spoonacular_id, title, image_url) "
-                + "VALUES (?, ?, ?) "
-                + "ON CONFLICT (spoonacular_id) DO UPDATE "
-                + "SET title = EXCLUDED.title, image_url = EXCLUDED.image_url "
-                + "RETURNING recipe_id";
+        String upsertRecipe = "INSERT INTO recipes (spoonacular_id, title, image_url, ingredients_json) "
+                 + "VALUES (?, ?, ?, ?) "
+                 + "ON CONFLICT (spoonacular_id) DO UPDATE "
+                 + "SET title = EXCLUDED.title, image_url = EXCLUDED.image_url, "
+                 + "ingredients_json = COALESCE(EXCLUDED.ingredients_json, "
+                 + "recipes.ingredients_json) "
+                 + "RETURNING recipe_id";
+
 
         String title = cut(recipe.title(), TITLE_LIMIT);
         String imageUrl = cut(recipe.imageUrl(), IMAGE_URL_LIMIT);
+        String ingredientsText = IngredientsJson.toText(ingredients);
 
         Long localRecipeId;
         try {
             localRecipeId = db.queryForObject(
-                    upsertRecipe, Long.class, recipe.id(), title, imageUrl);
+                    upsertRecipe, Long.class, recipe.id(), title, imageUrl, ingredientsText);
         } catch (DataAccessException failure) {
             throw asOurs(failure);
         }
@@ -102,7 +109,8 @@ public class FavoriteRepository {
      * @return the saved recipes, or an empty list if there are none
      */
     public List<FavoriteDto> findForUser(long userId) {
-        String sql = "SELECT r.spoonacular_id, r.title, r.image_url, s.note, s.collection_id "
+        String sql = "SELECT r.spoonacular_id, r.title, r.image_url, r.ingredients_json, "
+                + "s.note, s.collection_id "
                 + "FROM saved_recipes s "
                 + "JOIN recipes r ON r.recipe_id = s.recipe_id "
                 + "WHERE s.user_id = ? "
@@ -228,5 +236,22 @@ public class FavoriteRepository {
             return value;
         }
         return value.substring(0, limit);
+    }
+    public int fillInIngredients(long spoonacularId, List<ShoppingItemDto> ingredients) {
+        String text = IngredientsJson.toText(ingredients);
+        
+        // Nothing worth storing (null or empty): skip the database entirely.
+        if (text == null) {
+            return 0;
+        }
+    
+        String sql = "UPDATE recipes SET ingredients_json = ? "
+                + "WHERE spoonacular_id = ? AND ingredients_json IS NULL";
+    
+        try {
+            return db.update(sql, text, spoonacularId);
+        } catch (DataAccessException failure) {
+            throw asOurs(failure);
+        }
     }
 }

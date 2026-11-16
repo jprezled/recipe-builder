@@ -109,4 +109,28 @@ describe('RecipeShoppingList', () => {
 
     expect(await screen.findByRole('alert')).toHaveTextContent('Could not reach the recipe service.')
   })
+  it('fetches once when the saved recipe carries no ingredients', async () => {
+    renderList({ savedIngredients: null })
+
+    await userEvent.click(toggle())
+
+    expect(await screen.findByText('3 cloves of garlic (minced)')).toBeInTheDocument()
+    expect(getRecipe).toHaveBeenCalledTimes(1)
+    expect(getRecipe).toHaveBeenCalledWith(660101)
+  })
+
+  it('still compares the pantry against a stored list', async () => {
+    renderList({ pantry: 'carrot', savedIngredients: ALL_INGREDIENTS })
+
+    await userEvent.click(toggle())
+    await screen.findByText('3 cloves of garlic (minced)')
+
+    // Missing view is the default: the carrot line is hidden.
+    expect(screen.queryByText('2 large carrots')).not.toBeInTheDocument()
+
+    await userEvent.click(screen.getByRole('radio', { name: 'Whole recipe' }))
+
+    expect(screen.getByText('2 large carrots')).toBeInTheDocument()
+    expect(getRecipe).not.toHaveBeenCalled()
+  })
 })
