@@ -85,7 +85,8 @@ SELECT current_database();
 \echo 'Restoring saved recipe note...'
 \ir migrations/V4__saved_recipe_note.sql
 
--- There is no V5 on purpose (the numbering skips from V4 to V6) if it exist add it here.
+\echo 'Restoring pantry items...'
+\ir migrations/V5__create_pantry_items.sql
 
 \echo 'Restoring saved recipe restrictions...'
 \ir migrations/V6__saved_restrictions.sql
