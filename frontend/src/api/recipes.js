@@ -246,3 +246,32 @@ export async function saveNote(id, note) {
     throw new Error(await readErrorMessage(response))
   }
 }
+
+/**
+ * RB-193: what a recipe costs and what the cook still has to buy.
+ *
+ * A second Spoonacular call and a full quota point, so this is sent only
+ * when the cook presses the button - never on page load.
+ *
+ * @param {number|string} id     Spoonacular's recipe id
+ * @param {string} pantry        the cook's list, comma separated
+ * @returns {Promise<{total:number, youHave:number, youNeed:number, items:Array}>}
+ */
+export async function getRecipeCost(id, pantry) {
+  const address =
+    '/api/recipes/' + encodeURIComponent(id) + '/cost' +
+    (pantry ? '?ingredients=' + encodeURIComponent(pantry) : '')
+
+  let response
+  try {
+    response = await fetch(address)
+  } catch {
+    throw new Error(CANNOT_REACH)
+  }
+
+  if (!response.ok) {
+    throw new Error(await readErrorMessage(response))
+  }
+
+  return response.json()
+}
