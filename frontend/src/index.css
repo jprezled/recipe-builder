@@ -1003,3 +1003,73 @@ a.button {
 .favorites-page .recipe-grid {
   align-items: start;
 }
+
+/* ---------- Ingredient suggestions: RB-261 ---------- */
+
+.ingredient-input {
+  text-align: left;
+}
+
+.ingredient-input .ingredient-entry {
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.ingredient-autocomplete {
+  position: relative;
+  flex: 1 1 220px;
+  min-width: 0;
+  max-width: 340px;
+}
+
+.ingredient-autocomplete input[type="text"] {
+  display: block;
+  width: 100%;
+  min-width: 0;
+}
+
+.suggestions {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  z-index: 20;
+  max-height: 280px;
+  overflow-y: auto;
+  margin: 0;
+  padding: 0.25rem 0;
+  list-style: none;
+  background: white;
+  border: 1px solid #b9c9c4;
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgb(0 0 0 / 15%);
+}
+
+.suggestions [role="option"] {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  min-height: 44px;
+  padding: 0.5rem 0.75rem;
+  cursor: pointer;
+  overflow-wrap: anywhere;
+}
+
+.suggestions [role="option"]:hover,
+.suggestions .suggestion-on {
+  color: var(--color-heading);
+  background: #e7f3e7;
+}
+
+.suggestion-image {
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  object-fit: contain;
+}
+
+.ingredient-input input:focus-visible,
+.ingredient-input button:focus-visible {
+  outline: 2px solid var(--color-heading);
+  outline-offset: 3px;
+}

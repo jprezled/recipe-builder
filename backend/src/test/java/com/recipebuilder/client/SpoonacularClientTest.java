@@ -261,4 +261,73 @@ class SpoonacularClientTest {
 
         server.verify();
     }
+
+    @Test
+    void ingredientSuggestionsKeepSpoonacularOrder() throws IOException {
+        server.expect(requestTo(startsWith(
+                        "https://api.spoonacular.invalid/food/ingredients/autocomplete")))
+                .andExpect(method(HttpMethod.GET))
+                .andExpect(queryParam("query", "to"))
+                .andExpect(queryParam("number", "10"))
+                .andExpect(queryParam("apiKey", "test-key-not-a-real-key"))
+                .andRespond(withSuccess(
+                        stubbedRecipe("ingredient-autocomplete.json"),
+                        MediaType.APPLICATION_JSON));
+
+        var suggestions = client.suggestIngredients("to", 10);
+
+        assertThat(suggestions)
+                .extracting(suggestion -> suggestion.name())
+                .containsExactly(
+                        "tofu",
+                        "toast",
+                        "tonic water",
+                        "tomato",
+                        "toffee",
+                        "tostadas",
+                        "tortilla",
+                        "split pigeon peas",
+                        "tomatillos",
+                        "bean curd sheets");
+
+        server.verify();
+    }
+
+    @Test
+    void ingredientSuggestionImagesAreFileNames() throws IOException {
+        server.expect(requestTo(startsWith(
+                        "https://api.spoonacular.invalid/food/ingredients/autocomplete")))
+                .andExpect(queryParam("query", "to"))
+                .andExpect(queryParam("number", "10"))
+                .andRespond(withSuccess(
+                        stubbedRecipe("ingredient-autocomplete.json"),
+                        MediaType.APPLICATION_JSON));
+
+        var suggestions = client.suggestIngredients("to", 10);
+
+        assertThat(suggestions.get(0).image()).isEqualTo("tofu.png");
+        assertThat(suggestions.get(3).image()).isEqualTo("tomato.png");
+        assertThat(suggestions).allSatisfy(suggestion ->
+                assertThat(suggestion.image())
+                        .doesNotContain("://", "/"));
+
+        server.verify();
+    }
+
+    @Test
+    void emptyIngredientSuggestionsReturnAnEmptyList() {
+        server.expect(requestTo(startsWith(
+                        "https://api.spoonacular.invalid/food/ingredients/autocomplete")))
+                .andExpect(queryParam("query", "zzzzzz"))
+                .andExpect(queryParam("number", "10"))
+                .andRespond(withSuccess("[]", MediaType.APPLICATION_JSON));
+
+        var suggestions = client.suggestIngredients("zzzzzz", 10);
+
+        assertThat(suggestions).isEmpty();
+
+        server.verify();
+    }
+
+
 }
