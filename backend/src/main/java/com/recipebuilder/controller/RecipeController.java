@@ -8,6 +8,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.recipebuilder.dto.DietaryRestrictions;
+import com.recipebuilder.dto.RecipeCostDto;
 import com.recipebuilder.dto.RecipeDetailDto;
 import com.recipebuilder.dto.RecipeSummaryDto;
 import com.recipebuilder.service.RecipeService;
@@ -64,4 +65,25 @@ public class RecipeController {
     public RecipeDetailDto one(@PathVariable long id) {
         return service.getRecipe(id);
     }
+
+    /**
+     * RB-193: what one recipe costs, and what the cook still needs to buy.
+     *
+     * Its own address rather than part of the recipe, because the price
+     * breakdown is a second Spoonacular call and a second quota point. Asking
+     * for it only when the cook presses the button keeps browsing at one
+     * point a recipe instead of two.
+     *
+     * @param id          Spoonacular's recipe id, from the end of the address
+     * @param ingredients what the cook has, the same list the search used
+     * @return the costs, in dollars
+     */
+    @GetMapping("/api/recipes/{id}/cost")
+    public RecipeCostDto cost(
+            @PathVariable long id,
+            @RequestParam(required = false, defaultValue = "") String ingredients) {
+
+        return service.getRecipeCost(id, ingredients);
+    }
+
 }

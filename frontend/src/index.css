@@ -1004,6 +1004,52 @@ a.button {
   align-items: start;
 }
 
+/* RB-193: the price line and the "what I need to buy" panel. */
+.detail-cost {
+  color: var(--color-text);
+  font-size: 0.95rem;
+  margin: 0.4rem 0 0;
+}
+
+.cost-headline {
+  font-size: 1.05rem;
+  margin: 0 0 0.8rem;
+}
+
+.cost-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.cost-list li {
+  border-bottom: 1px solid #e3ebe3;
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  column-gap: 0.6rem;
+  padding: 7px 0;
+}
+
+/* Something the cook already has is struck through rather than hidden: the
+   list is also a check that the subtraction got it right. */
+.cost-list li.cost-have .cost-name {
+  text-decoration: line-through;
+  color: #7a8a7a;
+}
+
+.cost-tag {
+  color: #2a7d2a;
+  font-size: 0.95rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.cost-note {
+  color: #5a6b5a;
+  font-size: 0.8rem;
+  margin: 0.7rem 0 0;
+}
+
 /* ---------- Ingredient suggestions: RB-261 ---------- */
 
 .ingredient-input {

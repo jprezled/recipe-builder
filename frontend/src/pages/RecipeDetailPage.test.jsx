@@ -3,7 +3,7 @@ import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom'
 import RecipeDetailPage from './RecipeDetailPage'
-import { addFavorite, getFavorites, getRecipe } from '../api/recipes'
+import { addFavorite, getFavorites, getRecipe, getRecipeCost } from '../api/recipes'
 import { getCollections } from '../api/collections'
 
 vi.mock('../api/recipes')
@@ -16,6 +16,8 @@ const RECIPE = {
   imageUrl: 'https://img.spoonacular.com/recipes/660101-556x370.jpg',
   servings: 1,
   readyInMinutes: 45,
+  costPerServing: 1.96,
+  costTotal: 1.96,
   ingredients: [
     '2 whole dried chili pepper',
     '3 cloves of garlic (minced)',
@@ -520,4 +522,74 @@ describe('RecipeDetailPage', () => {
     expect(getRecipe).toHaveBeenCalledTimes(1)
     expect(getFavorites).toHaveBeenCalledTimes(1)
   })
+
+  // ---- RB-193: the cost ---------------------------------------------------
+
+  describe('the recipe cost', () => {
+    it('shows the price per serving without being asked', async () => {
+      // RB-193b is free - it arrived with the recipe, so it is just shown.
+      renderDetail()
+
+      expect(await screen.findByText(/\$1\.96/)).toBeInTheDocument()
+    })
+
+    it('does not fetch the shopping cost on page load', async () => {
+      // It is a whole quota point. Loading it with the page would double
+      // what browsing costs.
+      renderDetail()
+      await screen.findByText('Simple Garlic Pasta')
+
+      expect(getRecipeCost).not.toHaveBeenCalled()
+    })
+
+    it('fetches the shopping cost when the button is pressed', async () => {
+      getRecipeCost.mockResolvedValue({
+        total: 3.92, youHave: 0.2, youNeed: 3.72,
+        items: [
+          { name: 'garlic', price: 0.2, inPantry: true },
+          { name: 'olive oil', price: 1.1, inPantry: false },
+        ],
+      })
+      const user = userEvent.setup()
+      renderDetail()
+
+      await user.click(await screen.findByRole('button', { name: /what i need to buy/i }))
+
+      expect(await screen.findByText(/3\.72/)).toBeInTheDocument()
+      expect(screen.getByText('olive oil')).toBeInTheDocument()
+      expect(getRecipeCost).toHaveBeenCalledTimes(1)
+    })
+
+    it('sends the pantry from the address so it can be subtracted', async () => {
+      getRecipeCost.mockResolvedValue({ total: 3.92, youHave: 0.2, youNeed: 3.72, items: [] })
+      const user = userEvent.setup()
+      renderDetail('660101', '?ingredients=garlic')
+
+      await user.click(await screen.findByRole('button', { name: /what i need to buy/i }))
+
+      expect(getRecipeCost).toHaveBeenCalledWith(660101, 'garlic')
+    })
+
+    it('says the prices are a guide rather than a quote', async () => {
+      getRecipeCost.mockResolvedValue({ total: 3.92, youHave: 0, youNeed: 3.92, items: [] })
+      const user = userEvent.setup()
+      renderDetail()
+
+      await user.click(await screen.findByRole('button', { name: /what i need to buy/i }))
+
+      expect(await screen.findByText(/national averages/i)).toBeInTheDocument()
+    })
+
+    it('shows a failure without losing the recipe', async () => {
+      getRecipeCost.mockRejectedValue(new Error('Recipe search is unavailable right now.'))
+      const user = userEvent.setup()
+      renderDetail()
+
+      await user.click(await screen.findByRole('button', { name: /what i need to buy/i }))
+
+      expect(await screen.findByText('Recipe search is unavailable right now.')).toBeInTheDocument()
+      expect(screen.getByText('Simple Garlic Pasta')).toBeInTheDocument()
+    })
+  })
+
 })

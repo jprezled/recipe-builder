@@ -10,6 +10,7 @@ import org.springframework.web.client.HttpStatusCodeException;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 
+import com.recipebuilder.client.dto.SpoonacularPriceBreakdown;
 import com.recipebuilder.client.dto.SpoonacularRecipeInformation;
 import com.recipebuilder.client.dto.SpoonacularSearchResponse;
 import com.recipebuilder.client.dto.SpoonacularSearchResult;
@@ -218,4 +219,42 @@ public class SpoonacularClient {
         }
         return new ExternalApiException("Spoonacular returned HTTP " + status + ".", cause);
     }
+
+    /**
+     * RB-193: the per-ingredient prices for one recipe.
+     *
+     * A separate call from the recipe itself, and a FULL quota point - which
+     * is why the page fetches it only when the cook presses the button rather
+     * than on every recipe view. It would otherwise double browsing costs.
+     *
+     * @param id Spoonacular's recipe id
+     * @return their price breakdown, with every price in CENTS
+     */
+    public SpoonacularPriceBreakdown getPriceBreakdown(long id) {
+
+        // STEP 0: same guard as the other calls - no key, no request.
+        if (apiKey == null || apiKey.isBlank()) {
+            throw new ApiKeyMissingException(
+                    "SPOONACULAR_API_KEY is not set. Add it to the .env file at the repo root.");
+        }
+
+        // STEP 1: build the address.
+        String url = baseUrl
+                + "/recipes/{id}/priceBreakdownWidget.json"
+                + "?apiKey={apiKey}";
+
+        // STEP 2: send it and convert the reply into Java objects.
+        try {
+            return restTemplate.getForObject(
+                    url,
+                    SpoonacularPriceBreakdown.class,
+                    id,
+                    apiKey);
+        } catch (HttpStatusCodeException failure) {
+            throw translate(failure.getStatusCode().value(), failure);
+        } catch (RestClientException failure) {
+            throw new ExternalApiException("Could not reach Spoonacular.", failure);
+        }
+    }
+
 }

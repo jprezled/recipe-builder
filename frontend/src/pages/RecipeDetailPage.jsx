@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
-import { getFavorites, getRecipe } from '../api/recipes'
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
+import { getFavorites, getRecipe, getRecipeCost } from '../api/recipes'
 import { getCollections } from '../api/collections'
 import FavoriteButton from '../components/FavoriteButton'
 import RecipeNote from '../components/RecipeNote' 
@@ -77,6 +77,15 @@ export default function RecipeDetailPage() {
   const [note, setNote] = useState(null)
   const [isNoteOpen, setIsNoteOpen] = useState(false)
 
+  // RB-193: the shopping cost. Null until the cook asks for it, because
+  // fetching it is a whole Spoonacular point - loading it with the page would
+  // double what browsing a recipe costs.
+  const [searchParams] = useSearchParams()
+  const pantry = searchParams.get('ingredients') ?? ''
+  const [cost, setCost] = useState(null)
+  const [isCostLoading, setIsCostLoading] = useState(false)
+  const [costError, setCostError] = useState('')
+
 
   useEffect(() => {
     // A cook can click away while the request is still in flight. Without
@@ -130,6 +139,24 @@ export default function RecipeDetailPage() {
     }
   }, [id])
 
+  /** RB-193: fetched on demand; a second press puts the panel away. */
+  async function showCost() {
+    if (cost) {
+      setCost(null)
+      return
+    }
+
+    setIsCostLoading(true)
+    setCostError('')
+    try {
+      setCost(await getRecipeCost(recipe.id, pantry))
+    } catch (failure) {
+      setCostError(failure.message)
+    } finally {
+      setIsCostLoading(false)
+    }
+  }
+
   return (
     <main className="detail-page">
       {/* One step back in history rather than a fixed address, so this
@@ -181,6 +208,15 @@ export default function RecipeDetailPage() {
               collections={collections}
             />
 
+            {/* RB-193b: free - it arrived with the recipe, so it is simply
+                shown. The button below is the part that costs a point. */}
+            {recipe.costPerServing > 0 && (
+              <p className="detail-cost">
+                About <strong>${recipe.costPerServing.toFixed(2)}</strong> a serving
+                {recipe.servings > 1 && <> · ${recipe.costTotal.toFixed(2)} in total</>}
+              </p>
+            )}
+
             {recipe.nutrition != null && (
               <button
                 type="button"
@@ -209,6 +245,18 @@ export default function RecipeDetailPage() {
                 <span aria-hidden="true">{isShoppingOpen ? ' ▲' : ' ▼'}</span>
               </button>
             )}
+            <button
+              type="button"
+              className="button button-secondary"
+              aria-expanded={cost != null}
+              aria-controls="recipe-cost"
+              onClick={showCost}
+              disabled={isCostLoading}
+            >
+              {isCostLoading ? 'Working it out...' : 'What I need to buy'}
+              <span aria-hidden="true">{cost ? ' ▲' : ' ▼'}</span>
+            </button>
+
             {/* RB-272: always in the row, saved or not - a button that comes
                 and goes looks like a bug. See docs/recipe-notes-contract.md. */}
             <button
@@ -222,6 +270,43 @@ export default function RecipeDetailPage() {
               <span aria-hidden="true">{isNoteOpen ? ' ▲' : ' ▼'}</span>
             </button>
           </div>
+
+          {costError && <p role="alert">{costError}</p>}
+
+          {cost != null && (
+            <section className="detail-section" id="recipe-cost">
+              <h2>What I need to buy</h2>
+
+              <p className="cost-headline">
+                About <strong>${cost.youNeed.toFixed(2)}</strong> of shopping
+                {cost.youHave > 0 && (
+                  <> · ${cost.youHave.toFixed(2)} already in your kitchen</>
+                )}
+              </p>
+
+              <ul className="cost-list">
+                {cost.items.map((item) => (
+                  <li key={item.name} className={item.inPantry ? 'cost-have' : undefined}>
+                    <span className="cost-name">{item.name}</span>
+                    <span className="nutrition-amount">${item.price.toFixed(2)}</span>
+                    {item.inPantry && (
+                      // The tick carries meaning, so it needs a label - the
+                      // strike-through alone says nothing to a screen reader.
+                      <span className="cost-tag" role="img" aria-label="already in your kitchen">
+                        ✓
+                      </span>
+                    )}
+                  </li>
+                ))}
+              </ul>
+
+              {/* The contract requires this line: these are US national
+                  averages, not any shop's shelf price. */}
+              <p className="cost-note">
+                Prices are national averages, so treat them as a guide.
+              </p>
+            </section>
+          )}
 
           {isNoteOpen && (
             <section className="detail-section" id="recipe-note">

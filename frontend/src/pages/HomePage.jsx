@@ -1,5 +1,7 @@
+import { useEffect, useRef, useState } from 'react'
 import IngredientInput from '../components/IngredientInput'
 import { Link, useSearchParams } from 'react-router-dom'
+import { getPantry, savePantry } from '../api/accounts'
 import ResultsPage from './ResultsPage'
 
 /** "eggs, milk" from the address becomes ["eggs", "milk"] for the screen. */
@@ -35,6 +37,50 @@ export default function HomePage() {
   // coming back brings the recipes back and not just the ingredients.
   const showResults = searchParams.get('results') === '1'
 
+  // RB-208: load the pantry saved on the account, once, into an empty page.
+  //
+  // The address always wins: a link someone shared must show what the link
+  // says, not the recipient's own kitchen. So this only fills a page that
+  // arrived with no ingredients at all.
+  const hasLoadedSaved = useRef(false)
+
+  useEffect(() => {
+    if (hasLoadedSaved.current || searchParams.get('ingredients')) {
+      return
+    }
+    let stillOnThisPage = true
+
+    getPantry()
+      .then((saved) => {
+        if (!stillOnThisPage) {
+          return
+        }
+
+        // Latched here, not in the guard above. StrictMode runs this effect
+        // twice in development and cancels the first attempt in between - a
+        // latch set before the fetch would be spent on the attempt whose
+        // result is thrown away, and the second run would skip entirely.
+        hasLoadedSaved.current = true
+
+        if (!saved) {
+          return
+        }
+
+        const next = new URLSearchParams(searchParams)
+        next.set('ingredients', saved)
+        setSearchParams(next, { replace: true })
+      })
+      // Signed out is the ordinary case here, not a problem worth reporting.
+      .catch(() => {})
+
+    return () => {
+      stillOnThisPage = false
+    }
+    // Runs once. Re-running on every address change would fight the cook as
+    // they clear the list - they remove it, and it comes straight back.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
   /**
    * Write the pantry list into the address.
    *
@@ -61,6 +107,10 @@ export default function HomePage() {
     }
 
     setSearchParams(next, { replace })
+
+    // RB-208: keep the account's copy in step. Signed out this rejects, which
+    // is normal here, so it is swallowed the same way the load is.
+    savePantry(nextIngredients.join(',')).catch(() => {})
   }
 
   /**

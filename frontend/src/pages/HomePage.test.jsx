@@ -1,9 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { StrictMode } from 'react'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import HomePage from './HomePage'
 import { getFavorites, searchRecipes } from '../api/recipes'
+import { getPantry, savePantry } from '../api/accounts'
 
 // Peter's HomePage renders the real ResultsPage inside itself, and that page
 // does the searching. Stubbing the api layer keeps these tests about the
@@ -12,6 +14,20 @@ vi.mock('../api/recipes', () => ({
   searchRecipes: vi.fn(() => Promise.resolve([])),
   getFavorites: vi.fn(() => Promise.resolve([])),
   suggestIngredients: vi.fn(() => Promise.resolve([])),
+}))
+
+// RB-208: the home page reads and writes the saved pantry. The embedded
+// ResultsPage also reads the saved restrictions, so those belong here too -
+// an explicit mock has to list every export the page tree uses.
+vi.mock('../api/accounts', () => ({
+  getPantry: vi.fn(() => Promise.resolve('')),
+  savePantry: vi.fn(() => Promise.resolve()),
+  getRestrictions: vi.fn(() => Promise.resolve({ diet: '', intolerances: '' })),
+  saveRestrictions: vi.fn(() => Promise.resolve()),
+}))
+
+vi.mock('../api/collections', () => ({
+  getCollections: vi.fn(() => Promise.resolve([])),
 }))
 
 beforeEach(() => {
@@ -137,4 +153,77 @@ describe('HomePage', () => {
     renderHome()
     expect(screen.getByRole('link', { name: 'View Favorites' })).toBeInTheDocument()
   })
+
+  // ---- RB-208: the saved pantry ------------------------------------------
+
+  describe('the saved pantry', () => {
+    it('loads the saved pantry into an empty page', async () => {
+      getPantry.mockResolvedValue('eggs,milk')
+
+      renderHome('/')
+
+      expect(await screen.findByText('eggs')).toBeInTheDocument()
+      expect(screen.getByText('milk')).toBeInTheDocument()
+    })
+
+    it('lets the address win over the saved pantry', async () => {
+      // A link someone shared must show what the link says, not the
+      // recipient's own kitchen.
+      getPantry.mockResolvedValue('eggs,milk')
+
+      renderHome('/?ingredients=flour')
+
+      expect(await screen.findByText('flour')).toBeInTheDocument()
+      expect(screen.queryByText('eggs')).not.toBeInTheDocument()
+    })
+
+    it('saves the pantry when an ingredient is added', async () => {
+      getPantry.mockResolvedValue('')
+
+      renderHome('/')
+      await add('eggs')
+
+      await vi.waitFor(() => expect(savePantry).toHaveBeenCalledWith('eggs'))
+    })
+
+    it('saves the emptied pantry when the last ingredient goes', async () => {
+      getPantry.mockResolvedValue('')
+
+      renderHome('/?ingredients=eggs')
+      await userEvent.click(await screen.findByRole('button', { name: /remove eggs/i }))
+
+      await vi.waitFor(() => expect(savePantry).toHaveBeenCalledWith(''))
+    })
+
+    it('is quiet when signed out', async () => {
+      // Signed out is the ordinary case on this page, not a problem to
+      // report - the rejection is swallowed and the page stays usable.
+      getPantry.mockRejectedValue(new Error('Please sign in to save favorites.'))
+
+      renderHome('/')
+      await add('eggs')
+
+      expect(screen.getByText('eggs')).toBeInTheDocument()
+      expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+    })
+
+    it('still loads after StrictMode cancels the first attempt', async () => {
+      // The contract's Mistake 1: a flag set before the fetch is spent on
+      // the attempt whose result gets thrown away, and nothing ever loads.
+      getPantry.mockResolvedValue('eggs,milk')
+
+      render(
+        <StrictMode>
+          <MemoryRouter initialEntries={['/']}>
+            <Routes>
+              <Route path="/" element={<HomePage />} />
+            </Routes>
+          </MemoryRouter>
+        </StrictMode>,
+      )
+
+      expect(await screen.findByText('eggs')).toBeInTheDocument()
+    })
+  })
+
 })

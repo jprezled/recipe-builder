@@ -1,7 +1,10 @@
 package com.recipebuilder.controller;
 
 import org.junit.jupiter.api.Test;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
@@ -10,19 +13,23 @@ import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import com.recipebuilder.model.PantryItem;
-import com.recipebuilder.service.PantryService;
 import com.recipebuilder.service.SessionService;
+import com.recipebuilder.service.UserService;
 
 /**
- * The pantry web layer: who the item is saved for, and what happens when
- * nobody is signed in.
+ * The saved pantry web layer, as docs/saved-pantry-contract.md fixes it:
  *
- * The service is mocked, so no database is involved.
+ *   GET /api/pantry   -> "eggs,milk"   (text/plain)
+ *   PUT /api/pantry   <- "eggs,milk"   204
+ *
+ * The cook is the one in the session. There is deliberately no id in the
+ * address: an id there is a request to read somebody else's pantry.
  */
 @WebMvcTest(PantryController.class)
 class PantryControllerTest {
@@ -30,67 +37,50 @@ class PantryControllerTest {
     /** The session key agreed in docs/accounts-contract.md. */
     private static final String USER_ID = "userId";
 
-    /** Who the signed-in requests below are signed in as. */
     private static final long SIGNED_IN = 7L;
-
-    /** The id the demo account owns. Nothing here may be saved against it. */
-    private static final long DEMO_USER = 1L;
-
-    private static final String AN_ITEM = "{\"pantry\":\"garlic\"}";
 
     @Autowired
     private MockMvc mockMvc;
 
     @MockitoBean
-    private PantryService service;
+    private UserService service;
 
     @Test
-    void anItemIsSavedForTheSignedInCookNotTheDemoAccount() throws Exception {
-        when(service.savePantryItem(SIGNED_IN, "garlic"))
-                .thenReturn(new PantryItem(1L, SIGNED_IN, "garlic"));
+    void theSavedPantryComesBackAsPlainText() throws Exception {
+        when(service.getPantry(SIGNED_IN)).thenReturn("eggs,milk");
 
-        mockMvc.perform(post("/api/pantry")
-                        .sessionAttr(USER_ID, SIGNED_IN)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(AN_ITEM))
+        mockMvc.perform(get("/api/pantry").sessionAttr(USER_ID, SIGNED_IN))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.userId").value(SIGNED_IN));
-
-        // The id that reaches the service is the one in the session. A
-        // hardcoded id would write every cook's pantry onto one account.
-        verify(service).savePantryItem(eq(SIGNED_IN), eq("garlic"));
+                .andExpect(content().string("eggs,milk"));
     }
 
     @Test
-    void twoCooksSaveAgainstTheirOwnIds() throws Exception {
-        when(service.savePantryItem(SIGNED_IN, "garlic"))
-                .thenReturn(new PantryItem(1L, SIGNED_IN, "garlic"));
-        when(service.savePantryItem(9L, "garlic"))
-                .thenReturn(new PantryItem(2L, 9L, "garlic"));
-
-        mockMvc.perform(post("/api/pantry")
+    void savingAnswers204AndStoresAgainstTheSignedInCook() throws Exception {
+        mockMvc.perform(put("/api/pantry")
                         .sessionAttr(USER_ID, SIGNED_IN)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(AN_ITEM))
-                .andExpect(status().isOk());
+                        .contentType(MediaType.TEXT_PLAIN)
+                        .content("eggs,milk"))
+                .andExpect(status().isNoContent());
 
-        mockMvc.perform(post("/api/pantry")
-                        .sessionAttr(USER_ID, 9L)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(AN_ITEM))
-                .andExpect(status().isOk());
-
-        verify(service).savePantryItem(eq(SIGNED_IN), eq("garlic"));
-        verify(service).savePantryItem(eq(9L), eq("garlic"));
-        verify(service, org.mockito.Mockito.never())
-                .savePantryItem(eq(DEMO_USER), eq("garlic"));
+        verify(service).updatePantry(eq(SIGNED_IN), eq("eggs,milk"));
     }
 
     @Test
-    void signedOutIsRefusedWithTheAgreedSentenceAndTouchesNothing() throws Exception {
-        mockMvc.perform(post("/api/pantry")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(AN_ITEM))
+    void nobodyCanAskForAnotherCooksPantry() throws Exception {
+        when(service.getPantry(SIGNED_IN)).thenReturn("eggs,milk");
+
+        mockMvc.perform(get("/api/pantry").sessionAttr(USER_ID, SIGNED_IN))
+                .andExpect(status().isOk());
+
+        // The id comes from the session and nowhere else. Reading another
+        // cook's pantry has to be unexpressible, not merely refused.
+        verify(service).getPantry(SIGNED_IN);
+        verify(service, never()).getPantry(8L);
+    }
+
+    @Test
+    void readingSignedOutIsRefusedWithTheAgreedSentence() throws Exception {
+        mockMvc.perform(get("/api/pantry"))
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.message").value(SessionService.NOT_SIGNED_IN));
 
@@ -98,13 +88,23 @@ class PantryControllerTest {
     }
 
     @Test
-    void aBlankItemIsRefused() throws Exception {
-        mockMvc.perform(post("/api/pantry")
-                        .sessionAttr(USER_ID, SIGNED_IN)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"pantry\":\"   \"}"))
-                .andExpect(status().isBadRequest());
+    void savingSignedOutIsRefusedAndWritesNothing() throws Exception {
+        mockMvc.perform(put("/api/pantry")
+                        .contentType(MediaType.TEXT_PLAIN)
+                        .content("eggs,milk"))
+                .andExpect(status().isUnauthorized());
 
-        verifyNoInteractions(service);
+        verify(service, never()).updatePantry(anyLong(), anyString());
+    }
+
+    @Test
+    void anEmptyBodyClearsThePantryRatherThanFailing() throws Exception {
+        mockMvc.perform(put("/api/pantry")
+                        .sessionAttr(USER_ID, SIGNED_IN)
+                        .contentType(MediaType.TEXT_PLAIN)
+                        .content(""))
+                .andExpect(status().isNoContent());
+
+        verify(service).updatePantry(eq(SIGNED_IN), eq(""));
     }
 }
