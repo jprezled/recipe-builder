@@ -112,6 +112,8 @@ class RecipeControllerTest {
                 List.of("3 cloves of garlic (minced)"),
                 List.of("Start with boiling water in a large pot."),
                 new RecipeDetailDto.Diets(true, true, false, true),
+                1.96,    // RB-193: dollars per serving
+                1.96,    // RB-193: total, one serving
                 null,
                 List.of(new ShoppingItemDto("garlic", "3 cloves of garlic (minced)", "Produce"))));
 

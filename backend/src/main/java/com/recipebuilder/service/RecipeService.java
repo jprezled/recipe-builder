@@ -205,6 +205,8 @@ public class RecipeService {
                 theirs.glutenFree(),
                 theirs.dairyFree());
 
+        double costPerServing = round2(theirs.pricePerServing() / 100.0);
+
         return new RecipeDetailDto(
                 theirs.id(),
                 theirs.title(),
@@ -214,6 +216,10 @@ public class RecipeService {
                 ingredients,
                 steps,
                 diets,
+                // RB-193: cents to dollars, here and nowhere else, so every
+                // screen receives dollars. docs/cost-contract.md.
+                costPerServing,
+                round2(costPerServing * theirs.servings()),
                 toNutrition(theirs.nutrition()),
                 allIngredients);
     }

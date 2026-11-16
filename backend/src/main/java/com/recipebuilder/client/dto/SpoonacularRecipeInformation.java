@@ -22,6 +22,11 @@ public record SpoonacularRecipeInformation(
         String image,
         int servings,
         int readyInMinutes,
+        /**
+         * RB-193: in CENTS, not dollars. 195.54 means $1.96. It was always in
+         * this reply and was being dropped - converting it costs no quota.
+         */
+        double pricePerServing,
         boolean vegetarian,
         boolean vegan,
         boolean glutenFree,

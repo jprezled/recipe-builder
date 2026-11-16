@@ -48,6 +48,7 @@ class RecipeDetailCacheTest {
                 "https://img.spoonacular.com/recipes/660101-556x370.jpg",
                 1,
                 45,
+                195.54,   // RB-193: price per serving, in cents
                 true,    // vegetarian
                 true,    // vegan
                 false,   // glutenFree

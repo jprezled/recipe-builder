@@ -24,6 +24,10 @@ public record RecipeDetailDto(
         /** The steps in order. Empty when the recipe came with none. */
         List<String> steps,
         Diets diets,
+        /** RB-193: dollars, already converted from their cents. */
+        double costPerServing,
+        /** RB-193: costPerServing times servings, in dollars. */
+        double costTotal,
         Nutrition nutrition,
         /**
          * RB-203: every ingredient, with the supermarket aisle it belongs to.
