@@ -1,7 +1,8 @@
 package com.recipebuilder.repository;
 
-import com.recipebuilder.dto.CollectionDto;
-import com.recipebuilder.dto.FavoriteRequest;
+import java.util.List;
+
+import static org.assertj.core.api.Assertions.assertThat;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -11,9 +12,8 @@ import org.springframework.context.annotation.Import;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ActiveProfiles;
 
-import java.util.List;
-
-import static org.assertj.core.api.Assertions.assertThat;
+import com.recipebuilder.dto.CollectionDto;
+import com.recipebuilder.dto.FavoriteRequest;
 
 /**
  * Collections against the real test database, set up the same way as
@@ -132,7 +132,7 @@ class CollectionRepositoryTest {
     void deletingACollectionLeavesItsRecipesSaved() {
         CollectionDto created = repository.create(DEMO_USER_ID, "Breakfast");
         favorites.save(DEMO_USER_ID,
-                new FavoriteRequest(716429L, "Pancakes", null, created.id()));
+                new FavoriteRequest(716429L, "Pancakes", null, created.id()), null);
 
         repository.delete(DEMO_USER_ID, created.id());
 

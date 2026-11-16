@@ -1,33 +1,33 @@
 package com.recipebuilder.controller;
 
-import com.recipebuilder.exception.RecipeNotFoundException;
-import com.recipebuilder.dto.FavoriteDto;
-import com.recipebuilder.dto.FavoriteRequest;
-import com.recipebuilder.exception.DatabaseUnavailableException;
-import com.recipebuilder.exception.DemoUserMissingException;
-import com.recipebuilder.exception.InvalidInputException;
-import com.recipebuilder.service.FavoriteService;
-import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.http.MediaType;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
-import org.springframework.test.web.servlet.MockMvc;
-
 import java.util.List;
 
+import org.junit.jupiter.api.Test;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.http.MediaType;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.web.servlet.MockMvc;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
+import com.recipebuilder.dto.FavoriteDto;
+import com.recipebuilder.dto.FavoriteRequest;
+import com.recipebuilder.exception.DatabaseUnavailableException;
+import com.recipebuilder.exception.DemoUserMissingException;
+import com.recipebuilder.exception.InvalidInputException;
+import com.recipebuilder.exception.RecipeNotFoundException;
+import com.recipebuilder.service.FavoriteService;
 
 /**
  * The favorites web layer: addresses, status codes and JSON shape.
@@ -56,7 +56,7 @@ class FavoriteControllerTest {
     @Test
     void listsFavoritesAsJson() throws Exception {
         when(service.list(SIGNED_IN)).thenReturn(List.of(
-                new FavoriteDto(716429L, "Garlic Chicken Pasta", "http://img/1.jpg", null, null)));
+                new FavoriteDto(716429L, "Garlic Chicken Pasta", "http://img/1.jpg", null, null, null)));
 
         mockMvc.perform(get("/api/favorites").sessionAttr(USER_ID, SIGNED_IN))
                 .andExpect(status().isOk())
@@ -257,7 +257,7 @@ class FavoriteControllerTest {
     @Test
     void aNoteComesBackOnEachSavedRecipe() throws Exception {
         when(service.list(SIGNED_IN)).thenReturn(List.of(
-                new FavoriteDto(716429L, "Pasta", "http://img/1.jpg", "double the garlic", null)));
+                new FavoriteDto(716429L, "Pasta", "http://img/1.jpg", null, "double the garlic", null)));
 
         mockMvc.perform(get("/api/favorites").sessionAttr(USER_ID, SIGNED_IN))
                 .andExpect(status().isOk())
@@ -311,7 +311,7 @@ class FavoriteControllerTest {
     @Test
     void listingReportsEachRecipesCollection() throws Exception {
         when(service.list(SIGNED_IN)).thenReturn(List.of(
-                new FavoriteDto(716429L, "Pancakes", null, null, 3L)));
+                new FavoriteDto(716429L, "Pancakes", null, null, null, 3L)));
 
         mockMvc.perform(get("/api/favorites").sessionAttr(USER_ID, SIGNED_IN))
                 .andExpect(jsonPath("$[0].collectionId").value(3));

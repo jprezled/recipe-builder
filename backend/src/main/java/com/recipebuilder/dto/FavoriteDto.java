@@ -1,5 +1,7 @@
 package com.recipebuilder.dto;
 
+import java.util.List;
+
 /**
  * One saved recipe, as our API hands it back to the frontend.
  *
@@ -22,6 +24,8 @@ public record FavoriteDto(
          * and "a note they cleared" are the same thing and the page has one
          * case to handle rather than two.
          */
+        List<ShoppingItemDto> ingredients,   // RB-262: null = never stored
+        
         String note,
         /**
          * RB-210: the collection this recipe sits in, or null when it is

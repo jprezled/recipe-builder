@@ -1,15 +1,17 @@
 package com.recipebuilder.service;
 
+import java.util.List;
+
+import org.springframework.stereotype.Service;
+
 import com.recipebuilder.dto.FavoriteDto;
 import com.recipebuilder.dto.FavoriteRequest;
+import com.recipebuilder.dto.ShoppingItemDto;
 import com.recipebuilder.exception.CollectionNotFoundException;
 import com.recipebuilder.exception.InvalidInputException;
 import com.recipebuilder.exception.RecipeNotFoundException;
 import com.recipebuilder.repository.CollectionRepository;
 import com.recipebuilder.repository.FavoriteRepository;
-import org.springframework.stereotype.Service;
-
-import java.util.List;
 
 /**
  * The rules about saving favorites.
@@ -24,10 +26,12 @@ public class FavoriteService {
 
     private final FavoriteRepository repository;
     private final CollectionRepository collections;
+    private final RecipeService recipes;
 
-    public FavoriteService(FavoriteRepository repository, CollectionRepository collections) {
+    public FavoriteService(FavoriteRepository repository, CollectionRepository collections, RecipeService recipes) {
         this.repository = repository;
         this.collections = collections;
+        this.recipes = recipes;
     }
 
     /**
@@ -37,6 +41,13 @@ public class FavoriteService {
      *               session, because this layer must not know HTTP exists
      * @param recipe what the browser sent: Spoonacular id, title, image
      */
+    private List<ShoppingItemDto> ingredientsOrNothing(long spoonacularId) {
+        try {
+            return recipes.getRecipe(spoonacularId).allIngredients();
+        } catch (RuntimeException couldNotFetch) {
+            return null;
+        }
+    }
     public void add(long userId, FavoriteRequest recipe) {
         if (recipe == null) {
             throw new InvalidInputException("No recipe was sent to save.");
@@ -52,10 +63,9 @@ public class FavoriteService {
         if (recipe.title() == null || recipe.title().isBlank()) {
             throw new InvalidInputException("That recipe cannot be saved - it has no title.");
         }
-
         requireOwnCollection(userId, recipe.collectionId());
-
-        repository.save(userId, recipe);
+        List<ShoppingItemDto> ingredients = ingredientsOrNothing(recipe.id());
+        repository.save(userId, recipe, ingredients);
     }
 
     /**

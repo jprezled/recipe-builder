@@ -764,7 +764,7 @@ a.button {
   clip: rect(0, 0, 0, 0);
   white-space: nowrap;
   border: 0;
-
+}
 /* RB-205: the cook's note on a saved recipe, at the foot of its card. */
 .note {
   border-top: 1px solid #e3ebe3;
@@ -998,4 +998,8 @@ a.button {
   justify-content: space-between;
   gap: 1rem;
   padding: 7px 0;
+}
+
+.favorites-page .recipe-grid {
+  align-items: start;
 }
