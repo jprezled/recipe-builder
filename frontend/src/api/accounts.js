@@ -156,3 +156,30 @@ export async function saveRestrictions(diet, intolerances) {
     body: JSON.stringify({ diet, intolerances }),
   })
 }
+
+/**
+ * RB-208: the pantry this cook last saved to their account.
+ *
+ * Plain text, not JSON - the body IS the list. Rejects when nobody is
+ * signed in, exactly as getRestrictions does; the caller decides whether
+ * that is worth showing, and on the home page it is not.
+ *
+ * @returns {Promise<string>} "eggs,milk", or "" when nothing is saved
+ */
+export async function getPantry() {
+  const response = await send('/api/pantry', { method: 'GET' })
+  return response.text()
+}
+
+/**
+ * RB-208: replaces the saved pantry.
+ *
+ * @param {string} pantry the comma-separated list, or "" to clear it
+ */
+export async function savePantry(pantry) {
+  await send('/api/pantry', {
+    method: 'PUT',
+    headers: { 'Content-Type': 'text/plain' },
+    body: pantry,
+  })
+}

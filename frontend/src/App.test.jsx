@@ -39,6 +39,9 @@ vi.mock('./api/accounts', () => ({
   // listed here or the whole file throws.
   getRestrictions: vi.fn(() => Promise.resolve({ diet: '', intolerances: '' })),
   saveRestrictions: vi.fn(() => Promise.resolve()),
+  // RB-208: HomePage reads and writes the saved pantry on mount.
+  getPantry: vi.fn(() => Promise.resolve('')),
+  savePantry: vi.fn(() => Promise.resolve()),
 }))
 
 beforeEach(() => {
