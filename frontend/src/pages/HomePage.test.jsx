@@ -13,6 +13,7 @@ import { getPantry, savePantry } from '../api/accounts'
 vi.mock('../api/recipes', () => ({
   searchRecipes: vi.fn(() => Promise.resolve([])),
   getFavorites: vi.fn(() => Promise.resolve([])),
+  suggestIngredients: vi.fn(() => Promise.resolve([])),
 }))
 
 // RB-208: the home page reads and writes the saved pantry. The embedded

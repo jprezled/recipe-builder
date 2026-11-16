@@ -19,6 +19,7 @@ import com.recipebuilder.exception.ApiKeyMissingException;
 import com.recipebuilder.exception.ApiLimitReachedException;
 import com.recipebuilder.exception.ExternalApiException;
 import com.recipebuilder.exception.RecipeNotFoundException;
+import com.recipebuilder.client.dto.SpoonacularIngredientSuggestion;
 
 /**
  * The ONLY class that talks to spoonacular.com.
@@ -77,6 +78,8 @@ public class SpoonacularClient {
 
         // The values for the placeholders, in the order they appear in the url.
         List<Object> values = new ArrayList<>(List.of(ingredients, sort, number, apiKey));
+
+
 
         // Each filter adds its placeholder AND its value in the same step,
         // so the two can never get out of line.
@@ -149,6 +152,47 @@ public class SpoonacularClient {
             throw new ExternalApiException("Could not reach Spoonacular.", failure);
         }
     }
+
+     /**
+     * Requests ingredient suggestions in Spoonacular's relevance order.
+     */
+    public List<SpoonacularIngredientSuggestion> suggestIngredients(
+            String query, int number) {
+
+        if (apiKey == null || apiKey.isBlank()) {
+            throw new ApiKeyMissingException(
+                    "SPOONACULAR_API_KEY is not set. Add it to the .env file at the repo root.");
+        }
+
+        String url = baseUrl
+                + "/food/ingredients/autocomplete"
+                + "?query={query}"
+                + "&number={number}"
+                + "&apiKey={apiKey}";
+
+        SpoonacularIngredientSuggestion[] suggestions;
+
+        try {
+            suggestions = restTemplate.getForObject(
+                    url,
+                    SpoonacularIngredientSuggestion[].class,
+                    query,
+                    number,
+                    apiKey);
+        } catch (HttpStatusCodeException failure) {
+            throw translate(failure.getStatusCode().value(), failure);
+        } catch (RestClientException failure) {
+            throw new ExternalApiException(
+                    "Could not reach Spoonacular.", failure);
+        }
+
+        if (suggestions == null) {
+            return List.of();
+        }
+
+        return List.of(suggestions);
+    }   
+
 
     /** A choice counts only if the cook picked something real. */
     private static boolean hasValue(String choice) {

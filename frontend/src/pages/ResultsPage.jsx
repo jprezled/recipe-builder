@@ -4,6 +4,7 @@ import { getFavorites, searchRecipes } from '../api/recipes'
 import { getRestrictions, saveRestrictions } from '../api/accounts'
 import { getCollections } from '../api/collections'
 import RecipeCard from '../components/RecipeCard'
+import IngredientInput from '../components/IngredientInput'
 
 // Temporary preview: uncomment this import and the block below to inspect filter controls. done
 import DietaryFilters from '../components/DietaryFilters'
@@ -113,30 +114,8 @@ useEffect(() => {
   const [isSearching, setIsSearching] = useState(true)
 
   // State for adding/removing ingredients inline on the results page (Task 3)
-  const [quickTyped, setQuickTyped] = useState('')
   const ingredientList = ingredients ? ingredients.split(',').map((i) => i.trim()).filter(Boolean) : []
 
-  function handleQuickAdd(event) {
-    event.preventDefault()
-    const pieces = quickTyped
-      .split(',')
-      .map((p) => p.trim())
-      .filter(Boolean)
-
-    if (pieces.length === 0) return
-
-    const nextList = [...ingredientList]
-    for (const piece of pieces) {
-      if (!nextList.some((existing) => existing.toLowerCase() === piece.toLowerCase())) {
-        nextList.push(piece)
-      }
-    }
-
-    const nextParams = new URLSearchParams(searchParams)
-    nextParams.set('ingredients', nextList.join(','))
-    setSearchParams(nextParams)
-    setQuickTyped('')
-  }
 
   function handleQuickRemove(ingredientToRemove) {
     const nextList = ingredientList.filter((ing) => ing !== ingredientToRemove)
@@ -215,7 +194,40 @@ useEffect(() => {
     }
   }, [ingredients, diet, intolerances, sort])
 
-// === RB-173 Apply Handler
+  function handleAddIngredient(name) {
+    const nextIngredients = ingredients
+      .split(',')
+      .map((ingredient) => ingredient.trim())
+      .filter(Boolean)
+
+    const additions = name
+      .split(',')
+      .map((ingredient) => ingredient.trim())
+      .filter(Boolean)
+
+    for (const addition of additions) {
+      const alreadyAdded = nextIngredients.some(
+        (ingredient) => ingredient.toLowerCase() === addition.toLowerCase(),
+    )
+
+      if (!alreadyAdded) {
+        nextIngredients.push(addition)
+      }
+    }
+    const next = new URLSearchParams(searchParams)
+    next.set('ingredients', nextIngredients.join(','))
+    setSearchParams(next, { replace: true })
+  }
+
+  // === RB-173 Apply Handler
+  /**
+   * Put the chosen restrictions in the address.
+   *
+   * Apply navigates rather than searching directly: the effect above already
+   * re-runs when these change, so the address stays the one source of truth.
+   */
+  //function handleApplyFilters(chosenDiet, chosenIntolerances) {
+  //  const next = new URLSearchParams(searchParams)
   function handleApplyFilters(chosenDiet, chosenIntolerances) {
     saveRestrictions(chosenDiet, chosenIntolerances.join(',')).catch(() => {})
 
@@ -311,16 +323,15 @@ useEffect(() => {
             </span>
           ))}
         </div>
-        <form onSubmit={handleQuickAdd} className="inline-add-form">
-          <input
-            type="text"
-            value={quickTyped}
-            onChange={(event) => setQuickTyped(event.target.value)}
-            placeholder="Add another..."
-            aria-label="Add another ingredient"
-          />
-          <button type="submit" className="button">Add</button>
-        </form>
+        {/* RB-228 inside RB-211's editor: one add box, with suggestions.
+            Two separate add forms on one page would be the same job twice. */}
+        <IngredientInput
+          id="results-ingredient"
+          label="Add another ingredient"
+          hideLabel
+          placeholder="Add another..."
+          onAdd={handleAddIngredient}
+        />
       </div>
 
       <DietaryFilters

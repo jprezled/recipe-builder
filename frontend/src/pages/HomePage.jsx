@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import IngredientInput from '../components/IngredientInput'
 import { Link, useSearchParams } from 'react-router-dom'
 import { getPantry, savePantry } from '../api/accounts'
 import ResultsPage from './ResultsPage'
@@ -29,11 +30,6 @@ export default function HomePage() {
   // whenever the cook uses the nav bar, so anything kept in useState here is
   // destroyed on the way out and the list comes back empty.
   const [searchParams, setSearchParams] = useSearchParams()
-
-  // `typed` is only the text currently in the input. It does not become part
-  // of the pantry list until the user presses Add or submits with Enter, so
-  // it is the one thing here that genuinely should not survive leaving.
-  const [typed, setTyped] = useState('')
 
   const ingredients = splitList(searchParams.get('ingredients'))
 
@@ -126,16 +122,12 @@ export default function HomePage() {
    * one row holding three things - which would otherwise make the remove
    * button take out all three at once.
    */
-  function handleAdd(event) {
-    // Stop the browser from reloading the page when the form is submitted.
-    event.preventDefault()
-
-    // One entry usually, but people paste. Trim each piece and drop the empty
-    // ones, so a trailing comma does not add a blank row.
-    const pieces = typed
-      .split(',')
-      .map((piece) => piece.trim())
-      .filter((piece) => piece !== '')
+  function handleAdd(name) {
+  // Split the text received from IngredientInput into separate ingredients.
+  const pieces = name
+    .split(',')
+    .map((piece) => piece.trim())
+    .filter((piece) => piece !== '')
 
     if (pieces.length === 0) {
       return
@@ -160,9 +152,6 @@ export default function HomePage() {
 
     // Hide old results because they were generated for the previous list.
     putInAddress(next, false, true)
-
-    // Clear the input after adding.
-    setTyped('')
   }
 
   /**
@@ -207,21 +196,12 @@ export default function HomePage() {
       </p>
 
       {/* Submitting this form adds an ingredient without leaving the page. */}
-      <form onSubmit={handleAdd} className="search-form">
-        <div className="search-bar-container">
-          <input
-            id="ingredient"
-            className="search-bar-input"
-            value={typed}
-            onChange={(event) => setTyped(event.target.value)}
-            placeholder="Type an ingredient, e.g. eggs"
-            aria-label="Ingredient"
-          />
-          <button type="submit" className="search-bar-button">
-            Add
-          </button>
-        </div>
-      </form>
+      <IngredientInput
+        id="ingredient"
+        label="Ingredient"
+        placeholder="Type an ingredient, e.g. eggs"
+        onAdd={handleAdd}
+      />
 
       <h2>Your ingredients</h2>
 
