@@ -158,16 +158,17 @@ export default function HomePage() {
       </p>
 
       {/* Submitting this form adds an ingredient without leaving the page. */}
-      <form onSubmit={handleAdd}>
-        <div className="ingredient-entry">
-          <label htmlFor="ingredient">Ingredient</label>{' '}
+      <form onSubmit={handleAdd} className="search-form">
+        <div className="search-bar-container">
           <input
             id="ingredient"
+            className="search-bar-input"
             value={typed}
             onChange={(event) => setTyped(event.target.value)}
             placeholder="Type an ingredient, e.g. eggs"
-          />{' '}
-          <button type="submit" className="button">
+            aria-label="Ingredient"
+          />
+          <button type="submit" className="search-bar-button">
             Add
           </button>
         </div>

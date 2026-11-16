@@ -112,6 +112,43 @@ useEffect(() => {
   // its first request is running.
   const [isSearching, setIsSearching] = useState(true)
 
+  // State for adding/removing ingredients inline on the results page (Task 3)
+  const [quickTyped, setQuickTyped] = useState('')
+  const ingredientList = ingredients ? ingredients.split(',').map((i) => i.trim()).filter(Boolean) : []
+
+  function handleQuickAdd(event) {
+    event.preventDefault()
+    const pieces = quickTyped
+      .split(',')
+      .map((p) => p.trim())
+      .filter(Boolean)
+
+    if (pieces.length === 0) return
+
+    const nextList = [...ingredientList]
+    for (const piece of pieces) {
+      if (!nextList.some((existing) => existing.toLowerCase() === piece.toLowerCase())) {
+        nextList.push(piece)
+      }
+    }
+
+    const nextParams = new URLSearchParams(searchParams)
+    nextParams.set('ingredients', nextList.join(','))
+    setSearchParams(nextParams)
+    setQuickTyped('')
+  }
+
+  function handleQuickRemove(ingredientToRemove) {
+    const nextList = ingredientList.filter((ing) => ing !== ingredientToRemove)
+    const nextParams = new URLSearchParams(searchParams)
+    if (nextList.length > 0) {
+      nextParams.set('ingredients', nextList.join(','))
+    } else {
+      nextParams.delete('ingredients')
+    }
+    setSearchParams(nextParams)
+  }
+
   // Search again when the ingredient list changes. This happens if the
   // standalone page's query string changes, or if Home passes a new list.
   useEffect(() => {
@@ -139,7 +176,6 @@ useEffect(() => {
         // the same time. A favorites-service failure should not prevent the
         // recipe search from succeeding.
         const [foundRecipes, savedFavorites, savedCollections] = await Promise.all([
-          //searchRecipes(ingredients), //legacy, add new paramters 
           searchRecipes(ingredients, { diet, intolerances, sort }),   
           getFavorites().catch(() => []),
           // A signed-out visitor is refused here, and that is normal: no picker,
@@ -177,24 +213,14 @@ useEffect(() => {
     return () => {
       stillOnThisPage = false
     }
-  }, [ingredients, diet, intolerances, sort]) //added diet and intolerances 
+  }, [ingredients, diet, intolerances, sort])
 
 // === RB-173 Apply Handler
-  /**
-   * Put the chosen restrictions in the address.
-   *
-   * Apply navigates rather than searching directly: the effect above already
-   * re-runs when these change, so the address stays the one source of truth.
-   */
-  //function handleApplyFilters(chosenDiet, chosenIntolerances) {
-  //  const next = new URLSearchParams(searchParams)
   function handleApplyFilters(chosenDiet, chosenIntolerances) {
     saveRestrictions(chosenDiet, chosenIntolerances.join(',')).catch(() => {})
 
     const next = new URLSearchParams(searchParams)
 
-    // Removed rather than set to an empty value, so an unfiltered search has
-    // a clean address and the request matches what it always sent.
     if (chosenDiet) {
       next.set('diet', chosenDiet)
     } else {
@@ -211,13 +237,6 @@ useEffect(() => {
   }
 
   // === RB-226 Sort handler
-  /**
-   * Put the chosen sort in the address.
-   *
-   * Like Apply, this does not search directly: the effect above re-runs when
-   * the address changes. The default is removed rather than written, so a
-   * plain search keeps its old address and its old cache entry.
-   */
   function handleSortChange(chosenSort) {
     const next = new URLSearchParams(searchParams)
 
@@ -230,42 +249,24 @@ useEffect(() => {
     setSearchParams(next)
   } 
 
-  /**
-   * Keep the star state in sync after a favorite button is clicked.
-   *
-   * FavoriteButton handles saving or removing the favorite through the API.
-   * This callback updates the IDs used to display the stars on this page.
-   */
   function handleFavoriteChange(id, isNowFavorite) {
     setFavoriteIds((currentIds) => {
       if (isNowFavorite) {
-        // Avoid adding the same ID twice if the callback is repeated.
         return currentIds.includes(id) ? currentIds : [...currentIds, id]
       }
-
-      // Remove this recipe's ID after it is unfavorited.
       return currentIds.filter((favoriteId) => favoriteId !== id)
     })
   }
 
-  // Show the empty-results message only after a successful search has finished.
   const foundNothing =
     !isSearching && !errorMessage && recipes.length === 0
 
-  // Use a section when embedded inside Home's main landmark. Use main when
-  // this component is the full, standalone Results page.
   const PageWrapper = embedded ? 'section' : 'main'
 
-  // Home passes the URL to use for Expand. The fallback also supports using
-  // this component in another embedded location later.
   const expandUrl =
     resultsUrl ||
     '/results?ingredients=' + encodeURIComponent(ingredients)
 
-  // Built from the current address rather than from scratch, so going back to
-  // edit the ingredients does not silently drop the cook's diet and
-  // intolerances - they chose those, and an unfiltered search is a different
-  // search.
   const backToIngredients = new URLSearchParams(searchParams)
   backToIngredients.set('ingredients', ingredients)
   const backToIngredientsSearch = backToIngredients.toString()
@@ -286,8 +287,6 @@ useEffect(() => {
           </p>
         </div>
 
-        {/* Expand is only needed in the embedded version. It opens the same
-            results as a dedicated page, using the current ingredient list. */}
         {embedded && (
           <Link className="button button-secondary" to={expandUrl}>
             Expand
@@ -295,13 +294,35 @@ useEffect(() => {
         )}
       </div>
 
-      
-      
-      
+      {/* Inline Pantry Modifier (Task 3: Change ingredients without leaving the page) */}
+      <div className="inline-pantry-editor">
+        <span className="inline-pantry-label">Active Ingredients:</span>
+        <div className="inline-pantry-chips">
+          {ingredientList.map((ing) => (
+            <span key={ing} className="pantry-chip">
+              {ing}
+              <button
+                type="button"
+                onClick={() => handleQuickRemove(ing)}
+                aria-label={'Remove ' + ing}
+              >
+                &times;
+              </button>
+            </span>
+          ))}
+        </div>
+        <form onSubmit={handleQuickAdd} className="inline-add-form">
+          <input
+            type="text"
+            value={quickTyped}
+            onChange={(event) => setQuickTyped(event.target.value)}
+            placeholder="Add another..."
+            aria-label="Add another ingredient"
+          />
+          <button type="submit" className="button">Add</button>
+        </form>
+      </div>
 
-      {/* The key remounts the controls when the applied choices change, so
-      they always show what the address actually asked for - including
-      after a refresh or a Back. */}
       <DietaryFilters
         key={(diet ?? '') + '|' + (intolerances ?? '')}
         selectedDiet={diet}
@@ -309,9 +330,6 @@ useEffect(() => {
         onApply={handleApplyFilters}
       />
 
-      {/* RB-227: one choice, so it applies straight away - no Apply button.
-          Its value comes from the address, so it always shows what the
-          address asked for, including after a refresh or a Back. */}
       <div className="sort-control">
         <label htmlFor="sort-order">Sort by</label>
         <select
@@ -324,18 +342,10 @@ useEffect(() => {
         </select>
       </div>
 
-
-      {/* Keep the user informed while the recipe search is running. */}
       {isSearching && <p>Searching...</p>}
-
-      {/* role="alert" helps assistive technology announce an error promptly. */}
       {errorMessage && <p role="alert">{errorMessage}</p>}
-
-      {/* Only show this after a successful search has completed with no hits. */}
       {foundNothing && <p>No recipes found for those ingredients.</p>}
 
-      {/* Each recipe becomes one card. The ID is its stable React key and is
-          also used to determine whether its favorite star is selected. */}
       <div
         className={
           embedded
@@ -364,8 +374,6 @@ useEffect(() => {
         ))}
       </div>
 
-      {/* The embedded version has Expand instead of a Back button. The
-          standalone Results page keeps the existing route back to Home. */}
       {!embedded && (
         <div className="button-group">
           <Link
@@ -378,6 +386,4 @@ useEffect(() => {
       )}
     </PageWrapper>
   )
-
-  
 }
