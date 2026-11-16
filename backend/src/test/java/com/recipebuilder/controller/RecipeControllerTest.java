@@ -19,6 +19,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.recipebuilder.dto.DietaryRestrictions;
+import com.recipebuilder.dto.RecipeCostDto;
 import com.recipebuilder.dto.RecipeDetailDto;
 import com.recipebuilder.dto.RecipeSummaryDto;
 import com.recipebuilder.dto.ShoppingItemDto;
@@ -112,6 +113,8 @@ class RecipeControllerTest {
                 List.of("3 cloves of garlic (minced)"),
                 List.of("Start with boiling water in a large pot."),
                 new RecipeDetailDto.Diets(true, true, false, true),
+                1.96,    // RB-193: dollars per serving
+                1.96,    // RB-193: total, one serving
                 null,
                 List.of(new ShoppingItemDto("garlic", "3 cloves of garlic (minced)", "Produce"))));
 
@@ -144,4 +147,37 @@ class RecipeControllerTest {
         verify(service).searchByIngredients(eq("apple"), eq(new DietaryRestrictions("none", "none")), any());
         verify(service, never()).getRecipe(anyLong());
     }
+
+    /**
+     * RB-193f: the cost has its own address because it is a second
+     * Spoonacular call and a second quota point. Browsing a recipe must not
+     * pay for it.
+     */
+    @Test
+    void returnsTheRecipeCostAsJson() throws Exception {
+        when(service.getRecipeCost(660101L, "garlic")).thenReturn(
+                new RecipeCostDto(3.92, 0.20, 3.72, List.of(
+                        new RecipeCostDto.CostItem("garlic", 0.20, true),
+                        new RecipeCostDto.CostItem("olive oil", 1.10, false))));
+
+        mockMvc.perform(get("/api/recipes/660101/cost").param("ingredients", "garlic"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.total").value(3.92))
+                .andExpect(jsonPath("$.youHave").value(0.20))
+                .andExpect(jsonPath("$.youNeed").value(3.72))
+                .andExpect(jsonPath("$.items[0].name").value("garlic"))
+                .andExpect(jsonPath("$.items[0].inPantry").value(true))
+                .andExpect(jsonPath("$.items[1].inPantry").value(false));
+    }
+
+    @Test
+    void theCostWorksWithNoPantryAtAll() throws Exception {
+        when(service.getRecipeCost(660101L, "")).thenReturn(
+                new RecipeCostDto(3.92, 0.0, 3.92, List.of()));
+
+        mockMvc.perform(get("/api/recipes/660101/cost"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.youNeed").value(3.92));
+    }
+
 }

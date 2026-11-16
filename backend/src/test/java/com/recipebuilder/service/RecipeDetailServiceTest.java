@@ -48,6 +48,7 @@ class RecipeDetailServiceTest {
                 "https://img.spoonacular.com/recipes/660101-556x370.jpg",
                 1,
                 45,
+                195.54,   // RB-193: price per serving, in cents
                 true,    // vegetarian
                 true,    // vegan
                 false,   // glutenFree
@@ -66,6 +67,67 @@ class RecipeDetailServiceTest {
                         List.of(new SpoonacularRecipeInformation.Step(1, "Important: timing is everything"),
                                 new SpoonacularRecipeInformation.Step(2, "Start with boiling water in a large pot."),
                                 new SpoonacularRecipeInformation.Step(3, "While you are boiling, mince the garlic")))));
+    }
+
+    /**
+     * RB-193b: a recipe at a chosen price and serving count, so the
+     * arithmetic can be checked at more than one serving.
+     */
+    private static SpoonacularRecipeInformation theirRecipeWithPrice(
+            double pricePerServingInCents, int servings) {
+
+        return new SpoonacularRecipeInformation(
+                660101L,
+                "Simple Garlic Pasta",
+                "https://img.spoonacular.com/recipes/660101-556x370.jpg",
+                servings,
+                45,
+                pricePerServingInCents,
+                true,
+                true,
+                false,
+                true,
+                List.of(),
+                List.of(),
+                null);
+    }
+
+    /**
+     * RB-193b: Spoonacular reports pricePerServing in CENTS - 195.54 is $1.96.
+     * Converting in the service means every screen receives dollars and only
+     * one place can get it wrong. See docs/cost-contract.md.
+     */
+    @Test
+    void centsBecomeDollarsAndTheTotalIsPerServingTimesServings() {
+        when(client.getRecipe(660101L)).thenReturn(theirRecipeWithPrice(195.54, 2));
+
+        RecipeDetailDto ours = service.getRecipe(660101L);
+
+        assertThat(ours.costPerServing()).isEqualTo(1.96);
+        assertThat(ours.costTotal()).isEqualTo(3.92);
+    }
+
+    @Test
+    void theTotalFollowsTheServingCountRatherThanBeingTheirFigure() {
+        // Four servings is twice the total of two at the same per-serving
+        // price. Passing their number straight through would look right on a
+        // one-serving recipe and be wrong on every other.
+        when(client.getRecipe(660101L)).thenReturn(theirRecipeWithPrice(195.54, 4));
+
+        RecipeDetailDto ours = service.getRecipe(660101L);
+
+        assertThat(ours.costPerServing()).isEqualTo(1.96);
+        assertThat(ours.costTotal()).isEqualTo(7.84);
+    }
+
+    @Test
+    void aRecipeWithNoPriceCostsNothingRatherThanThrowing() {
+        when(client.getRecipe(660101L)).thenReturn(theirRecipeWithPrice(0.0, 2));
+
+        RecipeDetailDto ours = service.getRecipe(660101L);
+
+        assertThat(ours.costPerServing()).isEqualTo(0.0);
+        assertThat(ours.costTotal()).isEqualTo(0.0);
     }
 
     @Test
@@ -227,6 +289,7 @@ class RecipeDetailServiceTest {
                         "https://img.spoonacular.com/recipes/660101-556x370.jpg",
                         2,
                         45,
+                        195.54,   // RB-193: price per serving, in cents
                         true,
                         true,
                         false,

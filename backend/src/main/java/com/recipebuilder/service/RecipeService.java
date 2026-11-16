@@ -8,9 +8,11 @@ import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
 import com.recipebuilder.client.SpoonacularClient;
+import com.recipebuilder.client.dto.SpoonacularPriceBreakdown;
 import com.recipebuilder.client.dto.SpoonacularRecipeInformation;
 import com.recipebuilder.client.dto.SpoonacularSearchResult;
 import com.recipebuilder.dto.DietaryRestrictions;
+import com.recipebuilder.dto.RecipeCostDto;
 import com.recipebuilder.dto.RecipeDetailDto;
 import com.recipebuilder.dto.RecipeSummaryDto;
 import com.recipebuilder.dto.ShoppingItemDto;
@@ -205,6 +207,8 @@ public class RecipeService {
                 theirs.glutenFree(),
                 theirs.dairyFree());
 
+        double costPerServing = round2(theirs.pricePerServing() / 100.0);
+
         return new RecipeDetailDto(
                 theirs.id(),
                 theirs.title(),
@@ -214,6 +218,10 @@ public class RecipeService {
                 ingredients,
                 steps,
                 diets,
+                // RB-193: cents to dollars, here and nowhere else, so every
+                // screen receives dollars. docs/cost-contract.md.
+                costPerServing,
+                round2(costPerServing * theirs.servings()),
                 toNutrition(theirs.nutrition()),
                 allIngredients);
     }
@@ -267,6 +275,97 @@ public class RecipeService {
     /** Rounds an amount to two decimal places. */
     private static double round2(double amount) {
         return Math.round(amount * 100.0) / 100.0;
+    }
+
+
+    /**
+     * RB-193: what this recipe costs, and how much of it the cook still needs.
+     *
+     * The arithmetic is a SUBTRACTION: start from their total, take off the
+     * ingredients the cook already has. The other direction - adding up what
+     * they lack - looks equivalent and is not, because their price list gives
+     * names and no ids, and their names differ between endpoints ("basil" in
+     * the search is "dried basil" here). An ingredient whose name fails to
+     * match would then be dropped from the total and the shopping would look
+     * CHEAPER than it is. Subtracting makes the same failure read slightly
+     * expensive instead, which is the safe direction to be wrong in.
+     * docs/cost-contract.md, Mistake 1.
+     *
+     * @param id     Spoonacular's recipe id
+     * @param pantry the cook's list from the web address, comma separated
+     */
+    public RecipeCostDto getRecipeCost(long id, String pantry) {
+        SpoonacularPriceBreakdown theirs = cachedPriceBreakdown(id);
+
+        List<String> have = pantryWords(pantry);
+        List<RecipeCostDto.CostItem> items = new ArrayList<>();
+        double haveCost = 0;
+
+        for (SpoonacularPriceBreakdown.PricedIngredient priced : theirs.ingredients()) {
+            boolean inPantry = isInPantry(priced.name(), have);
+            double price = round2(priced.price() / 100.0);
+
+            if (inPantry) {
+                haveCost += price;
+            }
+            items.add(new RecipeCostDto.CostItem(priced.name(), price, inPantry));
+        }
+
+        double total = round2(theirs.totalCost() / 100.0);
+        double youHave = round2(haveCost);
+
+        return new RecipeCostDto(total, youHave, round2(total - youHave), List.copyOf(items));
+    }
+
+    /**
+     * Their price list for one recipe, remembered so a second look is free.
+     *
+     * The key carries the id and NOTHING about the cook. What is cached is
+     * Spoonacular's price list, which is a fact about the recipe; the
+     * subtraction above happens afterwards. Putting the pantry in the key
+     * would make two cooks with different pantries each spend a point to
+     * receive the same answer. docs/cost-contract.md, Mistake 2.
+     *
+     * The "price-" prefix shares the recipeDetails cache without clashing
+     * with the recipe itself, which is stored under the plain id.
+     */
+    @Cacheable(cacheNames = "recipeDetails", key = "'price-' + #id")
+    public SpoonacularPriceBreakdown cachedPriceBreakdown(long id) {
+        return client.getPriceBreakdown(id);
+    }
+
+    /** The cook's typed list, lowercased and trimmed. Blank entries dropped. */
+    private static List<String> pantryWords(String pantry) {
+        List<String> words = new ArrayList<>();
+
+        if (pantry == null) {
+            return words;
+        }
+
+        for (String one : pantry.split(",")) {
+            String word = one.trim().toLowerCase();
+            if (!word.isEmpty()) {
+                words.add(word);
+            }
+        }
+        return words;
+    }
+
+    /**
+     * Whether one priced ingredient is covered by something the cook has.
+     *
+     * Containment both ways: the cook types "oil" and their list says "olive
+     * oil", or the cook types "olive oil" and their list says "oil".
+     */
+    private static boolean isInPantry(String ingredientName, List<String> have) {
+        String name = ingredientName.toLowerCase();
+
+        for (String word : have) {
+            if (name.contains(word) || word.contains(name)) {
+                return true;
+            }
+        }
+        return false;
     }
 
 }
