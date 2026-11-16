@@ -210,6 +210,30 @@ class SpoonacularClientTest {
         server.verify();
     }
 
+    /**
+     * RB-193c: the price breakdown is a THIRD endpoint, not part of the
+     * recipe reply, and it costs a full quota point - which is why it is
+     * fetched only when the cook asks. Prices come back in cents.
+     */
+    @Test
+    void readsThePriceBreakdownForARecipe() throws IOException {
+        server.expect(requestTo(startsWith(
+                        "https://api.spoonacular.invalid/recipes/660101/priceBreakdownWidget.json")))
+                .andExpect(method(HttpMethod.GET))
+                .andExpect(queryParam("apiKey", "test-key-not-a-real-key"))
+                .andRespond(withSuccess(
+                        stubbedRecipe("price-breakdown.json"), MediaType.APPLICATION_JSON));
+
+        var breakdown = client.getPriceBreakdown(660101L);
+
+        assertThat(breakdown.totalCost()).isEqualTo(392.0);
+        assertThat(breakdown.totalCostPerServing()).isEqualTo(196.0);
+        assertThat(breakdown.ingredients())
+                .extracting(one -> one.name())
+                .containsExactly("garlic", "olive oil", "spaghettini");
+        assertThat(breakdown.ingredients().get(0).price()).isEqualTo(20.0);
+    }
+
     private String stubbedRecipe(String fileName) throws IOException {
         return new ClassPathResource("stubs/" + fileName)
                 .getContentAsString(StandardCharsets.UTF_8);

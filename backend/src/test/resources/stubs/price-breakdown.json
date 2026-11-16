@@ -1,0 +1,9 @@
+{
+  "ingredients": [
+    { "name": "garlic",    "price": 20.0,  "amount": { "metric": { "value": 3, "unit": "cloves" } } },
+    { "name": "olive oil", "price": 110.0, "amount": { "metric": { "value": 3, "unit": "tbsp" } } },
+    { "name": "spaghettini", "price": 262.0, "amount": { "metric": { "value": 100, "unit": "g" } } }
+  ],
+  "totalCost": 392.0,
+  "totalCostPerServing": 196.0
+}
