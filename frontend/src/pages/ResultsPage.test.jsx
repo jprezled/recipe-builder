@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { act, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { MemoryRouter } from 'react-router-dom'
+import { MemoryRouter, useLocation } from 'react-router-dom'
 import ResultsPage from './ResultsPage'
 import { addFavorite, getFavorites, searchRecipes } from '../api/recipes'
 import { StrictMode } from 'react'
@@ -30,6 +30,20 @@ function renderResults(query = '?ingredients=eggs,milk') {
   return render(
     <MemoryRouter initialEntries={['/results' + query]}>
       <ResultsPage />
+    </MemoryRouter>,
+  )
+}
+
+/** Reports the address, so a test can check what a control wrote into it. */
+function AddressProbe() {
+  return <p data-testid="address">{useLocation().search}</p>
+}
+
+function renderResultsWithAddress(query = '?ingredients=eggs') {
+  return render(
+    <MemoryRouter initialEntries={['/results' + query]}>
+      <ResultsPage />
+      <AddressProbe />
     </MemoryRouter>,
   )
 }
@@ -64,17 +78,17 @@ describe('ResultsPage', () => {
     )
   })
 
-  it('searches again with the new choices when Apply is pressed', async () => {
+  it('searches again with the new choices when Find recipes is pressed', async () => {
     searchRecipes.mockResolvedValue([])
     renderResults('?ingredients=eggs')
 
     await vi.waitFor(() => expect(searchRecipes).toHaveBeenCalled())
 
     await userEvent.click(screen.getByRole('radio', { name: /vegan/i }))
-    await userEvent.click(screen.getByRole('button', { name: /apply/i }))
+    await userEvent.click(screen.getByRole('button', { name: /find recipes/i }))
 
-    // Apply does not search directly - it changes the address, and the
-    // existing effect notices.
+    // Find recipes copies the on-screen choices into `applied`, which is
+    // what the search effect watches.
     await vi.waitFor(() =>
       expect(searchRecipes).toHaveBeenLastCalledWith('eggs', {
         diet: 'vegan',
@@ -102,12 +116,14 @@ describe('ResultsPage', () => {
     searchRecipes.mockResolvedValue([])
     getRestrictions.mockResolvedValue({ diet: 'vegan', intolerances: '' })
 
-    renderResults('?ingredients=eggs')
+    renderResultsWithAddress('?ingredients=eggs')
 
-    // Wait for the saved preference to load and appear in the filter controls.
-    // The radio exists unchecked from the first render, so waiting only for
-    // the element races the state update - wait for the checked state itself.
-    await screen.findByRole('radio', { name: /vegan/i, checked: true })
+    // The saved preference lands in the address rather than remounting the
+    // filter controls - a remount on every raw change is exactly what would
+    // wipe an in-progress tick, so the controls are kept keyed on `applied`.
+    await vi.waitFor(() =>
+      expect(screen.getByTestId('address')).toHaveTextContent('diet=vegan'),
+    )
   })
 
   it('uses the diet in the address instead of the saved diet', async () => {
@@ -123,14 +139,14 @@ describe('ResultsPage', () => {
   })
 
   // Saving is an Apply action: changing a checkbox alone must not save.
-  it('saves restrictions only when Apply is pressed', async () => {
+  it('saves restrictions only when Find recipes is pressed', async () => {
     searchRecipes.mockResolvedValue([])
     renderResults('?ingredients=eggs')
 
     await userEvent.click(screen.getByRole('radio', { name: /vegan/i }))
     expect(saveRestrictions).not.toHaveBeenCalled()
 
-    await userEvent.click(screen.getByRole('button', { name: /apply/i }))
+    await userEvent.click(screen.getByRole('button', { name: /find recipes/i }))
     expect(saveRestrictions).toHaveBeenCalledWith('vegan', '')
   })
 
@@ -158,6 +174,7 @@ describe('ResultsPage', () => {
       <StrictMode>
         <MemoryRouter initialEntries={['/results?ingredients=eggs']}>
           <ResultsPage />
+          <AddressProbe />
         </MemoryRouter>
       </StrictMode>,
     )
@@ -173,7 +190,9 @@ describe('ResultsPage', () => {
       resolveSecond({ diet: 'vegan', intolerances: '' })
     })
 
-    expect(await screen.findByRole('radio', { name: /vegan/i })).toBeChecked()
+    await vi.waitFor(() =>
+      expect(screen.getByTestId('address')).toHaveTextContent('diet=vegan'),
+    )
   })
 
   // ---- RB-226: the sort travels in the address ----------------------------
@@ -207,7 +226,7 @@ describe('ResultsPage', () => {
     searchRecipes.mockResolvedValue([])
     renderResults('?ingredients=eggs')
 
-    const options = within(await screen.findByLabelText('Sort by')).getAllByRole('option')
+    const options = within(await screen.findByLabelText('Show me')).getAllByRole('option')
     expect(options.map((option) => option.value)).toEqual([
       'max-used-ingredients',
       'min-missing-ingredients',
@@ -218,14 +237,14 @@ describe('ResultsPage', () => {
     searchRecipes.mockResolvedValue([])
     renderResults('?ingredients=eggs')
 
-    expect(await screen.findByLabelText('Sort by')).toHaveValue('max-used-ingredients')
+    expect(await screen.findByLabelText('Show me')).toHaveValue('max-used-ingredients')
   })
 
   it('shows the sort the address asked for', async () => {
     searchRecipes.mockResolvedValue([])
     renderResults('?ingredients=eggs&sort=min-missing-ingredients')
 
-    expect(await screen.findByLabelText('Sort by')).toHaveValue('min-missing-ingredients')
+    expect(await screen.findByLabelText('Show me')).toHaveValue('min-missing-ingredients')
   })
 
   it('searches again as soon as the sort is changed, with no Apply', async () => {
@@ -233,7 +252,7 @@ describe('ResultsPage', () => {
     renderResults('?ingredients=eggs')
     await vi.waitFor(() => expect(searchRecipes).toHaveBeenCalled())
 
-    await userEvent.selectOptions(screen.getByLabelText('Sort by'), 'min-missing-ingredients')
+    await userEvent.selectOptions(screen.getByLabelText('Show me'), 'min-missing-ingredients')
 
     await vi.waitFor(() =>
       expect(searchRecipes).toHaveBeenLastCalledWith('eggs', {
@@ -249,7 +268,7 @@ describe('ResultsPage', () => {
     renderResults('?ingredients=eggs&sort=min-missing-ingredients')
     await vi.waitFor(() => expect(searchRecipes).toHaveBeenCalled())
 
-    await userEvent.selectOptions(screen.getByLabelText('Sort by'), 'max-used-ingredients')
+    await userEvent.selectOptions(screen.getByLabelText('Show me'), 'max-used-ingredients')
 
     // null, not 'max-used-ingredients': the default is written as no
     // parameter at all, so a plain search keeps its old address.
@@ -266,7 +285,7 @@ describe('ResultsPage', () => {
     searchRecipes.mockResolvedValue([])
     renderResults('?ingredients=eggs')
 
-    const dropdown = await screen.findByLabelText('Sort by')
+    const dropdown = await screen.findByLabelText('Show me')
     expect(dropdown.tagName).toBe('SELECT')
   })
 
@@ -427,7 +446,7 @@ describe('ResultsPage', () => {
     renderResults('?ingredients=eggs')
 
     await userEvent.click(screen.getByRole('radio', { name: /vegan/i }))
-    await userEvent.click(screen.getByRole('button', { name: /apply/i }))
+    await userEvent.click(screen.getByRole('button', { name: /find recipes/i }))
 
     await vi.waitFor(() =>
       expect(searchRecipes).toHaveBeenLastCalledWith('eggs', {
@@ -447,5 +466,161 @@ describe('ResultsPage', () => {
 
     expect(await screen.findByText('Garlic Chicken Pasta')).toBeInTheDocument()
     expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+  })
+
+  // ---- RB-211: set-then-search - ticking and editing cost nothing until
+  // Find recipes is pressed. This is the point of the story: without this,
+  // every tick or every added ingredient was its own paid Spoonacular call.
+
+  it('does not search when a box is ticked', async () => {
+    searchRecipes.mockResolvedValue([])
+    renderResults('?ingredients=eggs')
+    await vi.waitFor(() => expect(searchRecipes).toHaveBeenCalledTimes(1))
+
+    await userEvent.click(screen.getByRole('radio', { name: /vegan/i }))
+    await userEvent.click(screen.getByRole('checkbox', { name: /dairy/i }))
+    await userEvent.click(screen.getByRole('checkbox', { name: /peanut/i }))
+
+    expect(searchRecipes).toHaveBeenCalledTimes(1)
+  })
+
+  it('remembers a tick in the address so the nav bar cannot lose it, without searching', async () => {
+    searchRecipes.mockResolvedValue([])
+    renderResultsWithAddress('?ingredients=eggs')
+    await screen.findByRole('button', { name: /find recipes/i })
+
+    await userEvent.click(screen.getByRole('radio', { name: /vegan/i }))
+
+    await vi.waitFor(() =>
+      expect(screen.getByTestId('address')).toHaveTextContent('diet=vegan'),
+    )
+    expect(searchRecipes).toHaveBeenCalledTimes(1)
+  })
+
+  it('adds an ingredient without searching', async () => {
+    searchRecipes.mockResolvedValue([])
+    renderResults('?ingredients=eggs')
+    await vi.waitFor(() => expect(searchRecipes).toHaveBeenCalledTimes(1))
+
+    await userEvent.type(screen.getByLabelText('Ingredients'), 'milk')
+    await userEvent.click(screen.getByRole('button', { name: 'Add' }))
+
+    expect(searchRecipes).toHaveBeenCalledTimes(1)
+    expect(screen.getByRole('button', { name: 'Remove milk' })).toBeInTheDocument()
+  })
+
+  it('removes an ingredient without searching', async () => {
+    searchRecipes.mockResolvedValue([])
+    renderResults('?ingredients=eggs,milk')
+    await vi.waitFor(() => expect(searchRecipes).toHaveBeenCalledTimes(1))
+
+    await userEvent.click(screen.getByRole('button', { name: 'Remove milk' }))
+
+    expect(searchRecipes).toHaveBeenCalledTimes(1)
+    expect(screen.queryByRole('button', { name: 'Remove milk' })).not.toBeInTheDocument()
+  })
+
+  it('ignores an ingredient that is already on the list', async () => {
+    searchRecipes.mockResolvedValue([])
+    renderResults('?ingredients=eggs')
+    await screen.findByLabelText('Ingredients')
+
+    await userEvent.type(screen.getByLabelText('Ingredients'), 'Eggs')
+    await userEvent.click(screen.getByRole('button', { name: 'Add' }))
+
+    expect(screen.getAllByRole('button', { name: /^Remove / })).toHaveLength(1)
+  })
+
+  it('has no ingredient entry when embedded, because the home page owns the list', () => {
+    searchRecipes.mockResolvedValue([])
+    render(
+      <MemoryRouter initialEntries={['/?ingredients=eggs']}>
+        <ResultsPage embedded ingredients="eggs" />
+      </MemoryRouter>,
+    )
+
+    expect(screen.queryByLabelText('Ingredients')).not.toBeInTheDocument()
+  })
+
+  it('searches once with the whole new list and ticks together when Find recipes is pressed', async () => {
+    searchRecipes.mockResolvedValue([])
+    renderResults('?ingredients=eggs')
+    await vi.waitFor(() => expect(searchRecipes).toHaveBeenCalledTimes(1))
+
+    await userEvent.type(screen.getByLabelText('Ingredients'), 'milk')
+    await userEvent.click(screen.getByRole('button', { name: 'Add' }))
+    await userEvent.click(screen.getByRole('radio', { name: /vegan/i }))
+    // The filter form's own button is the only one - it applies the
+    // ingredients and the ticks together.
+    await userEvent.click(screen.getByRole('button', { name: /find recipes/i }))
+
+    await vi.waitFor(() => expect(searchRecipes).toHaveBeenCalledTimes(2))
+    expect(searchRecipes).toHaveBeenLastCalledWith('eggs,milk', {
+      diet: 'vegan',
+      intolerances: null,
+      sort: null,
+    })
+  })
+
+  it('says nothing until the page differs from the results on screen', async () => {
+    searchRecipes.mockResolvedValue([])
+    renderResults('?ingredients=eggs')
+    await vi.waitFor(() => expect(searchRecipes).toHaveBeenCalledTimes(1))
+
+    expect(screen.queryByText(/have changed/i)).not.toBeInTheDocument()
+
+    await userEvent.type(screen.getByLabelText('Ingredients'), 'milk')
+    await userEvent.click(screen.getByRole('button', { name: 'Add' }))
+
+    expect(screen.getByText(/ingredients have changed/i)).toBeInTheDocument()
+  })
+
+  it('prompts for a tick as well as an ingredient, and names which changed', async () => {
+    searchRecipes.mockResolvedValue([])
+    renderResults('?ingredients=eggs')
+    await vi.waitFor(() => expect(searchRecipes).toHaveBeenCalledTimes(1))
+
+    await userEvent.click(screen.getByRole('radio', { name: /vegan/i }))
+    expect(screen.getByText(/filters have changed/i)).toBeInTheDocument()
+
+    await userEvent.type(screen.getByLabelText('Ingredients'), 'milk')
+    await userEvent.click(screen.getByRole('button', { name: 'Add' }))
+    expect(screen.getByText(/ingredients and filters have changed/i)).toBeInTheDocument()
+
+    // Pressing it clears the prompt, because the results now match the page.
+    await userEvent.click(screen.getByRole('button', { name: /find recipes/i }))
+    await vi.waitFor(() =>
+      expect(screen.queryByText(/have changed/i)).not.toBeInTheDocument())
+  })
+
+  // ---- RB-209: the applied-filters message --------------------------------
+
+  it('says nothing when no filters are on', async () => {
+    searchRecipes.mockResolvedValue([])
+    renderResults('?ingredients=eggs')
+    await screen.findByLabelText('Show me')
+
+    expect(screen.queryByText(/Filters applied/)).not.toBeInTheDocument()
+  })
+
+  it('confirms the filters once Find recipes is pressed', async () => {
+    searchRecipes.mockResolvedValue([])
+    renderResults('?ingredients=eggs')
+
+    await screen.findByRole('button', { name: /find recipes/i })
+    await userEvent.click(screen.getByRole('radio', { name: 'Vegan' }))
+    await userEvent.click(screen.getByRole('button', { name: /find recipes/i }))
+
+    // Scoped to the status message: "Vegan" is also the radio's own label.
+    expect(await screen.findByRole('status', { name: '' }))
+    expect(screen.getByText('Filters applied:')).toBeInTheDocument()
+  })
+
+  it('names the allergies as well as the diet', async () => {
+    searchRecipes.mockResolvedValue([])
+    renderResults('?ingredients=eggs&diet=vegetarian&intolerances=dairy,peanut')
+
+    expect(await screen.findByText('Vegetarian · no dairy · no peanut'))
+      .toBeInTheDocument()
   })
 })

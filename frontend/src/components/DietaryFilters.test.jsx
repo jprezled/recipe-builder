@@ -53,7 +53,7 @@ describe('DietaryFilters', () => {
 
     // Confirm an Apply button is present.
     expect(
-      screen.getByRole('button', { name: 'Apply' }),
+      screen.getByRole('button', { name: 'Find recipes' }),
     ).toBeInTheDocument()
   })
 
@@ -81,7 +81,7 @@ describe('DietaryFilters', () => {
     expect(onApply).not.toHaveBeenCalled()
   })
 
-  it('reports the selected choices exactly once when Apply is pressed', async () => {
+  it('reports the selected choices exactly once when Find recipes is pressed', async () => {
     const user = userEvent.setup()
     const onApply = vi.fn()
 
@@ -99,7 +99,7 @@ describe('DietaryFilters', () => {
     )
 
     // Submit the choices.
-    await user.click(screen.getByRole('button', { name: 'Apply' }))
+    await user.click(screen.getByRole('button', { name: 'Find recipes' }))
 
     // One press should produce exactly one callback.
     expect(onApply).toHaveBeenCalledTimes(1)
@@ -190,7 +190,7 @@ describe('DietaryFilters', () => {
     // Clearing selections alone must not notify the parent.
     expect(onApply).not.toHaveBeenCalled()
 
-    await user.click(screen.getByRole('button', { name: 'Apply' }))
+    await user.click(screen.getByRole('button', { name: 'Find recipes' }))
 
     // No preference is reported as null.
     // No exclusions are reported as an empty array.

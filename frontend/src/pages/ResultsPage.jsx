@@ -23,6 +23,33 @@ const FEWEST_MISSING_SORT = 'min-missing-ingredients'
  * Both uses share the same search, favorite buttons, and recipe cards. This
  * avoids having one version of results for Home and another for /results.
  */
+/**
+ * RB-209: the applied filters, written out for a person.
+ *
+ * "gluten free" is the value the search sends; "Gluten free" is what a reader
+ * sees. Two vocabularies that happen to look alike, same as the diet badges
+ * on the recipe page - see docs/dietary-filter-contract.md.
+ */
+function describeFilters(diet, intolerances) {
+  const parts = []
+
+  if (diet) {
+    parts.push(diet.charAt(0).toUpperCase() + diet.slice(1))
+  }
+
+  if (intolerances) {
+    const names = intolerances.split(',')
+    for (const one of names) {
+      const trimmed = one.trim()
+      if (trimmed) {
+        parts.push('no ' + trimmed)
+      }
+    }
+  }
+
+  return parts.join(' · ')
+}
+
 export default function ResultsPage({
   embedded = false,
   ingredients: suppliedIngredients,
@@ -44,6 +71,26 @@ export default function ResultsPage({
   const diet = searchParams.get('diet')
   const intolerances = searchParams.get('intolerances')
   const sort = searchParams.get('sort')
+
+  // RB-211: the filters the RESULTS ON SCREEN were fetched with.
+  //
+  // Separate from diet/intolerances above, which are what the cook has
+  // currently ticked or typed. Ticking a filter or editing the ingredient
+  // list changes those and nothing else; pressing Find recipes copies them
+  // here, and only THAT runs a search. Ticking three boxes used to be three
+  // paid Spoonacular calls - now it is none.
+  //
+  // Seeded from the address, so arriving at a link that already carries
+  // ingredients and filters searches with them straight away.
+  const [applied, setApplied] = useState({ ingredients, diet, intolerances })
+
+  // RB-211: what is on screen but not yet searched for.
+  //
+  // Both halves are set freely and cost nothing until Find recipes is
+  // pressed, so without this the page gives no sign that the recipes below
+  // are answering an older question than the one on screen.
+  const ingredientsChanged = ingredients !== applied.ingredients
+  const filtersChanged = diet !== applied.diet || intolerances !== applied.intolerances
 
 // RB-251
 // Loads into an empty address only — the rule from RB-209a. 
@@ -113,20 +160,8 @@ useEffect(() => {
   // its first request is running.
   const [isSearching, setIsSearching] = useState(true)
 
-  // State for adding/removing ingredients inline on the results page (Task 3)
-  const ingredientList = ingredients ? ingredients.split(',').map((i) => i.trim()).filter(Boolean) : []
-
-
-  function handleQuickRemove(ingredientToRemove) {
-    const nextList = ingredientList.filter((ing) => ing !== ingredientToRemove)
-    const nextParams = new URLSearchParams(searchParams)
-    if (nextList.length > 0) {
-      nextParams.set('ingredients', nextList.join(','))
-    } else {
-      nextParams.delete('ingredients')
-    }
-    setSearchParams(nextParams)
-  }
+  // RB-211: the ingredient list on screen, as an array for the chips.
+  const pantryList = ingredients ? ingredients.split(',').map((i) => i.trim()).filter(Boolean) : []
 
   // Search again when the ingredient list changes. This happens if the
   // standalone page's query string changes, or if Home passes a new list.
@@ -155,7 +190,12 @@ useEffect(() => {
         // the same time. A favorites-service failure should not prevent the
         // recipe search from succeeding.
         const [foundRecipes, savedFavorites, savedCollections] = await Promise.all([
-          searchRecipes(ingredients, { diet, intolerances, sort }),   
+          searchRecipes(
+            applied.ingredients,
+            // Only the two restriction fields plus sort - `applied` also
+            // carries the ingredients, which are the first argument.
+            { diet: applied.diet, intolerances: applied.intolerances, sort },
+          ),
           getFavorites().catch(() => []),
           // A signed-out visitor is refused here, and that is normal: no picker,
           // and the star saves as it always did.
@@ -192,42 +232,75 @@ useEffect(() => {
     return () => {
       stillOnThisPage = false
     }
-  }, [ingredients, diet, intolerances, sort])
+  }, [sort, applied]) // `applied`, not the live ticks or the typed list
 
-  function handleAddIngredient(name) {
-    const nextIngredients = ingredients
-      .split(',')
-      .map((ingredient) => ingredient.trim())
-      .filter(Boolean)
-
-    const additions = name
-      .split(',')
-      .map((ingredient) => ingredient.trim())
-      .filter(Boolean)
-
-    for (const addition of additions) {
-      const alreadyAdded = nextIngredients.some(
-        (ingredient) => ingredient.toLowerCase() === addition.toLowerCase(),
-    )
-
-      if (!alreadyAdded) {
-        nextIngredients.push(addition)
-      }
-    }
+  /**
+   * RB-211: write the ingredient list into the address.
+   *
+   * No search, for the same reason ticking a filter does not search - the
+   * cook builds the list they want and then asks once. `replace` so adding
+   * several ingredients does not put several entries in the Back button.
+   */
+  function putIngredientsInAddress(nextList) {
     const next = new URLSearchParams(searchParams)
-    next.set('ingredients', nextIngredients.join(','))
+
+    if (nextList.length > 0) {
+      next.set('ingredients', nextList.join(','))
+    } else {
+      next.delete('ingredients')
+    }
+
     setSearchParams(next, { replace: true })
   }
 
-  // === RB-173 Apply Handler
+  function handleAddIngredient(chosen) {
+    const current = ingredients ? ingredients.split(',') : []
+    const wanted = chosen.trim()
+
+    if (!wanted) {
+      return
+    }
+
+    // A repeat is not an error, it is just nothing to do.
+    const alreadyThere = current.some(
+      (one) => one.trim().toLowerCase() === wanted.toLowerCase(),
+    )
+
+    if (!alreadyThere) {
+      putIngredientsInAddress([...current, wanted])
+    }
+  }
+
+  function handleRemoveIngredient(wanted) {
+    const current = ingredients ? ingredients.split(',') : []
+    putIngredientsInAddress(current.filter((one) => one !== wanted))
+  }
+
   /**
-   * Put the chosen restrictions in the address.
-   *
-   * Apply navigates rather than searching directly: the effect above already
-   * re-runs when these change, so the address stays the one source of truth.
+   * RB-209: a tick. Remembered in the address so it survives the nav bar and
+   * a refresh, and so it can be shared - but no search runs, because the
+   * search effect does not watch these.
    */
-  //function handleApplyFilters(chosenDiet, chosenIntolerances) {
-  //  const next = new URLSearchParams(searchParams)
+  function handleFilterChange(chosenDiet, chosenIntolerances) {
+    const next = new URLSearchParams(searchParams)
+
+    if (chosenDiet) {
+      next.set('diet', chosenDiet)
+    } else {
+      next.delete('diet')
+    }
+
+    if (chosenIntolerances.length > 0) {
+      next.set('intolerances', chosenIntolerances.join(','))
+    } else {
+      next.delete('intolerances')
+    }
+
+    // replace, so ticking several boxes does not put several entries in the
+    // browser's Back button.
+    setSearchParams(next, { replace: true })
+  }
+
   function handleApplyFilters(chosenDiet, chosenIntolerances) {
     saveRestrictions(chosenDiet, chosenIntolerances.join(',')).catch(() => {})
 
@@ -246,6 +319,15 @@ useEffect(() => {
     }
 
     setSearchParams(next)
+
+    // The one place ticking a filter spends a Spoonacular point. Copying the
+    // on-screen ingredients and ticks into `applied` is what the search
+    // effect is watching.
+    setApplied({
+      ingredients,
+      diet: chosenDiet || null,
+      intolerances: chosenIntolerances.length > 0 ? chosenIntolerances.join(',') : null,
+    })
   }
 
   // === RB-226 Sort handler
@@ -306,43 +388,82 @@ useEffect(() => {
         )}
       </div>
 
-      {/* Inline Pantry Modifier (Task 3: Change ingredients without leaving the page) */}
-      <div className="inline-pantry-editor">
-        <span className="inline-pantry-label">Active Ingredients:</span>
-        <div className="inline-pantry-chips">
-          {ingredientList.map((ing) => (
-            <span key={ing} className="pantry-chip">
-              {ing}
-              <button
-                type="button"
-                onClick={() => handleQuickRemove(ing)}
-                aria-label={'Remove ' + ing}
-              >
-                &times;
-              </button>
-            </span>
-          ))}
-        </div>
-        {/* RB-228 inside RB-211's editor: one add box, with suggestions.
-            Two separate add forms on one page would be the same job twice. */}
-        <IngredientInput
-          id="results-ingredient"
-          label="Add another ingredient"
-          hideLabel
-          placeholder="Add another..."
-          onAdd={handleAddIngredient}
-        />
-      </div>
+      {/* RB-211: change the ingredient list without leaving the page.
+          Only on the standalone page - embedded, the home page above owns
+          this list and has its own entry for it. */}
+      {!embedded && (
+        <div className="results-search">
+          {/* RB-228: the same entry the home page uses, suggestions and all.
+              The label is hidden because the placeholder says the same thing
+              on screen - a screen reader still gets it, and the tests find
+              the input by it. */}
+          <IngredientInput
+            id="results-ingredient"
+            label="Ingredients"
+            hideLabel
+            placeholder="Add an ingredient, e.g. tomato, egg, celery"
+            onAdd={handleAddIngredient}
+          />
 
+          {pantryList.length > 0 && (
+            <ul className="ingredient-list">
+              {pantryList.map((one) => (
+                <li key={one}>
+                  {one}{' '}
+                  <button
+                    type="button"
+                    className="remove-ingredient"
+                    onClick={() => handleRemoveIngredient(one)}
+                    aria-label={'Remove ' + one}
+                  >
+                    &times;
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
+
+      {/* Keyed on the APPLIED filters, not the live ticks. The key exists so
+          the controls match the address after a refresh or a Back - but ticks
+          now write to the address too, and keying on those would remount the
+          controls on every click and wipe the tick that caused it.
+          `applied` changes only when the button is pressed. */}
       <DietaryFilters
-        key={(diet ?? '') + '|' + (intolerances ?? '')}
+        key={(applied.diet ?? '') + '|' + (applied.intolerances ?? '')}
         selectedDiet={diet}
         selectedIntolerances={intolerances ? intolerances.split(',') : []}
         onApply={handleApplyFilters}
+        onChange={handleFilterChange}
       />
 
+      {(ingredientsChanged || filtersChanged) && (
+        <p className="search-pending" role="status">
+          {/* Named rather than lumped together, so the cook can tell at a
+              glance whether the stale part is the list or the filters. */}
+          {ingredientsChanged && filtersChanged
+            ? 'Your ingredients and filters have changed.'
+            : ingredientsChanged
+              ? 'Your ingredients have changed.'
+              : 'Your filters have changed.'}{' '}
+          Press <strong>Find recipes</strong> to use them.
+        </p>
+      )}
+
+      {/* RB-209: confirms the Find recipes press landed, and keeps saying so
+          while the filters are on - which also answers "why are there fewer
+          recipes?" later, when a saved preference applied them without being
+          asked. role="status" so a screen reader announces it without
+          stealing focus. */}
+      {(diet || intolerances) && (
+        <p className="filters-applied" role="status">
+          Filters applied: <strong>{describeFilters(diet, intolerances)}</strong>
+        </p>
+      )}
+
       <div className="sort-control">
-        <label htmlFor="sort-order">Sort by</label>
+        <label htmlFor="sort-order">Show me</label>
         <select
           id="sort-order"
           value={sort ?? DEFAULT_SORT}
