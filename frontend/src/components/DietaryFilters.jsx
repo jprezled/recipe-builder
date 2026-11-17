@@ -1,6 +1,6 @@
 /*
 DietaryFilters.jsx creates a reusable React component that collects dietary choices and
- passes them to its parent when Apply is pressed.
+ passes them to its parent when Find recipes is pressed.
 It does not call Spoonacular or perform recipe searches itself.
 */
 
@@ -42,6 +42,7 @@ export default function DietaryFilters({
   selectedDiet = null,
   selectedIntolerances = [],
   onApply,
+  onChange,
 }) {
   // All diet radio buttons share this name so they form one group.
   // The unique name prevents separate component instances from interfering.
@@ -50,6 +51,19 @@ export default function DietaryFilters({
   // Initialize the controls from the parent's current selections.
   // An empty string represents "No preference" inside the component.
   const [diet, setDiet] = useState(selectedDiet ?? '')
+
+  /**
+   * RB-209: report a tick outward WITHOUT searching.
+   *
+   * The parent remembers the choice so it survives the nav bar, but nothing
+   * is searched until the cook presses the button. Ticking four boxes used to
+   * be four paid Spoonacular calls; now it is none.
+   */
+  function reportChange(nextDiet, nextIntolerances) {
+    if (onChange) {
+      onChange(nextDiet || null, [...nextIntolerances])
+    }
+  }
 
   // Copy the supplied array so local selections do not modify the prop.
   const [intolerances, setIntolerances] = useState(
@@ -62,15 +76,26 @@ export default function DietaryFilters({
   function handleIntoleranceChange(value) {
     // Use the latest selection state when adding or removing an exclusion.
     setIntolerances((current) => {
+      let next
+
       if (current.includes(value)) {
         // Clicking a selected checkbox removes its value.
         // filter() returns a new array without changing the existing array.
-        return current.filter((item) => item !== value)
+        next = current.filter((item) => item !== value)
+      } else {
+        // Clicking an unselected checkbox adds its value to a new array.
+        next = [...current, value]
       }
 
-      // Clicking an unselected checkbox adds its value to a new array.
-      return [...current, value]
+      reportChange(diet, next)
+      return next
     })
+  }
+
+  /** A diet radio was clicked. Remembered, not searched. */
+  function handleDietChange(value) {
+    setDiet(value)
+    reportChange(value, intolerances)
   }
 
   function handleApply(event) {
@@ -101,7 +126,7 @@ export default function DietaryFilters({
             name={dietGroupName}
             value=""
             checked={diet === ''}
-            onChange={() => setDiet('')}
+            onChange={() => handleDietChange('')}
           />
           No preference
         </label>
@@ -115,7 +140,7 @@ export default function DietaryFilters({
               name={dietGroupName}
               value={option.value}
               checked={diet === option.value}
-              onChange={() => setDiet(option.value)}
+              onChange={() => handleDietChange(option.value)}
             />
             {option.label}
           </label>
@@ -142,7 +167,7 @@ export default function DietaryFilters({
       {/* Submitting calls handleApply.
           Changing a radio button or checkbox does not call it. */}
       <button type="submit" className="button">
-        Apply
+        Find recipes
       </button>
     </form>
   )

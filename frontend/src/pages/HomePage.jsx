@@ -199,6 +199,7 @@ export default function HomePage() {
       <IngredientInput
         id="ingredient"
         label="Ingredient"
+        hideLabel
         placeholder="Type an ingredient, e.g. eggs"
         onAdd={handleAdd}
       />

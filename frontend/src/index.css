@@ -1050,6 +1050,86 @@ a.button {
   margin: 0.7rem 0 0;
 }
 
+/* RB-209: confirmation that the filters took effect, and a standing reminder
+   of what is narrowing the results. */
+.filters-applied {
+  color: #2a5c2a;
+  font-size: 0.88rem;
+  margin: 0 0 1rem;
+  text-align: center;
+}
+
+/* RB-211: the nudge that the recipes below are answering an older question
+   than the one on screen. Warm rather than red - nothing is wrong, there is
+   just a button left to press. */
+.search-pending {
+  max-width: 620px;
+  margin: 0 auto 1rem;
+  padding: 0.6rem 1rem;
+  text-align: center;
+  background-color: rgba(255, 255, 255, 0.75);
+  border-left: 4px solid var(--color-primary);
+  border-radius: 6px;
+}
+
+/* RB-211: the ingredient entry on the results page, shaped as a pill.
+   Scoped under .results-search so the home page's own entry keeps the
+   plain boxed look it has always had and only this one changes shape. */
+.results-search {
+  margin-bottom: 1.75rem;
+}
+
+/* The border lives on this wrapper rather than on the input, which is what
+   makes the input and the button read as one pill-shaped control instead of
+   two boxes sitting next to each other. */
+.results-search .ingredient-entry {
+  max-width: 620px;
+  margin: 0 auto;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 5px 6px 5px 22px;
+  background-color: white;
+  border: 1px solid #b9c9c4;
+  border-radius: 999px;
+  box-shadow: 0 1px 3px rgba(6, 76, 69, 0.08);
+}
+
+.results-search .ingredient-autocomplete {
+  max-width: none;
+}
+
+/* Borderless and transparent, because the pill above is already drawing the
+   edge. Width is left alone - .ingredient-autocomplete already stretches
+   the input to 100% of the pill. */
+.results-search .ingredient-entry input[type="text"] {
+  padding: 11px 0;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+}
+
+/* The input's own ring is removed above, so the focus state has to move to
+   the pill - otherwise keyboard users get no visible focus at all. */
+.results-search .ingredient-entry input[type="text"]:focus {
+  outline: none;
+}
+
+.results-search .ingredient-entry:focus-within {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(22, 125, 90, 0.18);
+}
+
+/* Rounded to sit inside the pill without a square corner poking out. */
+.results-search .ingredient-entry .button {
+  flex-shrink: 0;
+  border-radius: 999px;
+}
+
+.results-search .ingredient-list {
+  max-width: 620px;
+  margin: 0.9rem auto 0;
+}
+
 /* ---------- Ingredient suggestions: RB-261 ---------- */
 
 .ingredient-input {
