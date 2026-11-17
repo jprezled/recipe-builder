@@ -74,22 +74,18 @@ export default function DietaryFilters({
   // Later prop changes do not automatically replace these local choices.
 
   function handleIntoleranceChange(value) {
-    // Use the latest selection state when adding or removing an exclusion.
-    setIntolerances((current) => {
-      let next
+    // Computed from the closed-over state rather than a functional updater:
+    // a checkbox click is one event per render, so there is no risk of a
+    // stale value here, and reportChange (which calls the parent's
+    // setSearchParams) must run as a plain event-handler statement, not
+    // inside React's updater function - calling it there updates a
+    // different component while this one is still rendering.
+    const next = intolerances.includes(value)
+      ? intolerances.filter((item) => item !== value)
+      : [...intolerances, value]
 
-      if (current.includes(value)) {
-        // Clicking a selected checkbox removes its value.
-        // filter() returns a new array without changing the existing array.
-        next = current.filter((item) => item !== value)
-      } else {
-        // Clicking an unselected checkbox adds its value to a new array.
-        next = [...current, value]
-      }
-
-      reportChange(diet, next)
-      return next
-    })
+    setIntolerances(next)
+    reportChange(diet, next)
   }
 
   /** A diet radio was clicked. Remembered, not searched. */
