@@ -186,6 +186,19 @@ differed, anyone could discover which usernames exist by trying them and
 reading which message came back. The cost is a less helpful message for someone
 who genuinely mistyped their username; that is the right trade.
 
+### Sprint 5 addition — account management, RB-290
+
+One new case, agreed in `account-management-contract.md`.
+
+| Situation | Status | Message |
+|---|---|---|
+| Current password is wrong, on change-password or delete-account | 401 | `Incorrect password.` |
+
+Deliberately **not** `Incorrect username or password.` That sentence exists
+to stop sign-in leaking which usernames are registered. On these two
+endpoints the cook is already signed in, so there is no username to protect
+— blurring the two would only make a correct message less clear.
+
 ### The first one needs no new frontend code
 
 `FavoriteButton` already flips optimistically, rolls back when the request
@@ -311,3 +324,17 @@ wrong.
 The 401 is the existing string, reused. The 409 follows `UsernameTakenException`
 from RB-158, the only other place answering 409 for "you already have one of
 those".
+
+## Ratings (RB-297)
+
+| Situation | Status | Message |
+|---|---|---|
+| Not signed in, on submit | 401 | `Please sign in to save favorites.` |
+| A rating outside 1 to 5 | 400 | `Please choose a rating from 1 to 5 stars.` |
+
+The 401 is the existing string, reused: every account-gated write answers the
+same sentence whatever the feature. The 400 is new — copy it exactly.
+
+Reading a rating (`GET`) needs no sign-in and has no error of its own. The
+popover's `Please sign in to rate recipes.` is a frontend-only message shown
+before any request is sent; the backend never says it.

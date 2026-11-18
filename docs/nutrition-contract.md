@@ -146,10 +146,12 @@ as a character.
 
 ## Things we chose not to do
 
-**Percentage of daily needs.** Spoonacular sends `percentOfDailyNeeds` and it
+**Percentage of daily needs.** ~~Spoonacular sends `percentOfDailyNeeds` and it
 is tempting. Left out because a percentage only means something against a
 stated daily intake, and the page would be implying a 2,000-calorie assumption
-it never tells the reader about.
+it never tells the reader about.~~ **Reversed in sprint 5 (RB-277)** - see
+`nutrition-daily-value-contract.md`. The objection was right; the answer is to
+state the basis, so the panel prints the standard 2,000-calorie footnote.
 
 **All hundred nutrients behind a "show more" link.** Nobody asked for it, and
 it turns a panel you can glance at into a table you have to read.
