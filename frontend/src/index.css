@@ -1266,3 +1266,8 @@ a.button {
   font-size: 0.85rem;
   color: #991b1b;
 }
+
+.recipe-card-rating {
+  margin: 0.25rem 0 0.5rem;
+  font-size: 0.9rem;
+}

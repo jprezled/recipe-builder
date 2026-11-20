@@ -3,6 +3,7 @@ import { Link, useSearchParams } from 'react-router-dom'
 import { getFavorites, searchRecipes } from '../api/recipes'
 import { getRestrictions, saveRestrictions } from '../api/accounts'
 import { getCollections } from '../api/collections'
+import { getRecipeRatings } from '../api/ratings'
 import RecipeCard from '../components/RecipeCard'
 import IngredientInput from '../components/IngredientInput'
 
@@ -47,7 +48,7 @@ function describeFilters(diet, intolerances) {
     }
   }
 
-  return parts.join(' · ')
+  return parts.join(' Â· ')
 }
 
 export default function ResultsPage({
@@ -93,7 +94,7 @@ export default function ResultsPage({
   const filtersChanged = diet !== applied.diet || intolerances !== applied.intolerances
 
 // RB-251
-// Loads into an empty address only — the rule from RB-209a. 
+// Loads into an empty address only â€” the rule from RB-209a. 
 // The latch comment is the bug this story shipped once.
 // two people the same thing - the same rule the home page follows for the
 // pantry. Signed out, getRestrictions rejects, which is an answer and not a
@@ -151,6 +152,7 @@ useEffect(() => {
   // RB-210: fetched once here and handed down, because fetching inside each
   // star would be one request per card.
   const [collections, setCollections] = useState([])
+  const [ratingsById, setRatingsById] = useState({})
 
   // Keep errors separate from results so a failed request is not mistaken for
   // a successful search that simply found no recipes.
@@ -178,6 +180,7 @@ useEffect(() => {
       setRecipes([])
       setFavoriteIds([])
       setCollections([])
+      setRatingsById({})
 
       // An empty list should not be sent to the recipe service.
       if (!ingredients.trim()) {
@@ -192,7 +195,7 @@ useEffect(() => {
         const [foundRecipes, savedFavorites, savedCollections] = await Promise.all([
           searchRecipes(
             applied.ingredients,
-            // Only the two restriction fields plus sort - `applied` also
+            // Only the two restriction fields plus sort - pplied also
             // carries the ingredients, which are the first argument.
             { diet: applied.diet, intolerances: applied.intolerances, sort },
           ),
@@ -202,12 +205,23 @@ useEffect(() => {
           getCollections().catch(() => []),
         ])
 
+        const bulkRatings = foundRecipes.length > 0
+          ? await getRecipeRatings(foundRecipes.map((recipe) => recipe.id)).catch(() => [])
+          : []
+        const nextRatings = {}
+        for (const item of bulkRatings) {
+          if (item && item.id != null) {
+            nextRatings[item.id] = { average: item.average ?? 0, count: item.count ?? 0 }
+          }
+        }
+
         // Ignore results if this component has since unmounted or started a
         // newer search.
         if (stillOnThisPage) {
           setRecipes(foundRecipes)
           setFavoriteIds(savedFavorites.map((favorite) => favorite.id))
           setCollections(savedCollections)
+          setRatingsById(nextRatings)
         }
       } catch (failure) {
         // A recipe-search error is shown to the user. Favorite lookup errors
@@ -502,6 +516,7 @@ useEffect(() => {
             isFavorite={favoriteIds.includes(recipe.id)}
             onFavoriteChange={handleFavoriteChange}
             collections={collections}
+            rating={ratingsById[recipe.id] ?? { average: 0, count: 0 }}
           />
         ))}
       </div>
