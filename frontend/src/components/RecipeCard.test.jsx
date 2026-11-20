@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest'
+﻿import { describe, expect, it, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import RecipeCard from './RecipeCard'
@@ -20,11 +20,11 @@ function renderCard(props = {}, at = '/') {
 }
 
 /**
- * RB-179: the card's own "View Recipe" control, finally wired up.
+- RB-179: the card's own "View Recipe" control, finally wired up.
  *
- * A link on the existing button rather than a clickable card: the star sits
- * inside the card, and a link wrapping everything would contain a button -
- * ambiguous to screen readers, and tapping the star would navigate.
+- A link on the existing button rather than a clickable card: the star sits
+- inside the card, and a link wrapping everything would contain a button -
+- ambiguous to screen readers, and tapping the star would navigate.
  */
 describe('RecipeCard', () => {
   it('View Recipe opens this card own recipe', () => {
@@ -59,5 +59,19 @@ describe('RecipeCard', () => {
     expect(screen.getByRole('img', { name: 'Simple Garlic Pasta' })).toBeInTheDocument()
     // No handler means no star, and the only control left is the link.
     expect(screen.queryByRole('button')).not.toBeInTheDocument()
+  })
+
+  it('shows read-only rating average and count when rated', () => {
+    renderCard({ rating: { average: 4.5, count: 2 } })
+
+    expect(screen.getByText('4.5 ★ (2 ratings)')).toBeInTheDocument()
+    expect(screen.queryByRole('button')).not.toBeInTheDocument()
+  })
+
+  it('shows No rating when unrated', () => {
+    renderCard({ rating: { average: 0, count: 0 } })
+
+    expect(screen.getByText('No rating')).toBeInTheDocument()
+    expect(screen.queryByText(/0\.0/)).not.toBeInTheDocument()
   })
 })
