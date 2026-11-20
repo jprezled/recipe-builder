@@ -48,7 +48,7 @@ function describeFilters(diet, intolerances) {
     }
   }
 
-  return parts.join(' Â· ')
+  return parts.join(' \u00B7 ')
 }
 
 export default function ResultsPage({
@@ -59,7 +59,7 @@ export default function ResultsPage({
   // The standalone page gets its ingredients from the query string.
   // When this component is inside HomePage, Home passes the ingredients
   // directly as a prop instead.
-  //Adds the two values to effect's watch list, so they appear with address changes
+  // Adds the two values to effect's watch list, so they appear with address changes
   const [searchParams, setSearchParams] = useSearchParams()
   const ingredients = suppliedIngredients ?? searchParams.get('ingredients') ?? ''
 
@@ -67,7 +67,7 @@ export default function ResultsPage({
   // arrive as a prop. The address is the one source of truth, so a filtered
   // search can be refreshed, bookmarked and shared.
   // RB-226: the sort lives in the address too, so refresh, Back and a shared
-  // link all keep it.null means the default
+  // link all keep it. null means the default
 
   const diet = searchParams.get('diet')
   const intolerances = searchParams.get('intolerances')
@@ -93,58 +93,56 @@ export default function ResultsPage({
   const ingredientsChanged = ingredients !== applied.ingredients
   const filtersChanged = diet !== applied.diet || intolerances !== applied.intolerances
 
-// RB-251
-// Loads into an empty address only â€” the rule from RB-209a. 
-// The latch comment is the bug this story shipped once.
-// two people the same thing - the same rule the home page follows for the
-// pantry. Signed out, getRestrictions rejects, which is an answer and not a
-// problem, so the rejection is swallowed.
-const hasLoadedSaved = useRef(false)
+  // RB-251
+  // Loads into an empty address only - the rule from RB-209a.
+  // The latch comment is the bug this story shipped once.
+  // two people the same thing - the same rule the home page follows for the
+  // pantry. Signed out, getRestrictions rejects, which is an answer and not a
+  // problem, so the rejection is swallowed.
+  const hasLoadedSaved = useRef(false)
 
-useEffect(() => {
-  if (hasLoadedSaved.current || diet || intolerances) {
-    return
-  }
-  let stillOnThisPage = true
+  useEffect(() => {
+    if (hasLoadedSaved.current || diet || intolerances) {
+      return
+    }
+    let stillOnThisPage = true
 
-  getRestrictions()
-    .then((saved) => {
-      if (!stillOnThisPage) {
-        return
-      }
+    getRestrictions()
+      .then((saved) => {
+        if (!stillOnThisPage) {
+          return
+        }
 
-      // Latched here, not in the guard above. StrictMode runs this effect
-      // twice in development and cancels the first attempt in between - a
-      // latch set before the fetch would be spent on the attempt whose
-      // result gets thrown away, and the second run would skip entirely.
-      hasLoadedSaved.current = true
+        // Latched here, not in the guard above. StrictMode runs this effect
+        // twice in development and cancels the first attempt in between - a
+        // latch set before the fetch would be spent on the attempt whose
+        // result gets thrown away, and the second run would skip entirely.
+        hasLoadedSaved.current = true
 
-      if (!saved.diet && !saved.intolerances) {
-        return
-      }
+        if (!saved.diet && !saved.intolerances) {
+          return
+        }
 
-      const next = new URLSearchParams(searchParams)
-      if (saved.diet) {
-        next.set('diet', saved.diet)
-      }
-      if (saved.intolerances) {
-        next.set('intolerances', saved.intolerances)
-      }
-      setSearchParams(next, { replace: true })
-    })
-    .catch(() => {})
+        const next = new URLSearchParams(searchParams)
+        if (saved.diet) {
+          next.set('diet', saved.diet)
+        }
+        if (saved.intolerances) {
+          next.set('intolerances', saved.intolerances)
+        }
+        setSearchParams(next, { replace: true })
+      })
+      .catch(() => {})
 
-  return () => {
-    stillOnThisPage = false
-  }
-  // Runs once. Re-running on every address change would fight the cook as
-  // they clear a filter - they remove it, and it comes straight back.
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-}, [])
+    return () => {
+      stillOnThisPage = false
+    }
+    // Runs once. Re-running on every address change would fight the cook as
+    // they clear a filter - they remove it, and it comes straight back.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
-
-// Store the recipes and favorite IDs separately. Recipes supply the card
-
+  // Store the recipes and favorite IDs separately. Recipes supply the card
   // content; favorite IDs tell each card whether its star should be selected.
   const [recipes, setRecipes] = useState([])
   const [favoriteIds, setFavoriteIds] = useState([])
@@ -195,7 +193,7 @@ useEffect(() => {
         const [foundRecipes, savedFavorites, savedCollections] = await Promise.all([
           searchRecipes(
             applied.ingredients,
-            // Only the two restriction fields plus sort - pplied also
+            // Only the two restriction fields plus sort - applied also
             // carries the ingredients, which are the first argument.
             { diet: applied.diet, intolerances: applied.intolerances, sort },
           ),
@@ -355,7 +353,7 @@ useEffect(() => {
     }
 
     setSearchParams(next)
-  } 
+  }
 
   function handleFavoriteChange(id, isNowFavorite) {
     setFavoriteIds((currentIds) => {
