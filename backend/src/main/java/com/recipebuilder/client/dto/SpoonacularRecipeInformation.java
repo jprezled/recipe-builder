@@ -40,9 +40,17 @@ public record SpoonacularRecipeInformation(
     * this page. The name is what gets matched against the cook's pantry, and
     * the aisle is the supermarket section the list groups by. Both were
     * already arriving in this reply and being dropped.
+    * Now modified for RB-291
     */
     @JsonIgnoreProperties(ignoreUnknown = true)
-    public record ExtendedIngredient(String name, String original, String aisle) {
+    public record ExtendedIngredient(String name, String original, String aisle,
+        double amount, String unit) {
+
+    /** The shape this record had before RB-291, for the call sites that
+     *  don't need a scalable amount. */
+    public ExtendedIngredient(String name, String original, String aisle) {
+        this(name, original, aisle, 0, null);
+    }
     }
 
     /**
