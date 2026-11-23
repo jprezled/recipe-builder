@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import IngredientInput from '../components/IngredientInput'
 import { Link, useSearchParams } from 'react-router-dom'
-import { getPantry, savePantry } from '../api/accounts'
+import { getPantry, getRestrictions, savePantry, saveRestrictions } from '../api/accounts'
+import DietaryFilters from '../components/DietaryFilters'
 import ResultsPage from './ResultsPage'
 
 /** "eggs, milk" from the address becomes ["eggs", "milk"] for the screen. */
@@ -32,6 +33,13 @@ export default function HomePage() {
   const [searchParams, setSearchParams] = useSearchParams()
 
   const ingredients = splitList(searchParams.get('ingredients'))
+   // The pantry and the saved restrictions both load into the address when the
+  // page opens, and each builds its change from the address it can see. If
+  // both answer before a re-render, the second would be built from a stale
+  // copy and undo the first. This always holds the newest address, written
+  // through the moment either one changes it.
+  const addressRef = useRef(searchParams)
+  addressRef.current = searchParams
 
   // Whether the embedded Results page is shown. In the address too, so that
   // coming back brings the recipes back and not just the ingredients.
@@ -81,6 +89,102 @@ export default function HomePage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
+  // The dietary panel is built from the address when it first appears, so it
+  // is rebuilt once when the saved restrictions land - and only then. Keying
+  // it on the live ticks would rebuild it on every click and wipe the tick.
+  const [restrictionsLoaded, setRestrictionsLoaded] = useState(false)
+  const hasLoadedRestrictions = useRef(false)
+  const restrictionsArrived = useRef(false)
+
+  // The rebuild waits until the address itself shows the saved choices. The
+  // address and this page's own state do not always update in the same
+  // render, and a panel rebuilt one render early starts out empty.
+  useEffect(() => {
+    if (restrictionsArrived.current && (searchParams.get('diet') || searchParams.get('intolerances'))) {
+      restrictionsArrived.current = false
+      setRestrictionsLoaded(true)
+    }
+  }, [searchParams])
+
+  // Same rule as the pantry: the address wins, and the saved choices only
+  // fill a page that arrived with none. Signed out rejects, which is normal.
+  useEffect(() => {
+    if (hasLoadedRestrictions.current || searchParams.get('diet') || searchParams.get('intolerances')) {
+      return
+    }
+    let stillOnThisPage = true
+
+    getRestrictions()
+      .then((saved) => {
+        if (!stillOnThisPage) {
+          return
+        }
+
+        // Latched here and not above, for the StrictMode reason given for the
+        // pantry.
+        hasLoadedRestrictions.current = true
+
+        if (!saved.diet && !saved.intolerances) {
+          return
+        }
+
+        const next = new URLSearchParams(addressRef.current)
+        if (saved.diet) {
+          next.set('diet', saved.diet)
+        }
+        if (saved.intolerances) {
+          next.set('intolerances', saved.intolerances)
+        }
+        addressRef.current = next
+        restrictionsArrived.current = true
+        setSearchParams(next, { replace: true })
+      })
+      .catch(() => {})
+
+    return () => {
+      stillOnThisPage = false
+    }
+    // Runs once, for the reason the pantry's does.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  /**
+   * Write the cook's dietary choices into the address.
+   *
+   * Any change takes the results box away, the way adding or removing an
+   * ingredient does: what is on screen was searched with the old filters, and
+   * pressing Generate Recipes again searches with the new ones.
+   */
+  function putFiltersInAddress(chosenDiet, chosenIntolerances) {
+    const next = new URLSearchParams(searchParams)
+
+    if (chosenDiet) {
+      next.set('diet', chosenDiet)
+    } else {
+      next.delete('diet')
+    }
+
+    if (chosenIntolerances.length > 0) {
+      next.set('intolerances', chosenIntolerances.join(','))
+    } else {
+      next.delete('intolerances')
+    }
+
+    next.delete('results')
+
+    setSearchParams(next, { replace: true })
+  }
+
+  /** A tick: remembered in the address, nothing saved and nothing searched. */
+  function handleFilterChange(chosenDiet, chosenIntolerances) {
+    putFiltersInAddress(chosenDiet, chosenIntolerances)
+  }
+
+  /** Find recipes: saved to the account. The search itself is Generate Recipes. */
+  function handleApplyFilters(chosenDiet, chosenIntolerances) {
+    saveRestrictions(chosenDiet, chosenIntolerances.join(',')).catch(() => {})
+    putFiltersInAddress(chosenDiet, chosenIntolerances)
+  }
   /**
    * Write the pantry list into the address.
    *
@@ -228,6 +332,18 @@ export default function HomePage() {
       )}
 
       <div className="button-group">
+        {/* The dietary filters sit here, left of Generate Recipes, and open as a
+            dropdown under the row. Set before Generate Recipes: they are read
+            from the address when it searches. */}
+        <DietaryFilters
+          key={restrictionsLoaded ? 'saved' : 'address'}
+          selectedDiet={searchParams.get('diet')}
+          selectedIntolerances={
+            searchParams.get('intolerances') ? searchParams.get('intolerances').split(',') : []
+          }
+          onApply={handleApplyFilters}
+          onChange={handleFilterChange}
+        />
         {/* This reveals ResultsPage below the ingredients. It does not navigate
             away; the embedded ResultsPage will start its recipe search. */}
         <button
