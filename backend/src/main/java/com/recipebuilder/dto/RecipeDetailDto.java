@@ -53,13 +53,27 @@ public record RecipeDetailDto(
             boolean dairyFree) {
     }
 
-     /** The six nutrition figures, per serving. */
+         /**
+     * RB-277: calories on their own, then the label's rows in printed order.
+     * A row Spoonacular did not send is left out of the list entirely.
+     */
     public record Nutrition(
             double calories,
-            double fat,
-            double saturatedFat,
-            double carbohydrates,
-            double sugar,
-            double protein) {
+            List<NutritionRow> rows) {
+    }
+
+    /**
+     * One line of the nutrition label, per serving.
+     *
+     * percentDailyValue is null on the rows a real label prints no
+     * percentage against (Trans Fat, Total Sugars, Protein).
+     * indent is 0 for a top-level row, 1 or 2 for a row tucked under one.
+     */
+    public record NutritionRow(
+            String label,
+            double amount,
+            String unit,
+            Double percentDailyValue,
+            int indent) {
     }   
 }
