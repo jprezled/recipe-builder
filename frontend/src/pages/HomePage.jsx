@@ -76,6 +76,7 @@ export default function HomePage() {
 
         const next = new URLSearchParams(searchParams)
         next.set('ingredients', saved)
+        addressRef.current = next
         setSearchParams(next, { replace: true })
       })
       // Signed out is the ordinary case here, not a problem worth reporting.
@@ -156,7 +157,7 @@ export default function HomePage() {
    * pressing Generate Recipes again searches with the new ones.
    */
   function putFiltersInAddress(chosenDiet, chosenIntolerances) {
-    const next = new URLSearchParams(searchParams)
+    const next = new URLSearchParams(addressRef.current)
 
     if (chosenDiet) {
       next.set('diet', chosenDiet)
@@ -172,6 +173,7 @@ export default function HomePage() {
 
     next.delete('results')
 
+    addressRef.current = next
     setSearchParams(next, { replace: true })
   }
 
@@ -183,7 +185,6 @@ export default function HomePage() {
   /** Find recipes: saved to the account. The search itself is Generate Recipes. */
   function handleApplyFilters(chosenDiet, chosenIntolerances) {
     saveRestrictions(chosenDiet, chosenIntolerances.join(',')).catch(() => {})
-    putFiltersInAddress(chosenDiet, chosenIntolerances)
   }
   /**
    * Write the pantry list into the address.
@@ -196,7 +197,7 @@ export default function HomePage() {
    * what the page shows, so that one is left to push an entry.
    */
   function putInAddress(nextIngredients, nextShowResults, replace) {
-    const next = new URLSearchParams(searchParams)
+    const next = new URLSearchParams(addressRef.current)
 
     if (nextIngredients.length > 0) {
       next.set('ingredients', nextIngredients.join(','))
@@ -209,7 +210,7 @@ export default function HomePage() {
     } else {
       next.delete('results')
     }
-
+    addressRef.current = next
     setSearchParams(next, { replace })
 
     // RB-208: keep the account's copy in step. Signed out this rejects, which
@@ -331,7 +332,7 @@ export default function HomePage() {
         </ul>
       )}
 
-      <div className="button-group">
+      <div className="button-group home-buttons">
         {/* The dietary filters sit here, left of Generate Recipes, and open as a
             dropdown under the row. Set before Generate Recipes: they are read
             from the address when it searches. */}
@@ -348,7 +349,7 @@ export default function HomePage() {
             away; the embedded ResultsPage will start its recipe search. */}
         <button
           type="button"
-          className="button"
+          className="button home-action"
           onClick={() => putInAddress(ingredients, true, false)}
           disabled={ingredients.length === 0}
         >
@@ -360,7 +361,7 @@ export default function HomePage() {
             "/favorites" throws them away and coming back lands on an empty
             page. RB-188 fixed the nav bar's links and not this one. */}
         <Link
-          className="button button-secondary"
+          className="button button-secondary home-action"
           to={{ pathname: '/favorites', search: searchParams.toString() }}
         >
           View Favorites

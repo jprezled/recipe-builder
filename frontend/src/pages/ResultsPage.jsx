@@ -101,7 +101,7 @@ export default function ResultsPage({
 const hasLoadedSaved = useRef(false)
 
 useEffect(() => {
-  if (hasLoadedSaved.current || diet || intolerances) {
+  if (embedded || hasLoadedSaved.current || diet || intolerances) {
     return
   }
   let stillOnThisPage = true

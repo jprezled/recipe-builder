@@ -1223,3 +1223,69 @@ a.button {
   outline: 2px solid var(--color-heading);
   outline-offset: 3px;
 }
+/* The dietary filters in the home page's button row: the toggle is one more
+   button in the row, and its panel drops down over what is below, lined up
+   with its left edge, rather than pushing the other buttons apart. */
+.button-group .dietary-filters-form {
+  position: relative;
+}
+
+/* The home page's three buttons share one width and height, whatever their
+   labels say. The filter toggle fills its form, which is sized here too. */
+/* One row, always: they share the space equally and each stops growing at
+   12rem, rather than wrapping onto a second line when the page is narrow. */
+.home-buttons {
+  flex-wrap: nowrap;
+}
+
+.home-action,
+.button-group .dietary-filters-form {
+  flex: 1 1 0;
+  max-width: 12rem;
+  min-width: 0;
+}
+
+.home-action,
+.button-group .dietary-filters-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 3rem;
+  padding: 0.5rem 1rem;
+  line-height: 1.2;
+  text-align: center;
+  text-decoration: none;
+}
+
+.button-group .dietary-filters-toggle {
+  width: 100%;
+}
+
+.button-group .dietary-filters-toggle {
+  margin: 0;
+  padding: 12px 20px;
+  /* The same lettering as Generate Recipes: .button sets no font of its own,
+     so this goes back to the browser's button font, then the same size. */
+  font: revert;
+  font-size: 1rem;
+  /* The "Recipe Builder" heading's teal as the fill, white letters like the
+     other two buttons. */
+  color: white;
+  background-color: var(--color-title);
+  border: 2px solid var(--color-title);
+}
+
+.button-group .dietary-filters-toggle:hover {
+  background-color: var(--color-primary-dark);
+  border-color: var(--color-primary-dark);
+}
+
+.button-group .dietary-filters {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  z-index: 10;
+  width: min(90vw, 480px);
+  margin: 0.5rem 0 0;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.15);
+}
