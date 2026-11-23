@@ -406,6 +406,30 @@ a.button {
 
 /* ---------- Dietary filter controls ---------- */
 
+/* RB-292: the "Dietary Restrictions" toggle, matching .nutrition-toggle. The
+   card styling below now sits on the panel that opens, not the whole form, so
+   a closed filter leaves no empty card behind. */
+.dietary-filters-toggle {
+  background-color: #ffffff;
+  border: 1px solid #2a5c2a;
+  border-radius: 6px;
+  color: #2a5c2a;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 600;
+  margin: 1rem 0;
+  padding: 10px 18px;
+}
+
+.dietary-filters-toggle:hover {
+  background-color: #f0f6f0;
+}
+
+.dietary-filters-toggle:focus-visible {
+  outline: 2px solid #2a5c2a;
+  outline-offset: 2px;
+}
+
 /* Match the filter panel to the existing green theme.
    Keep its contents left-aligned inside the centered results page. */
 .dietary-filters {
