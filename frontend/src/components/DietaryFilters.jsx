@@ -44,6 +44,11 @@ export default function DietaryFilters({
   onApply,
   onChange,
 }) {
+  // RB-292: closed until the cook opens it. Kept here, not in the parent -
+  // this is the only panel and the only reader of the flag.
+  const [isOpen, setIsOpen] = useState(false)
+  const panelId = useId()
+
   // All diet radio buttons share this name so they form one group.
   // The unique name prevents separate component instances from interfering.
   const dietGroupName = useId()
@@ -102,41 +107,57 @@ export default function DietaryFilters({
     // Convert "No preference" from an empty string to null.
     // Pass a copy of the exclusions array.
     onApply(diet || null, [...intolerances])
+
+    // Tidy up once the cook has applied. The ticks stay: this only closes the
+    // panel, and the state above is not lost with it.
+    setIsOpen(false)
   }
 
   return (
     // Only form submission reports choices outward.
     // The class name provides a hook for styles in index.css.
-    <form className="dietary-filters" onSubmit={handleApply}>
-      <h2>Dietary Restrictions</h2>
-
-      {/* fieldset and legend identify the related diet controls. */}
-      <fieldset>
-        <legend>Diet — choose one</legend>
-
-        {/* Wrapping the input in a label gives it an accessible name
+    <form className="dietary-filters-form" onSubmit={handleApply}>
+      {/* The toggle carries the "Dietary Restrictions" label, so the panel
+      has no heading of its own. */}
+      <button
+        type="button"
+        className="dietary-filters-toggle"
+        aria-expanded={isOpen}
+        aria-controls={panelId}
+        onClick={() => setIsOpen((open) => !open)}
+      >
+        Dietary Restrictions <span aria-hidden="true">{isOpen ? '▲' : '▼'}</span>
+      </button>
+      
+      {/* The class name provides a hook for styles in index.css. */}
+      {isOpen && (
+        <div id={panelId} className="dietary-filters">
+           {/* fieldset and legend identify the related diet controls. */}
+          <fieldset>
+            <legend>Diet — choose one</legend>
+            {/* Wrapping the input in a label gives it an accessible name
             and allows the user to click the label text. */}
-        <label>
-          <input
-            type="radio"
-            name={dietGroupName}
-            value=""
-            checked={diet === ''}
-            onChange={() => handleDietChange('')}
-          />
-          No preference
-        </label>
-
-        {/* Create a radio button for each supported diet.
-            key identifies each option in React's rendered list. */}
-        {DIETS.map((option) => (
-          <label key={option.value}>
-            <input
+            <label>
+              <input
               type="radio"
               name={dietGroupName}
-              value={option.value}
-              checked={diet === option.value}
-              onChange={() => handleDietChange(option.value)}
+              value=""
+              checked={diet === ''}
+              onChange={() => handleDietChange('')}
+            />
+            No preference
+          </label>
+
+          {/* Create a radio button for each supported diet.
+          key identifies each option in React's rendered list. */}
+          {DIETS.map((option) => (
+            <label key={option.value}>
+             <input
+                type="radio"
+                name={dietGroupName}
+                value={option.value}
+                checked={diet === option.value}
+                onChange={() => handleDietChange(option.value)}
             />
             {option.label}
           </label>
@@ -149,22 +170,24 @@ export default function DietaryFilters({
 
         {INTOLERANCES.map((option) => (
           <label key={option.value}>
-            <input
-              type="checkbox"
-              value={option.value}
-              checked={intolerances.includes(option.value)}
-              onChange={() => handleIntoleranceChange(option.value)}
-            />
-            {option.label}
-          </label>
-        ))}
-      </fieldset>
+              <input
+                type="checkbox"
+                value={option.value}
+                checked={intolerances.includes(option.value)}
+                onChange={() => handleIntoleranceChange(option.value)}
+              />
+               {option.label}
+              </label>
+            ))}
+          </fieldset>
 
-      {/* Submitting calls handleApply.
-          Changing a radio button or checkbox does not call it. */}
-      <button type="submit" className="button">
-        Find recipes
-      </button>
+          {/* Submitting calls handleApply.
+            Changing a radio button or checkbox does not call it. */}
+          <button type="submit" className="button">
+             Find recipes
+          </button>
+        </div>
+      )}
     </form>
   )
 }

@@ -84,6 +84,7 @@ describe('ResultsPage', () => {
 
     await vi.waitFor(() => expect(searchRecipes).toHaveBeenCalled())
 
+    await userEvent.click(screen.getByRole('button', { name: /dietary restrictions/i }))
     await userEvent.click(screen.getByRole('radio', { name: /vegan/i }))
     await userEvent.click(screen.getByRole('button', { name: /find recipes/i }))
 
@@ -133,6 +134,7 @@ describe('ResultsPage', () => {
     renderResults('?ingredients=eggs&diet=vegetarian')
 
     // A link's explicit filter wins, so saved preferences should not be loaded.
+    await userEvent.click(screen.getByRole('button', { name: /dietary restrictions/i }))
     expect(screen.getByRole('radio', { name: /vegetarian/i })).toBeChecked()
     expect(screen.getByRole('radio', { name: /vegan/i })).not.toBeChecked()
     expect(getRestrictions).not.toHaveBeenCalled()
@@ -143,6 +145,7 @@ describe('ResultsPage', () => {
     searchRecipes.mockResolvedValue([])
     renderResults('?ingredients=eggs')
 
+    await userEvent.click(screen.getByRole('button', { name: /dietary restrictions/i }))
     await userEvent.click(screen.getByRole('radio', { name: /vegan/i }))
     expect(saveRestrictions).not.toHaveBeenCalled()
 
@@ -445,6 +448,7 @@ describe('ResultsPage', () => {
     saveRestrictions.mockRejectedValue(new Error('Please sign in.'))
     renderResults('?ingredients=eggs')
 
+    await userEvent.click(screen.getByRole('button', { name: /dietary restrictions/i }))
     await userEvent.click(screen.getByRole('radio', { name: /vegan/i }))
     await userEvent.click(screen.getByRole('button', { name: /find recipes/i }))
 
@@ -477,6 +481,7 @@ describe('ResultsPage', () => {
     renderResults('?ingredients=eggs')
     await vi.waitFor(() => expect(searchRecipes).toHaveBeenCalledTimes(1))
 
+    await userEvent.click(screen.getByRole('button', { name: /dietary restrictions/i }))
     await userEvent.click(screen.getByRole('radio', { name: /vegan/i }))
     await userEvent.click(screen.getByRole('checkbox', { name: /dairy/i }))
     await userEvent.click(screen.getByRole('checkbox', { name: /peanut/i }))
@@ -487,8 +492,9 @@ describe('ResultsPage', () => {
   it('remembers a tick in the address so the nav bar cannot lose it, without searching', async () => {
     searchRecipes.mockResolvedValue([])
     renderResultsWithAddress('?ingredients=eggs')
-    await screen.findByRole('button', { name: /find recipes/i })
+    await screen.findByRole('button', { name: /dietary restrictions/i })
 
+    await userEvent.click(screen.getByRole('button', { name: /dietary restrictions/i }))
     await userEvent.click(screen.getByRole('radio', { name: /vegan/i }))
 
     await vi.waitFor(() =>
@@ -548,6 +554,7 @@ describe('ResultsPage', () => {
     await vi.waitFor(() => expect(searchRecipes).toHaveBeenCalledTimes(1))
 
     await userEvent.type(screen.getByLabelText('Ingredients'), 'milk')
+    await userEvent.click(screen.getByRole('button', { name: /dietary restrictions/i }))
     await userEvent.click(screen.getByRole('button', { name: 'Add' }))
     await userEvent.click(screen.getByRole('radio', { name: /vegan/i }))
     // The filter form's own button is the only one - it applies the
@@ -580,6 +587,7 @@ describe('ResultsPage', () => {
     renderResults('?ingredients=eggs')
     await vi.waitFor(() => expect(searchRecipes).toHaveBeenCalledTimes(1))
 
+    await userEvent.click(screen.getByRole('button', { name: /dietary restrictions/i }))
     await userEvent.click(screen.getByRole('radio', { name: /vegan/i }))
     expect(screen.getByText(/filters have changed/i)).toBeInTheDocument()
 
@@ -607,12 +615,13 @@ describe('ResultsPage', () => {
     searchRecipes.mockResolvedValue([])
     renderResults('?ingredients=eggs')
 
-    await screen.findByRole('button', { name: /find recipes/i })
+    await screen.findByRole('button', { name: /dietary restrictions/i })
+    await userEvent.click(screen.getByRole('button', { name: /dietary restrictions/i }))
     await userEvent.click(screen.getByRole('radio', { name: 'Vegan' }))
     await userEvent.click(screen.getByRole('button', { name: /find recipes/i }))
 
     // Scoped to the status message: "Vegan" is also the radio's own label.
-    expect(await screen.findByRole('status', { name: '' }))
+    expect(await screen.findByRole('status')).toHaveTextContent('Filters applied:')
     expect(screen.getByText('Filters applied:')).toBeInTheDocument()
   })
 
