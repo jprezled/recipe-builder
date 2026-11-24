@@ -203,23 +203,32 @@ export default function ResultsPage({
           getCollections().catch(() => []),
         ])
 
-        const bulkRatings = foundRecipes.length > 0
-          ? await getRecipeRatings(foundRecipes.map((recipe) => recipe.id)).catch(() => [])
-          : []
-        const nextRatings = {}
-        for (const item of bulkRatings) {
-          if (item && item.id != null) {
-            nextRatings[item.id] = { average: item.average ?? 0, count: item.count ?? 0 }
-          }
-        }
-
         // Ignore results if this component has since unmounted or started a
         // newer search.
         if (stillOnThisPage) {
           setRecipes(foundRecipes)
           setFavoriteIds(savedFavorites.map((favorite) => favorite.id))
           setCollections(savedCollections)
-          setRatingsById(nextRatings)
+        }
+
+        // RB-294: one request for the whole page of cards, not awaited, so the
+        // cards show without waiting for it. A failure leaves the cards with no
+        // rating line rather than a wrong "No rating".
+        if (foundRecipes.length > 0) {
+          getRecipeRatings(foundRecipes.map((recipe) => recipe.id))
+            .then((summaries) => {
+              if (!stillOnThisPage) {
+                return
+              }
+              const nextRatings = {}
+              for (const item of summaries) {
+                if (item && item.id != null) {
+                  nextRatings[item.id] = { average: item.average ?? 0, count: item.count ?? 0 }
+                }
+              }
+              setRatingsById(nextRatings)
+            })
+            .catch(() => {})
         }
       } catch (failure) {
         // A recipe-search error is shown to the user. Favorite lookup errors
@@ -514,7 +523,7 @@ export default function ResultsPage({
             isFavorite={favoriteIds.includes(recipe.id)}
             onFavoriteChange={handleFavoriteChange}
             collections={collections}
-            rating={ratingsById[recipe.id] ?? { average: 0, count: 0 }}
+            rating={ratingsById[recipe.id]}
           />
         ))}
       </div>

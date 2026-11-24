@@ -1,33 +1,25 @@
-﻿import { Link, useLocation } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 import FavoriteButton from './FavoriteButton'
-
-function formatCardRating(rating) {
-  if (!rating || !rating.count || rating.count <= 0) {
-    return 'No rating'
-  }
-  const formattedAvg = Number(rating.average).toFixed(1)
-  const word = rating.count === 1 ? 'rating' : 'ratings'
-  return `${formattedAvg} ★ (${rating.count} ${word})`
-}
+import { formatRating } from '../lib/ratingText'
 
 /**
-- One recipe, as a card. Andrew's markup and all of its styling.
+ * One recipe, as a card. Andrew's markup and all of its styling.
  *
-- His three props - title, description, imageUrl - are unchanged, because his
-- pages pass exactly those and changing the signature would break them for no
-- gain. The star is additive: pass onFavoriteChange and it appears, leave it
-- off and the card renders exactly as he wrote it.
+ * His three props - title, description, imageUrl - are unchanged, because his
+ * pages pass exactly those and changing the signature would break them for no
+ * gain. The star is additive: pass onFavoriteChange and it appears, leave it
+ * off and the card renders exactly as he wrote it.
  *
-- @param {number} [props.id]                  Spoonacular's id, needed by the star
-- @param {string} props.title
-- @param {string} props.description
-- @param {string} props.imageUrl
-- @param {boolean} [props.isFavorite]         whether the star is filled
-- @param {Function} [props.onFavoriteChange]  (id, isNowFavorite) => void
-- @param {Function} [props.onDragStart]       RB-210: makes the card draggable
-- @param {Array} [props.collections]         RB-210: handed on to the star
-- @param {{ average?: number, count?: number }} [props.rating] RB-294: read-only rating summary
-- @param {React.ReactNode} [props.children]  extra content for the card's foot
+ * @param {number} [props.id]                  Spoonacular's id, needed by the star
+ * @param {string} props.title
+ * @param {string} props.description
+ * @param {string} props.imageUrl
+ * @param {boolean} [props.isFavorite]         whether the star is filled
+ * @param {Function} [props.onFavoriteChange]  (id, isNowFavorite) => void
+ * @param {Function} [props.onDragStart]       RB-210: makes the card draggable
+ * @param {Array} [props.collections]         RB-210: handed on to the star
+ * @param {{ average?: number, count?: number }} [props.rating] RB-294: read-only rating summary
+ * @param {React.ReactNode} [props.children]  extra content for the card's foot
  */
 export default function RecipeCard({
   id, title, description, imageUrl, isFavorite, onFavoriteChange, collections, rating, onDragStart, children,
@@ -45,7 +37,9 @@ export default function RecipeCard({
   // No handler means no star. That is what lets this card be used anywhere,
   // including pages that have nothing to do with saving.
   const canFavorite = typeof onFavoriteChange === 'function'
-  const showRating = rating !== undefined
+  // No rating prop means no rating line - also how the results page leaves it
+  // off when the ratings could not be loaded, so that never reads "No rating".
+  const showRating = Boolean(rating)
 
   return (
     <article className="recipe-card" draggable={onDragStart ? true : undefined}
@@ -54,7 +48,7 @@ export default function RecipeCard({
       <h3>{title}</h3>
       <p>{description}</p>
       {showRating && (
-        <p className="recipe-card-rating">{formatCardRating(rating)}</p>
+        <p className="recipe-card-rating">{formatRating(rating.average, rating.count)}</p>
       )}
 
       {canFavorite && (

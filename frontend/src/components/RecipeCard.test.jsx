@@ -1,4 +1,4 @@
-﻿import { describe, expect, it, vi } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import RecipeCard from './RecipeCard'
@@ -20,11 +20,11 @@ function renderCard(props = {}, at = '/') {
 }
 
 /**
-- RB-179: the card's own "View Recipe" control, finally wired up.
+ * RB-179: the card's own "View Recipe" control, finally wired up.
  *
-- A link on the existing button rather than a clickable card: the star sits
-- inside the card, and a link wrapping everything would contain a button -
-- ambiguous to screen readers, and tapping the star would navigate.
+ * A link on the existing button rather than a clickable card: the star sits
+ * inside the card, and a link wrapping everything would contain a button -
+ * ambiguous to screen readers, and tapping the star would navigate.
  */
 describe('RecipeCard', () => {
   it('View Recipe opens this card own recipe', () => {
