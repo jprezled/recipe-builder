@@ -39,10 +39,13 @@ jobs:
       - name: Apply database migrations
         env:
           PGPASSWORD: postgres
+        # sort -V because the shell's own order puts V10 before V1, and
+        # ON_ERROR_STOP so a migration that fails stops CI instead of
+        # letting the tests run against a missing table.
         run: |
-          for migration in database/migrations/V*.sql; do
+          for migration in $(ls database/migrations/V*.sql | sort -V); do
             echo "Applying $migration"
-            psql -h localhost -U postgres -d recipe_builder_test_db -f "$migration"
+            psql -h localhost -U postgres -d recipe_builder_test_db -v ON_ERROR_STOP=1 -f "$migration"
           done
 
       - name: Run backend tests
