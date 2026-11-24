@@ -554,8 +554,8 @@ describe('ResultsPage', () => {
     await vi.waitFor(() => expect(searchRecipes).toHaveBeenCalledTimes(1))
 
     await userEvent.type(screen.getByLabelText('Ingredients'), 'milk')
-    await userEvent.click(screen.getByRole('button', { name: /dietary restrictions/i }))
     await userEvent.click(screen.getByRole('button', { name: 'Add' }))
+    await userEvent.click(screen.getByRole('button', { name: /dietary restrictions/i }))
     await userEvent.click(screen.getByRole('radio', { name: /vegan/i }))
     // The filter form's own button is the only one - it applies the
     // ingredients and the ticks together.

@@ -441,11 +441,6 @@ a.button {
   border-radius: 10px;
 }
 
-/* Remove the large top margin inherited from the shared h2 rule. */
-.dietary-filters h2 {
-  margin: 0 0 1rem;
-}
-
 /* Arrange options in rows and wrap them when space is limited.
    min-width prevents the fieldset from forcing a narrow page wider. */
 .dietary-filters fieldset {
@@ -1223,6 +1218,7 @@ a.button {
   outline: 2px solid var(--color-heading);
   outline-offset: 3px;
 }
+
 /* The dietary filters in the home page's button row: the toggle is one more
    button in the row, and its panel drops down over what is below, lined up
    with its left edge, rather than pushing the other buttons apart. */
@@ -1230,89 +1226,62 @@ a.button {
   position: relative;
 }
 
-/* ---------- RB-292e: home page buttons, one row, one size ---------- */
-
-.button-group.home-buttons {
-  align-items: center;
-  gap: 0.6rem;
+/* The home page's three buttons share one width and height, whatever their
+   labels say. The filter toggle fills its form, which is sized here too. */
+/* One row, always: they share the space equally and each stops growing at
+   12rem, rather than wrapping onto a second line when the page is narrow. */
+.home-buttons {
+  flex-wrap: nowrap;
 }
 
-/* Shared size and text for all three. */
-.button-group.home-buttons > .home-action,
-.button-group.home-buttons .dietary-filters-toggle {
-  box-sizing: border-box;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  height: 38px;
-  min-width: 9.5rem;
-  margin: 0;
-  padding: 0 1rem;
-  border: none;
-  border-radius: 6px;
-  font: inherit;
-  font-size: 0.92rem;
-  font-weight: 600;
-  line-height: 1;
-  white-space: nowrap;
-  text-decoration: none;
-  cursor: pointer;
+.home-action,
+.button-group .dietary-filters-form {
+  flex: 1 1 0;
+  max-width: 12rem;
+  min-width: 0;
 }
 
-/* Generate Recipes: solid theme green. */
-.button-group.home-buttons > .button.home-action {
-  background-color: var(--color-primary);
-  color: #ffffff;
-}
-
-.button-group.home-buttons > .button.home-action:hover {
-  background-color: var(--color-primary-dark);
-}
-
-/* View Favorites: solid navy. */
-.button-group.home-buttons > a.button-secondary.home-action {
-  background-color: var(--color-heading);
-  color: #ffffff;
-}
-
-/* Dietary Restrictions: outlined pill, so it reads as a filter, not an action. */
-.button-group.home-buttons .dietary-filters-toggle {
-  background-color: #eef7f3;
-  color: var(--color-title);
-  border: 2px solid var(--color-title);
-  border-radius: 999px;
-  padding: 0 1.1rem;
-}
-
-.button-group.home-buttons .dietary-filters-toggle:hover {
-  background-color: #d9ede5;
-}
-
-.button-group.home-buttons .dietary-filters-toggle:focus-visible {
-  outline: 2px solid var(--color-heading);
-  outline-offset: 3px;
-}
-
-/* The form takes no space, so its toggle sits in the row. */
-.button-group.home-buttons .dietary-filters-form {
-  display: contents;
-}
-
-/* An open panel takes a full line under the buttons. */
-.button-group.home-buttons .dietary-filters {
-  flex-basis: 100%;
-  width: 100%;
-}
-/* Results page: Dietary Restrictions and Find recipes sit on one row. */
-.results-page .dietary-filters-form {
+.home-action,
+.button-group .dietary-filters-toggle {
   display: flex;
-  flex-wrap: wrap;
   align-items: center;
   justify-content: center;
-  gap: 0.75rem;
+  min-height: 3rem;
+  padding: 0.5rem 1rem;
+  line-height: 1.2;
+  text-align: center;
+  text-decoration: none;
 }
 
-.results-page .dietary-filters-form .dietary-filters {
-  flex-basis: 100%;
+.button-group .dietary-filters-toggle {
   width: 100%;
+}
+
+.button-group .dietary-filters-toggle {
+  margin: 0;
+  padding: 12px 20px;
+  /* The same lettering as Generate Recipes: .button sets no font of its own,
+     so this goes back to the browser's button font, then the same size. */
+  font: revert;
+  font-size: 1rem;
+  /* The "Recipe Builder" heading's teal as the fill, white letters like the
+     other two buttons. */
+  color: white;
+  background-color: var(--color-title);
+  border: 2px solid var(--color-title);
+}
+
+.button-group .dietary-filters-toggle:hover {
+  background-color: var(--color-primary-dark);
+  border-color: var(--color-primary-dark);
+}
+
+.button-group .dietary-filters {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  z-index: 10;
+  width: min(90vw, 480px);
+  margin: 0.5rem 0 0;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.15);
 }

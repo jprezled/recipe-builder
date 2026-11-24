@@ -5,7 +5,7 @@ import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import HomePage from './HomePage'
 import { getFavorites, searchRecipes } from '../api/recipes'
-import { getPantry, savePantry , getRestrictions, saveRestrictions } from '../api/accounts'
+import { getPantry, getRestrictions, savePantry, saveRestrictions } from '../api/accounts'
 
 // Peter's HomePage renders the real ResultsPage inside itself, and that page
 // does the searching. Stubbing the api layer keeps these tests about the
@@ -225,7 +225,8 @@ describe('HomePage', () => {
       expect(await screen.findByText('eggs')).toBeInTheDocument()
     })
   })
-    // ---- Dietary restrictions: set on the home page, before Generate -------
+
+  // ---- Dietary restrictions: set on the home page, before Generate -------
 
   it('puts Generate Recipes in the middle, between the dietary toggle and View Favorites', () => {
     renderHome('/?ingredients=eggs')
@@ -253,14 +254,16 @@ describe('HomePage', () => {
       })),
     )
   })
-  it('saves the filters and closes the panel when Generate Recipes is pressed', async () => {
+
+  it('does not search when the filters are applied, only saves and closes', async () => {
     renderHome('/?ingredients=eggs')
 
     await userEvent.click(screen.getByRole('button', { name: /Dietary Restrictions/ }))
     await userEvent.click(screen.getByRole('radio', { name: 'Vegan' }))
-    await userEvent.click(screen.getByRole('button', { name: 'Generate Recipes' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Find recipes' }))
 
     expect(saveRestrictions).toHaveBeenCalledWith('vegan', '')
+    expect(searchRecipes).not.toHaveBeenCalled()
     expect(screen.queryByRole('radio')).not.toBeInTheDocument()
   })
 

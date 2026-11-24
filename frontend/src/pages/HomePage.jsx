@@ -31,9 +31,10 @@ export default function HomePage() {
   // whenever the cook uses the nav bar, so anything kept in useState here is
   // destroyed on the way out and the list comes back empty.
   const [searchParams, setSearchParams] = useSearchParams()
-  const [filterCloseSignal, setFilterCloseSignal] = useState(0)
+
   const ingredients = splitList(searchParams.get('ingredients'))
-   // The pantry and the saved restrictions both load into the address when the
+
+  // The pantry and the saved restrictions both load into the address when the
   // page opens, and each builds its change from the address it can see. If
   // both answer before a re-render, the second would be built from a stale
   // copy and undo the first. This always holds the newest address, written
@@ -181,6 +182,13 @@ export default function HomePage() {
   function handleFilterChange(chosenDiet, chosenIntolerances) {
     putFiltersInAddress(chosenDiet, chosenIntolerances)
   }
+
+  /** Find recipes: saved to the account. The search itself is Generate Recipes. */
+  function handleApplyFilters(chosenDiet, chosenIntolerances) {
+    saveRestrictions(chosenDiet, chosenIntolerances.join(',')).catch(() => {})
+    putFiltersInAddress(chosenDiet, chosenIntolerances)
+  }
+
   /**
    * Write the pantry list into the address.
    *
@@ -337,22 +345,16 @@ export default function HomePage() {
           selectedIntolerances={
             searchParams.get('intolerances') ? searchParams.get('intolerances').split(',') : []
           }
+          onApply={handleApplyFilters}
           onChange={handleFilterChange}
-          closeSignal={filterCloseSignal}
         />
+
         {/* This reveals ResultsPage below the ingredients. It does not navigate
             away; the embedded ResultsPage will start its recipe search. */}
         <button
           type="button"
           className="button home-action"
-          onClick={() => {
-            putInAddress(ingredients, true, false)
-            saveRestrictions(
-              searchParams.get('diet'),
-              searchParams.get('intolerances') ?? '',
-            ).catch(() => {})
-            setFilterCloseSignal((count) => count + 1)
-          }}
+          onClick={() => putInAddress(ingredients, true, false)}
           disabled={ingredients.length === 0}
         >
           Generate Recipes

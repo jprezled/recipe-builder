@@ -425,6 +425,11 @@ useEffect(() => {
         </div>
       )}
 
+      {/* Keyed on the APPLIED filters, not the live ticks. The key exists so
+          the controls match the address after a refresh or a Back - but ticks
+          now write to the address too, and keying on those would remount the
+          controls on every click and wipe the tick that caused it.
+          `applied` changes only when the button is pressed. */}
       {/* Embedded in the home page, the filters are set up there, in its button
           row, before Generate Recipes - so there is no second copy here. */}
       {!embedded && (
@@ -434,7 +439,6 @@ useEffect(() => {
           selectedIntolerances={intolerances ? intolerances.split(',') : []}
           onApply={handleApplyFilters}
           onChange={handleFilterChange}
-          applyBeside
         />
       )}
 

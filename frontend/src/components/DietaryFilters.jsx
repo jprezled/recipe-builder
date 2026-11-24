@@ -7,7 +7,7 @@ It does not call Spoonacular or perform recipe searches itself.
 
 // useState holds the user's pending choices.
 // useId generates a unique name for this component's radio group.
-import { useEffect, useId, useState } from 'react'
+import { useId, useState } from 'react'
 
 // Labels are displayed to the user.
 // Values match the dietary filter contract and are reported to the parent.
@@ -43,15 +43,10 @@ export default function DietaryFilters({
   selectedIntolerances = [],
   onApply,
   onChange,
-  applyBeside = false,
-  closeSignal = 0,
 }) {
   // RB-292: closed until the cook opens it. Kept here, not in the parent -
   // this is the only panel and the only reader of the flag.
   const [isOpen, setIsOpen] = useState(false)
-  useEffect(() => {
-    setIsOpen(false)
-  }, [closeSignal])
   const panelId = useId()
 
   // All diet radio buttons share this name so they form one group.
@@ -111,7 +106,7 @@ export default function DietaryFilters({
     // Report the pending choices to the parent exactly once per submission.
     // Convert "No preference" from an empty string to null.
     // Pass a copy of the exclusions array.
-    onApply?.(diet || null, [...intolerances])
+    onApply(diet || null, [...intolerances])
 
     // Tidy up once the cook has applied. The ticks stay: this only closes the
     // panel, and the state above is not lost with it.
@@ -121,6 +116,8 @@ export default function DietaryFilters({
   return (
     // Only form submission reports choices outward.
     <form className="dietary-filters-form" onSubmit={handleApply}>
+      {/* The toggle carries the "Dietary Restrictions" label, so the panel
+          has no heading of its own. */}
       <button
         type="button"
         className="dietary-filters-toggle"
@@ -131,18 +128,15 @@ export default function DietaryFilters({
         Dietary Restrictions <span aria-hidden="true">{isOpen ? '▲' : '▼'}</span>
       </button>
 
-      {/* Visible without opening the panel, so the cook can apply straight away. */}
-      {applyBeside && (
-        <button type="submit" className="button">
-          Find recipes
-        </button>
-      )}
-
+      {/* The class name provides a hook for styles in index.css. */}
       {isOpen && (
         <div id={panelId} className="dietary-filters">
+          {/* fieldset and legend identify the related diet controls. */}
           <fieldset>
             <legend>Diet — choose one</legend>
 
+            {/* Wrapping the input in a label gives it an accessible name
+                and allows the user to click the label text. */}
             <label>
               <input
                 type="radio"
@@ -154,6 +148,8 @@ export default function DietaryFilters({
               No preference
             </label>
 
+            {/* Create a radio button for each supported diet.
+                key identifies each option in React's rendered list. */}
             {DIETS.map((option) => (
               <label key={option.value}>
                 <input
@@ -168,6 +164,7 @@ export default function DietaryFilters({
             ))}
           </fieldset>
 
+          {/* Checkboxes allow multiple exclusions to be selected together. */}
           <fieldset>
             <legend>Exclude ingredients — choose any</legend>
 
@@ -183,6 +180,12 @@ export default function DietaryFilters({
               </label>
             ))}
           </fieldset>
+
+          {/* Submitting calls handleApply.
+              Changing a radio button or checkbox does not call it. */}
+          <button type="submit" className="button">
+            Find recipes
+          </button>
         </div>
       )}
     </form>
