@@ -1,17 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
 import { getRecipeRating, submitRecipeRating } from '../api/ratings'
+import { formatRating } from '../lib/ratingText'
 
 const SIGN_IN_NOTICE = 'Please sign in to rate recipes.'
 const DEFAULT_ERROR = 'Could not save your rating.'
-
-function formatSummary(average, count) {
-  if (!count || count <= 0) {
-    return 'No rating'
-  }
-  const formattedAvg = Number(average).toFixed(1)
-  const word = count === 1 ? 'rating' : 'ratings'
-  return `${formattedAvg} ★ (${count} ${word})`
-}
 
 /**
  * RB-297d: shared rating summary + interactive 1-5 star picker popover
@@ -106,7 +98,7 @@ export default function RecipeRating({ recipeId }) {
         aria-haspopup="dialog"
         onClick={handleTogglePopover}
       >
-        <span className="recipe-rating-summary">{formatSummary(summary.average, summary.count)}</span>
+        <span className="recipe-rating-summary">{formatRating(summary.average, summary.count)}</span>
         {summary.yourRating != null && (
           <span className="recipe-rating-yours">Your rating: {summary.yourRating} ★</span>
         )}

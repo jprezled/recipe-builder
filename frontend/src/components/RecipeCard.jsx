@@ -1,5 +1,6 @@
 import { Link, useLocation } from 'react-router-dom'
 import FavoriteButton from './FavoriteButton'
+import { formatRating } from '../lib/ratingText'
 
 /**
  * One recipe, as a card. Andrew's markup and all of its styling.
@@ -17,10 +18,11 @@ import FavoriteButton from './FavoriteButton'
  * @param {Function} [props.onFavoriteChange]  (id, isNowFavorite) => void
  * @param {Function} [props.onDragStart]       RB-210: makes the card draggable
  * @param {Array} [props.collections]         RB-210: handed on to the star
+ * @param {{ average?: number, count?: number }} [props.rating] RB-294: read-only rating summary
  * @param {React.ReactNode} [props.children]  extra content for the card's foot
  */
 export default function RecipeCard({
-  id, title, description, imageUrl, isFavorite, onFavoriteChange, collections, onDragStart, children,
+  id, title, description, imageUrl, isFavorite, onFavoriteChange, collections, rating, onDragStart, children,
 }) {
   // The recipe address carries the pantry list and the filters forward. The
   // nav bar passes on whatever the current address holds, so a detail page
@@ -35,6 +37,9 @@ export default function RecipeCard({
   // No handler means no star. That is what lets this card be used anywhere,
   // including pages that have nothing to do with saving.
   const canFavorite = typeof onFavoriteChange === 'function'
+  // No rating prop means no rating line - also how the results page leaves it
+  // off when the ratings could not be loaded, so that never reads "No rating".
+  const showRating = Boolean(rating)
 
   return (
     <article className="recipe-card" draggable={onDragStart ? true : undefined}
@@ -42,6 +47,9 @@ export default function RecipeCard({
       {hasImage && <img src={imageUrl} alt={title} />}
       <h3>{title}</h3>
       <p>{description}</p>
+      {showRating && (
+        <p className="recipe-card-rating">{formatRating(rating.average, rating.count)}</p>
+      )}
 
       {canFavorite && (
         <FavoriteButton

@@ -60,4 +60,18 @@ describe('RecipeCard', () => {
     // No handler means no star, and the only control left is the link.
     expect(screen.queryByRole('button')).not.toBeInTheDocument()
   })
+
+  it('shows read-only rating average and count when rated', () => {
+    renderCard({ rating: { average: 4.5, count: 2 } })
+
+    expect(screen.getByText('4.5 ★ (2 ratings)')).toBeInTheDocument()
+    expect(screen.queryByRole('button')).not.toBeInTheDocument()
+  })
+
+  it('shows No rating when unrated', () => {
+    renderCard({ rating: { average: 0, count: 0 } })
+
+    expect(screen.getByText('No rating')).toBeInTheDocument()
+    expect(screen.queryByText(/0\.0/)).not.toBeInTheDocument()
+  })
 })
