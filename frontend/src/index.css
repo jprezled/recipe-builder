@@ -1522,6 +1522,10 @@ a.button {
   width: min(90vw, 480px);
   margin: 0.5rem 0 0;
   box-shadow: 0 6px 18px rgba(0, 0, 0, 0.15);
+  /* Opaque, unlike --color-card: this panel drops down over the page, so a
+     see-through card let whatever sat underneath show through the options.
+     The same colour --color-card makes against the page background. */
+  background-color: rgb(218, 235, 231);
 }
 
 /* RB-291: the servings stepper above the ingredients list. */
