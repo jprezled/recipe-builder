@@ -1,4 +1,4 @@
-﻿/** RB-297 / RB-294: recipe rating API calls. */
+/** RB-297 / RB-294: recipe rating API calls. */
 
 async function parseJson(response) {
   const data = await response.json().catch(() => ({}))

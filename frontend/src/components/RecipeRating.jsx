@@ -1,4 +1,4 @@
-﻿import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { getRecipeRating, submitRecipeRating } from '../api/ratings'
 
 const SIGN_IN_NOTICE = 'Please sign in to rate recipes.'

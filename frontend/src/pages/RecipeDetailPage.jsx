@@ -1,4 +1,4 @@
-﻿import { useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { getFavorites, getRecipe, getRecipeCost } from '../api/recipes'
 import { getCollections } from '../api/collections'
@@ -35,7 +35,13 @@ const NUTRITION_ROWS = [
   { field: 'sugar', label: 'Sugar', unit: 'g' },
   { field: 'protein', label: 'Protein', unit: 'g' },
 ]
-
+/**
+ * Groups ingredients by their aisle. A Map rather than a plain object because aisle names are free text from
+ * Spoonacular - a name like "constructor" would collide with an inherited
+ * property on an object, and a Map has no inherited keys.
+ * @param {Array<{name: string, line: string, aisle: string}>}allIngredients
+ * @returns {Array<[string, Array]>}[category, items]
+ */
 function groupByAisle(allIngredients = []) {
   const byAisle = new Map()
 
@@ -49,10 +55,18 @@ function groupByAisle(allIngredients = []) {
   return [...byAisle.entries()]
 }
 
+/**
+ * The page for one recipe, named by the id in the address.
+ *
+ * The heading, image, description slot, button group and two sections are
+ * Andrew's and are unchanged - only their contents come from the backend now.
+ */
 export default function RecipeDetailPage() {
   const { id } = useParams()
   const navigate = useNavigate()
 
+  // Four pieces of state, so the page can tell its situations apart: still
+  // loading, failed, loaded, and loaded-but-empty.
   const [isNutritionOpen, setIsNutritionOpen] = useState(false)
   const [recipe, setRecipe] = useState(null)
   const [isFavorite, setIsFavorite] = useState(false)
@@ -60,16 +74,23 @@ export default function RecipeDetailPage() {
   const [errorMessage, setErrorMessage] = useState('')
   const [isLoading, setIsLoading] = useState(true)
   const [isShoppingOpen, setIsShoppingOpen] = useState(false)
+  // RB-271: the cook's note, read from the favorites reply the page already makes.
   const [note, setNote] = useState(null)
   const [isNoteOpen, setIsNoteOpen] = useState(false)
 
+  // RB-193: the shopping cost. Null until the cook asks for it, because
+  // fetching it is a whole Spoonacular point - loading it with the page would
+  // double what browsing a recipe costs.
   const [searchParams] = useSearchParams()
   const pantry = searchParams.get('ingredients') ?? ''
   const [cost, setCost] = useState(null)
   const [isCostLoading, setIsCostLoading] = useState(false)
   const [costError, setCostError] = useState('')
 
+
   useEffect(() => {
+    // A cook can click away while the request is still in flight. Without
+    // this flag a slow reply updates a page that is no longer on screen.
     let stillOnThisPage = true
 
     async function load() {
@@ -81,14 +102,21 @@ export default function RecipeDetailPage() {
       setIsNoteOpen(false)
 
       try {
+        // The saved list is a database read and costs no Spoonacular quota,
+        // so it goes out alongside the recipe rather than after it. Its
+        // failure is swallowed: a favorites problem must not stop the recipe
+        // appearing, it only leaves the button reading "Save".
         const [found, saved, savedCollections] = await Promise.all([
           getRecipe(id),
           getFavorites().catch(() => []),
+          // RB-210: swallowed for the same reason - signed out is normal here.
           getCollections().catch(() => []),
         ])
 
         if (stillOnThisPage) {
           setRecipe(found)
+          // RB-271: find, not some - the entry carries the cook's note, and
+          // some() threw it away. No extra request: the note was always here.
           const alreadySaved = saved.find((one) => one.id === found.id)
           setIsFavorite(alreadySaved !== undefined)
           setNote(alreadySaved ? alreadySaved.note : null)
@@ -112,6 +140,7 @@ export default function RecipeDetailPage() {
     }
   }, [id])
 
+  /** RB-193: fetched on demand; a second press puts the panel away. */
   async function showCost() {
     if (cost) {
       setCost(null)
@@ -131,6 +160,10 @@ export default function RecipeDetailPage() {
 
   return (
     <main className="detail-page">
+      {/* One step back in history rather than a fixed address, so this
+          returns to the results the cook was actually looking at and keeps
+          their ingredients and any filter - without this page needing to
+          know either exists. */}
       <button
         type="button"
         className="button button-secondary"
@@ -148,10 +181,15 @@ export default function RecipeDetailPage() {
           <h1>{recipe.title}</h1>
           <img className="detail-image" src={recipe.imageUrl} alt={recipe.title} />
 
+          {/* Spoonacular has no prose we can use here - their "summary" is
+              marketing copy with HTML in it. See the contract. */}
           <p className="detail-description">
             Serves {recipe.servings} · ready in {recipe.readyInMinutes} minutes
           </p>
 
+          {/* These four flags arrive in the call the page already makes, so
+              showing them costs nothing extra. Search results do not carry
+              them, which is why the result cards have no badges. */}
           <ul className="diet-badges">
             {DIET_LABELS.filter((one) => recipe.diets[one.field]).map((one) => (
               <li key={one.field}>{one.label}</li>
@@ -166,12 +204,15 @@ export default function RecipeDetailPage() {
               isFavorite={isFavorite}
               onChange={(_id, isNowFavorite) => {
                 setIsFavorite(isNowFavorite)
+              // Un-saving deletes the note on the backend (RB-205), so drop ours too
                 if (!isNowFavorite) setNote(null)
               }}
               variant="text"
               collections={collections}
             />
 
+            {/* RB-193b: free - it arrived with the recipe, so it is simply
+                shown. The button below is the part that costs a point. */}
             {recipe.costPerServing > 0 && (
               <p className="detail-cost">
                 About <strong>${recipe.costPerServing.toFixed(2)}</strong> a serving
@@ -194,6 +235,7 @@ export default function RecipeDetailPage() {
               </button>
             )}
 
+            {/* no extra fetch - allIngredients came with the recipe. */}
             {recipe.allIngredients?.length > 0 && (
               <button
                 type="button"
@@ -202,7 +244,7 @@ export default function RecipeDetailPage() {
                 aria-controls="shopping-list"
                 onClick={() => setIsShoppingOpen(!isShoppingOpen)}
               >
-                Shopping list
+                 Shopping list
                 <span aria-hidden="true">{isShoppingOpen ? ' ▲' : ' ▼'}</span>
               </button>
             )}
@@ -218,6 +260,8 @@ export default function RecipeDetailPage() {
               <span aria-hidden="true">{cost ? ' ▲' : ' ▼'}</span>
             </button>
 
+            {/* RB-272: always in the row, saved or not - a button that comes
+                and goes looks like a bug. See docs/recipe-notes-contract.md. */}
             <button
               type="button"
               className="button button-secondary"
@@ -249,6 +293,8 @@ export default function RecipeDetailPage() {
                     <span className="cost-name">{item.name}</span>
                     <span className="nutrition-amount">${item.price.toFixed(2)}</span>
                     {item.inPantry && (
+                      // The tick carries meaning, so it needs a label - the
+                      // strike-through alone says nothing to a screen reader.
                       <span className="cost-tag" role="img" aria-label="already in your kitchen">
                         ✓
                       </span>
@@ -257,6 +303,8 @@ export default function RecipeDetailPage() {
                 ))}
               </ul>
 
+              {/* The contract requires this line: these are US national
+                  averages, not any shop's shelf price. */}
               <p className="cost-note">
                 Prices are national averages, so treat them as a guide.
               </p>
@@ -267,6 +315,9 @@ export default function RecipeDetailPage() {
             <section className="detail-section" id="recipe-note">
               <h2>My Note</h2>
               {isFavorite ? (
+                // The same component the favourites page uses, not a copy.
+                // key: RecipeNote reads its note prop only once, so a new
+                // note must build a fresh component or the box opens blank.
                 <RecipeNote key={note ?? ''} recipeId={recipe.id} note={note} />
               ) : (
                 <p className="note-empty">Save this recipe to add a note.</p>

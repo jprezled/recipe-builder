@@ -1,4 +1,4 @@
-﻿import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import RecipeRating from './RecipeRating'
 
@@ -78,5 +78,50 @@ describe('RecipeRating', () => {
     fireEvent.click(screen.getByRole('button', { name: '3 stars' }))
 
     expect(await screen.findByText('Please sign in to rate recipes.')).toBeInTheDocument()
+  })
+
+  it('closes the popover when the cook clicks outside it', async () => {
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ average: 0, count: 0, yourRating: null }),
+    })
+
+    render(
+      <div>
+        <p>somewhere else</p>
+        <RecipeRating recipeId={716429} />
+      </div>,
+    )
+
+    expect(await screen.findByText('No rating')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { expanded: false }))
+    expect(screen.getByRole('dialog', { name: 'Rate this recipe' })).toBeInTheDocument()
+
+    fireEvent.mouseDown(screen.getByText('somewhere else'))
+
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+  })
+
+  it('shows the backend sentence when a save fails for another reason', async () => {
+    global.fetch = vi
+      .fn()
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ average: 0, count: 0, yourRating: null }),
+      })
+      .mockResolvedValueOnce({
+        ok: false,
+        status: 400,
+        json: async () => ({ message: 'Please choose a rating from 1 to 5 stars.' }),
+      })
+
+    render(<RecipeRating recipeId={716429} />)
+
+    expect(await screen.findByText('No rating')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { expanded: false }))
+    fireEvent.click(screen.getByRole('button', { name: '3 stars' }))
+
+    expect(await screen.findByText('Please choose a rating from 1 to 5 stars.')).toBeInTheDocument()
+    expect(screen.getByText('No rating')).toBeInTheDocument()
   })
 })

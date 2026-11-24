@@ -338,17 +338,3 @@ same sentence whatever the feature. The 400 is new — copy it exactly.
 Reading a rating (`GET`) needs no sign-in and has no error of its own. The
 popover's `Please sign in to rate recipes.` is a frontend-only message shown
 before any request is sent; the backend never says it.
-
-## Ratings (RB-297)
-
-| Situation | Status | Message |
-|---|---|---|
-| Not signed in, on submit | 401 | `Please sign in to save favorites.` |
-| A rating outside 1 to 5 | 400 | `Please choose a rating from 1 to 5 stars.` |
-
-The 401 is the existing string, reused: every account-gated write answers the
-same sentence whatever the feature. The 400 is new — copy it exactly.
-
-Reading a rating (`GET`) needs no sign-in and has no error of its own. The
-popover's `Please sign in to rate recipes.` is a frontend-only message shown
-before any request is sent; the backend never says it.
