@@ -15,6 +15,7 @@ import com.recipebuilder.dto.DietaryRestrictions;
 import com.recipebuilder.dto.RecipeCostDto;
 import com.recipebuilder.dto.RecipeDetailDto;
 import com.recipebuilder.dto.RecipeSummaryDto;
+import com.recipebuilder.dto.IngredientAmountDto;
 import com.recipebuilder.dto.ShoppingItemDto;
 import com.recipebuilder.exception.InvalidInputException;
 import com.recipebuilder.repository.FavoriteRepository;
@@ -156,6 +157,7 @@ public class RecipeService {
 
         // STEP 2: copy the ingredient lines across, one at a time.
         List<String> ingredients = new ArrayList<>();
+        List<IngredientAmountDto> ingredientAmounts = new ArrayList<>();
         List<ShoppingItemDto> allIngredients = new ArrayList<>();
 
         if (theirs.extendedIngredients() != null) {
@@ -174,6 +176,12 @@ public class RecipeService {
                     aisle = "Other";
                 }
                 allIngredients.add(new ShoppingItemDto(one.name(), line, aisle));
+
+                // RB-291: the number the shopping-list line above was baked
+                // from, kept separately so the servings stepper has something
+                // to multiply.
+                ingredientAmounts.add(new IngredientAmountDto(one.name(), one.amount(), one.unit()));
+
             }
         }
 
@@ -223,7 +231,8 @@ public class RecipeService {
                 costPerServing,
                 round2(costPerServing * theirs.servings()),
                 toNutrition(theirs.nutrition()),
-                allIngredients);
+                allIngredients,
+                ingredientAmounts);
     }
 
     /** Refuses a diet or intolerance that is not "none" and not on the approved lists. */

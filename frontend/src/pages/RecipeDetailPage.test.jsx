@@ -33,6 +33,12 @@ const RECIPE = {
     { name: 'garlic', line: '3 cloves of garlic (minced)', aisle: 'Produce' },
     { name: 'olive oil', line: '3 tablespoons olive oil', aisle: 'Oil, Vinegar, Salad Dressing' },
   ],
+  // RB-291: the same three lines as numbers, for the servings stepper.
+  ingredientAmounts: [
+    { name: 'dried chili pepper', amount: 2, unit: 'whole' },
+    { name: 'garlic', amount: 3, unit: 'cloves' },
+    { name: 'olive oil', amount: 3, unit: 'tablespoons' },
+  ],
   // RB-277: calories on their own, then the label's rows in printed order.
   nutrition: {
     calories: 591,
@@ -675,4 +681,49 @@ describe('RecipeDetailPage', () => {
     })
   })
 
+  // ---- RB-291: scaling the recipe's servings -------------------------------
+
+  it('starts the servings stepper at the recipe\'s own serving count', async () => {
+    renderDetail()
+
+    expect(await screen.findByText('3 tablespoons olive oil')).toBeInTheDocument()
+    expect(screen.getByLabelText('Servings')).toHaveTextContent('1')
+  })
+
+  it('scales every ingredient amount when servings are increased', async () => {
+    renderDetail()
+    await screen.findByText('3 cloves of garlic (minced)')
+
+    await userEvent.click(screen.getByRole('button', { name: 'More servings' }))
+
+    expect(await screen.findByText('6 cloves garlic')).toBeInTheDocument()
+    expect(screen.getByText('6 tablespoons olive oil')).toBeInTheDocument()
+    expect(screen.queryByText('3 cloves of garlic (minced)')).not.toBeInTheDocument()
+  })
+
+  it('restores the original phrase when servings return to the recipe\'s own count', async () => {
+    renderDetail()
+    await screen.findByText('3 cloves of garlic (minced)')
+
+    await userEvent.click(screen.getByRole('button', { name: 'More servings' }))
+    await screen.findByText('6 cloves garlic')
+    await userEvent.click(screen.getByRole('button', { name: 'Fewer servings' }))
+
+    expect(await screen.findByText('3 cloves of garlic (minced)')).toBeInTheDocument()
+  })
+
+  it('cannot take servings below 1', async () => {
+    renderDetail()
+    await screen.findByText('3 cloves of garlic (minced)')
+
+    expect(screen.getByRole('button', { name: 'Fewer servings' })).toBeDisabled()
+  })
+
+  it('cannot take servings above 20', async () => {
+    getRecipe.mockResolvedValue({ ...RECIPE, servings: 20 })
+    renderDetail()
+    await screen.findByLabelText('Servings')
+
+    expect(screen.getByRole('button', { name: 'More servings' })).toBeDisabled()
+  })
 })

@@ -42,7 +42,14 @@ public record SpoonacularRecipeInformation(
     * already arriving in this reply and being dropped.
     */
     @JsonIgnoreProperties(ignoreUnknown = true)
-    public record ExtendedIngredient(String name, String original, String aisle) {
+    public record ExtendedIngredient(String name, String original, String aisle,
+            double amount, String unit) {
+
+        /** The shape this record had before RB-291, for the call sites that
+         *  don't need a scalable amount. */
+        public ExtendedIngredient(String name, String original, String aisle) {
+            this(name, original, aisle, 0, null);
+        }
     }
 
     /**

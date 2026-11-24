@@ -116,7 +116,8 @@ class RecipeControllerTest {
                 1.96,    // RB-193: dollars per serving
                 1.96,    // RB-193: total, one serving
                 null,
-                List.of(new ShoppingItemDto("garlic", "3 cloves of garlic (minced)", "Produce"))));
+                List.of(new ShoppingItemDto("garlic", "3 cloves of garlic (minced)", "Produce")),
+                List.of()));    // RB-291: ingredientAmounts
 
         mockMvc.perform(get("/api/recipes/660101"))
                 .andExpect(status().isOk())

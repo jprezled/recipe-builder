@@ -1411,3 +1411,40 @@ a.button {
   margin: 0.5rem 0 0;
   box-shadow: 0 6px 18px rgba(0, 0, 0, 0.15);
 }
+
+/* RB-291: the servings stepper above the ingredients list. */
+.servings-stepper {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-bottom: 0.9rem;
+}
+
+.servings-label {
+  font-weight: 600;
+  margin-right: 0.3rem;
+}
+
+.servings-stepper button {
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: 50%;
+  border: 1px solid var(--color-primary);
+  background: white;
+  color: var(--color-primary);
+  font-size: 1rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.servings-stepper button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.servings-stepper span[aria-label="Servings"] {
+  min-width: 1.5rem;
+  text-align: center;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}

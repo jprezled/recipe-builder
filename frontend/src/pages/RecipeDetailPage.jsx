@@ -29,6 +29,28 @@ const DIET_LABELS = [
 ]
 
 /**
+ * RB-291: the lowest and highest servings the stepper allows.
+ *
+ * Below 1 a recipe stops making sense; above 20 nobody is actually cooking
+ * for that many people from this app. See docs/recipe-scaling-contract.md.
+ */
+const MIN_SERVINGS = 1
+const MAX_SERVINGS = 20
+
+/**
+ * RB-291: one ingredient line, scaled to the chosen servings.
+ */
+function scaledIngredientLine({ name, amount, unit }, chosenServings, recipeServings) {
+  // No amount to multiply, or no serving count to divide by: show the name alone.
+  if (!amount || !recipeServings) {
+    return name
+  }
+
+  const scaled = Math.round(amount * (chosenServings / recipeServings) * 100) / 100
+  return [scaled, unit, name].filter(Boolean).join(' ')
+}
+
+/**
  * Groups ingredients by their aisle. A Map rather than a plain object because aisle names are free text from
  * Spoonacular - a name like "constructor" would collide with an inherited
  * property on an object, and a Map has no inherited keys.
@@ -62,6 +84,11 @@ export default function RecipeDetailPage() {
   // loading, failed, loaded, and loaded-but-empty.
   const [isNutritionOpen, setIsNutritionOpen] = useState(false)
   const [recipe, setRecipe] = useState(null)
+  // RB-291: the servings the stepper is currently showing. Starts at the
+  // recipe's own count once it loads, so the Ingredients section opens
+  // showing Spoonacular's original phrases rather than a scaled line nobody
+  // asked for.
+  const [servings, setServings] = useState(null)
   const [isFavorite, setIsFavorite] = useState(false)
   const [collections, setCollections] = useState([])
   const [errorMessage, setErrorMessage] = useState('')
@@ -81,7 +108,6 @@ export default function RecipeDetailPage() {
   const [cost, setCost] = useState(null)
   const [isCostLoading, setIsCostLoading] = useState(false)
   const [costError, setCostError] = useState('')
-
 
   useEffect(() => {
     // A cook can click away while the request is still in flight. Without
@@ -110,6 +136,7 @@ export default function RecipeDetailPage() {
 
         if (stillOnThisPage) {
           setRecipe(found)
+          setServings(found.servings)
           // RB-318: this recipe's own checks, from this browser's storage.
           setCheckedLines(getChecked(found.id))
           // RB-271: find, not some - the entry carries the cook's note, and
@@ -164,6 +191,13 @@ export default function RecipeDetailPage() {
       setCostError(failure.message)
     } finally {
       setIsCostLoading(false)
+    }
+  }
+
+  /** RB-291: nudge the stepper by one, staying inside the agreed range. */
+  function handleServingsChange(next) {
+    if (next >= MIN_SERVINGS && next <= MAX_SERVINGS) {
+      setServings(next)
     }
   }
 
@@ -368,13 +402,45 @@ export default function RecipeDetailPage() {
 
           <section className="detail-section">
             <h2>Ingredients</h2>
+
+            {/* RB-291: changing this re-reads the list below from
+                ingredientAmounts instead of the original phrases - see
+                docs/recipe-scaling-contract.md for why only away from the
+                recipe's own count. */}
+            <div className="servings-stepper">
+              <span className="servings-label">Serving size</span>
+              <button
+                type="button"
+                onClick={() => handleServingsChange(servings - 1)}
+                aria-label="Fewer servings"
+                disabled={servings <= MIN_SERVINGS}
+              >
+                &minus;
+              </button>
+              <span aria-label="Servings" aria-live="polite">{servings}</span>
+              <button
+                type="button"
+                onClick={() => handleServingsChange(servings + 1)}
+                aria-label="More servings"
+                disabled={servings >= MAX_SERVINGS}
+              >
+                +
+              </button>
+            </div>
+
             {recipe.ingredients.length === 0 ? (
               <p>No ingredients were listed for this recipe.</p>
             ) : (
               <ul>
-                {recipe.ingredients.map((one, position) => (
-                  <li key={position}>{one}</li>
-                ))}
+                {servings === recipe.servings
+                  ? recipe.ingredients.map((one, position) => (
+                    <li key={position}>{one}</li>
+                  ))
+                  : (recipe.ingredientAmounts ?? []).map((one, position) => (
+                    <li key={position}>
+                      {scaledIngredientLine(one, servings, recipe.servings)}
+                    </li>
+                  ))}
               </ul>
             )}
           </section>

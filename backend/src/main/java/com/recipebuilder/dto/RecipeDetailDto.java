@@ -37,7 +37,15 @@ public record RecipeDetailDto(
          * from the pantry in the address. Keeping the split out of here is
          * what lets this stay cached on the recipe id alone.
          */
-        List<ShoppingItemDto> allIngredients) {
+        List<ShoppingItemDto> allIngredients,
+
+        /**
+         * RB-291: the same ingredients as {@code ingredients}, in the same
+         * order, but as a number and a unit instead of a baked phrase - what
+         * the servings stepper needs to scale them. See
+         * docs/recipe-scaling-contract.md.
+         */
+        List<IngredientAmountDto> ingredientAmounts) {
 
     /**
      * What this recipe suits.
