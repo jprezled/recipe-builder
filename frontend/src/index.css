@@ -511,18 +511,15 @@ a.button {
 
 /* ---------- Sort dropdown (RB-227) ---------- */
 
-/* Sits under the dietary filters and matches their panel style. */
+/* Sits under the dietary filters as a plain label and dropdown, with no card
+   of its own, centred like the rest of the results page. */
 .sort-control {
   display: flex;
   flex-wrap: wrap;
+  justify-content: center;
   align-items: center;
   gap: 0.5rem 1rem;
   margin: 0 0 1.5rem;
-  padding: 0.75rem 1.25rem;
-  text-align: left;
-  background-color: var(--color-card);
-  border: 1px solid var(--color-primary-dark);
-  border-radius: 10px;
 }
 
 .sort-control label {
@@ -1240,11 +1237,7 @@ a.button {
 .search-pending {
   max-width: 620px;
   margin: 0 auto 1rem;
-  padding: 0.6rem 1rem;
   text-align: center;
-  background-color: rgba(255, 255, 255, 0.75);
-  border-left: 4px solid var(--color-primary);
-  border-radius: 6px;
 }
 
 /* RB-211: the ingredient entry on the results page, shaped as a pill.
