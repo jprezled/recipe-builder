@@ -1199,3 +1199,17 @@ a.button {
   outline: 2px solid var(--color-heading);
   outline-offset: 3px;
 }
+
+/* RB-320: a checked shopping line reads as done at a glance - struck through
+   and dimmed, the same look as the cost panel's "already have" lines.
+   The class is set by both the recipe page and the Favorites page. */
+.shopping-checked label {
+  color: #7a8a7a;
+  text-decoration: line-through;
+}
+
+/* Clicking the words ticks the box too, so they should look clickable. */
+.shopping-items label,
+.shopping-list label {
+  cursor: pointer;
+}
