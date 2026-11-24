@@ -142,7 +142,11 @@ export default function NavigationBar() {
             </>
           ) : (
             <>
-              <span className="site-nav-user">{signedInAs}</span>
+              {/* RB-290: reachable only when signed in - there is nothing to
+                  manage otherwise. */}
+              <NavLink className="site-nav-link site-nav-user" to={{ pathname: '/account', search }}>
+                {signedInAs}
+              </NavLink>
               <button type="button" className="site-nav-signout" onClick={handleSignOut}>
                 Sign out
               </button>

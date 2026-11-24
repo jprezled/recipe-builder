@@ -93,6 +93,38 @@ public class UserRepository {
         }
     }
 
+    /** RB-290: replaces the stored hash. The caller has already checked the
+     *  current password and the length of the new one. */
+    public void updatePassword(long userId, String passwordHash) {
+        String sql = "UPDATE users SET password_hash = ? WHERE user_id = ?";
+
+        try {
+            db.update(sql, passwordHash, userId);
+        } catch (DataAccessException failure) {
+            throw asOurs(failure);
+        }
+    }
+
+    /**
+     * RB-290: removes the account and everything belonging only to it.
+     *
+     * pantry_items is deleted BY HAND, and that is the whole point of this
+     * method rather than a one-line DELETE. saved_recipes and collections
+     * both declare ON DELETE CASCADE and clean themselves up; V5 created
+     * pantry_items with a bare `user_id BIGINT NOT NULL` and no foreign key
+     * at all, so nothing clears it. Deleting only the user succeeds, looks
+     * right, and leaves that cook's pantry rows behind pointing at an id
+     * that no longer exists. See docs/account-management-contract.md.
+     */
+    public void deleteById(long userId) {
+        try {
+            db.update("DELETE FROM pantry_items WHERE user_id = ?", userId);
+            db.update("DELETE FROM users WHERE user_id = ?", userId);
+        } catch (DataAccessException failure) {
+            throw asOurs(failure);
+        }
+    }
+
     /**
      * Turns one of Spring's database errors into one of ours, so nothing above
      * this class has to import anything from Spring JDBC. Same shape as
