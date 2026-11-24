@@ -3,7 +3,8 @@ import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { getFavorites, getRecipe, getRecipeCost } from '../api/recipes'
 import { getCollections } from '../api/collections'
 import FavoriteButton from '../components/FavoriteButton'
-import RecipeNote from '../components/RecipeNote' 
+import RecipeNote from '../components/RecipeNote'
+import RecipeRating from '../components/RecipeRating'
 import { getChecked, setChecked } from '../lib/shoppingChecklist'
 
 /**
@@ -205,6 +206,8 @@ export default function RecipeDetailPage() {
           </ul>
 
           <div className="button-group">
+            <RecipeRating recipeId={recipe.id} />
+
             <FavoriteButton
               recipe={recipe}
               isFavorite={isFavorite}
