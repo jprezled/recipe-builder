@@ -89,7 +89,12 @@ export default function RecipeDetailPage() {
 
   // Four pieces of state, so the page can tell its situations apart: still
   // loading, failed, loaded, and loaded-but-empty.
-  const [isNutritionOpen, setIsNutritionOpen] = useState(false)
+  // const [isNutritionOpen, setIsNutritionOpen] = useState(false)
+  // RB-295: Nutrition Facts and My Note share one slot under Ingredients, in
+  // the left column - this array holds whichever of them are open, most
+  // recently opened first, so that one renders closest to Ingredients.
+  const [leftOpen, setLeftOpen] = useState([])
+
   const [recipe, setRecipe] = useState(null)
    // RB-291: the servings the stepper is currently showing. Starts at the
   // recipe's own count once it loads, so the Ingredients section opens
@@ -98,12 +103,21 @@ export default function RecipeDetailPage() {
   const [servings, setServings] = useState(null)
   const [isFavorite, setIsFavorite] = useState(false)
   const [collections, setCollections] = useState([])
+
   const [errorMessage, setErrorMessage] = useState('')
+  // RB-299: wrapped in a fresh object each time, rather than the bare id -
+  // opening the same panel twice in a row would otherwise set the same
+  // string both times, and React skips an update whose value is unchanged,
+  // so the effect below would never re-run the second time. Only ever set
+  // on an OPEN transition, never on close - there is nothing to point at
+  // once a panel is gone.
+  const [justOpened, setJustOpened] = useState(null)
+
   const [isLoading, setIsLoading] = useState(true)
   const [isShoppingOpen, setIsShoppingOpen] = useState(false)
   // RB-271: the cook's note, read from the favorites reply the page already makes.
   const [note, setNote] = useState(null)
-  const [isNoteOpen, setIsNoteOpen] = useState(false)
+  // const [isNoteOpen, setIsNoteOpen] = useState(false)
 
   // RB-193: the shopping cost. Null until the cook asks for it, because
   // fetching it is a whole Spoonacular point - loading it with the page would
@@ -115,8 +129,24 @@ export default function RecipeDetailPage() {
   const [costError, setCostError] = useState('')
 
  
+  useEffect(() => {
+    if (!justOpened) {
+      return
+    }
 
+   const panel = document.getElementById(justOpened.id)
 
+    if (!panel) {
+      return
+    }
+
+    panel.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    panel.classList.add('flash-highlight')
+
+    const timer = setTimeout(() => panel.classList.remove('flash-highlight'), 1600)
+    return () => clearTimeout(timer)
+  }, [justOpened])
+  
   useEffect(() => {
     // A cook can click away while the request is still in flight. Without
     // this flag a slow reply updates a page that is no longer on screen.
@@ -126,9 +156,8 @@ export default function RecipeDetailPage() {
       setIsLoading(true)
       setErrorMessage('')
       setRecipe(null)
-      setIsNutritionOpen(false)
       setNote(null)
-      setIsNoteOpen(false)
+      setLeftOpen([])
 
       try {
         // The saved list is a database read and costs no Spoonacular quota,
@@ -180,16 +209,37 @@ export default function RecipeDetailPage() {
       return
     }
 
+    
+
     setIsCostLoading(true)
     setCostError('')
     try {
+      //setCost(await getRecipeCost(recipe.id, pantry))
+      // showCost(): inside the try, on the line after setCost(...)
       setCost(await getRecipeCost(recipe.id, pantry))
+      // RB-299: only once the panel actually has something to show - setting
+      // this before the fetch resolves would try to scroll to a section
+      // that does not exist in the DOM yet.
+      setJustOpened({ id: 'recipe-cost' })
+
     } catch (failure) {
       setCostError(failure.message)
     } finally {
       setIsCostLoading(false)
     }
   }
+
+  // was once under the showCost function, moved out for proper component scope
+  function toggleLeftPanel(key, sectionId) {
+      const opening = !leftOpen.includes(key)
+      const withoutKey = leftOpen.filter((one) => one !== key)
+
+      setLeftOpen(opening ? [key, ...withoutKey] : withoutKey)
+
+      // if (opening) {
+      //   setJustOpened({ id: sectionId })
+      // }
+    }
 
    /** RB-291: nudge the stepper by one, staying inside the agreed range. */
   function handleServingsChange(next) {
@@ -236,7 +286,7 @@ export default function RecipeDetailPage() {
             ))}
           </ul>
 
-          <div className="button-group">
+            <div className="favorite-row">
             <FavoriteButton
               recipe={recipe}
               isFavorite={isFavorite}
@@ -248,29 +298,26 @@ export default function RecipeDetailPage() {
               variant="text"
               collections={collections}
             />
+          </div>
 
+          <div className="button-group">
+            
             {/* RB-193b: free - it arrived with the recipe, so it is simply
                 shown. The button below is the part that costs a point. */}
-            {recipe.costPerServing > 0 && (
-              <p className="detail-cost">
-                About <strong>${recipe.costPerServing.toFixed(2)}</strong> a serving
-                {recipe.servings > 1 && <> · ${recipe.costTotal.toFixed(2)} in total</>}
-              </p>
-            )}
-
+            
             {recipe.nutrition != null && (
               <button
                 type="button"
                 className="nutrition-toggle"
-                aria-expanded={isNutritionOpen}
+                aria-expanded={leftOpen.includes('nutrition')}
                 aria-controls="nutrition-facts"
-                onClick={() => setIsNutritionOpen((open) => !open)}
+                onClick={() => toggleLeftPanel('nutrition', 'nutrition-facts')}
               >
-                Nutrition Facts{' '}
-                <span aria-hidden="true">
-                  {isNutritionOpen ? '▲' : '▼'}
-                </span>
-              </button>
+            Nutrition Facts{' '}
+            <span aria-hidden="true">
+              {leftOpen.includes('nutrition') ? '▲' : '▼'}
+            </span>
+            </button>
             )}
 
             {/* no extra fetch - allIngredients came with the recipe. */}
@@ -280,7 +327,14 @@ export default function RecipeDetailPage() {
                 className="button button-secondary"
                 aria-expanded={isShoppingOpen}
                 aria-controls="shopping-list"
-                onClick={() => setIsShoppingOpen(!isShoppingOpen)}
+                // Shopping list button: replace its onClick
+                onClick={() => {
+                  const opening = !isShoppingOpen
+                  setIsShoppingOpen(opening)
+                  if (opening) {
+                    setJustOpened({ id: 'shopping-list' })
+                  }
+                }}
               >
                  Shopping list
                 <span aria-hidden="true">{isShoppingOpen ? ' ▲' : ' ▼'}</span>
@@ -301,55 +355,30 @@ export default function RecipeDetailPage() {
             {/* RB-272: always in the row, saved or not - a button that comes
                 and goes looks like a bug. See docs/recipe-notes-contract.md. */}
             <button
-              type="button"
-              className="button button-secondary"
-              aria-expanded={isNoteOpen}
-              aria-controls="recipe-note"
-              onClick={() => setIsNoteOpen((open) => !open)}
-            >
-              My note
-              <span aria-hidden="true">{isNoteOpen ? ' ▲' : ' ▼'}</span>
-            </button>
+            type="button"
+            className="button button-secondary"
+            aria-expanded={leftOpen.includes('note')}
+            aria-controls="recipe-note"
+            onClick={() => toggleLeftPanel('note', 'recipe-note')}
+          >
+            My note{' '}
+            <span aria-hidden="true">
+              {leftOpen.includes('note') ? '▲' : '▼'}
+            </span>
+          </button>
           </div>
+
+           {recipe.costPerServing > 0 && (
+            <p className="detail-cost">
+              About <strong>${recipe.costPerServing.toFixed(2)}</strong> a serving
+              {recipe.servings > 1 && <> · ${recipe.costTotal.toFixed(2)} in total</>}
+            </p>
+          )}
 
           {costError && <p role="alert">{costError}</p>}
 
-          {cost != null && (
-            <section className="detail-section" id="recipe-cost">
-              <h2>What I need to buy</h2>
-
-              <p className="cost-headline">
-                About <strong>${cost.youNeed.toFixed(2)}</strong> of shopping
-                {cost.youHave > 0 && (
-                  <> · ${cost.youHave.toFixed(2)} already in your kitchen</>
-                )}
-              </p>
-
-              <ul className="cost-list">
-                {cost.items.map((item) => (
-                  <li key={item.name} className={item.inPantry ? 'cost-have' : undefined}>
-                    <span className="cost-name">{item.name}</span>
-                    <span className="nutrition-amount">${item.price.toFixed(2)}</span>
-                    {item.inPantry && (
-                      // The tick carries meaning, so it needs a label - the
-                      // strike-through alone says nothing to a screen reader.
-                      <span className="cost-tag" role="img" aria-label="already in your kitchen">
-                        ✓
-                      </span>
-                    )}
-                  </li>
-                ))}
-              </ul>
-
-              {/* The contract requires this line: these are US national
-                  averages, not any shop's shelf price. */}
-              <p className="cost-note">
-                Prices are national averages, so treat them as a guide.
-              </p>
-            </section>
-          )}
-
-          {isNoteOpen && (
+          
+          {/* {isNoteOpen && (
             <section className="detail-section" id="recipe-note">
               <h2>My Note</h2>
               {isFavorite ? (
@@ -361,9 +390,9 @@ export default function RecipeDetailPage() {
                 <p className="note-empty">Save this recipe to add a note.</p>
               )}
             </section>
-          )}
+          )} ==> defunct*/}
 
-          {recipe.nutrition != null && isNutritionOpen && (
+          {/* {recipe.nutrition != null && isNutritionOpen && (
             <section className="detail-section" id="nutrition-facts">
               <h2>Nutrition Facts</h2>
               <p className="nutrition-note">Per serving</p>
@@ -379,83 +408,121 @@ export default function RecipeDetailPage() {
                 ))}
               </ul>
             </section>
-          )}
+          )} ==> also defunct, not use isNutritionOpen handler*/}
 
-          <section className="detail-section">
-            <h2>Ingredients</h2>
-            
-              {/* RB-291: changing this re-reads the list below from
-              ingredientAmounts instead of the original phrases - see
-              docs/recipe-scaling-contract.md for why only away from the
-              recipe's own count. */}
-              <div className="servings-stepper">
-                <span className="servings-label">Serving size</span>
-                <button
-                  type="button"
-                  onClick={() => handleServingsChange(servings - 1)}
-                  aria-label="Fewer servings"
-                  disabled={servings <= MIN_SERVINGS}
-                >
-                  &minus;
-                </button>
-                <span aria-label="Servings" aria-live="polite">{servings}</span>
-                <button
-                  type="button"
-                  onClick={() => handleServingsChange(servings + 1)}
-                  aria-label="More servings"
-                  disabled={servings >= MAX_SERVINGS}
-                >
-                  +
-                </button>
-              </div>
+          {/* RB-295:Give the ingredients list the same bordered-row, 
+          no-bullet treatment as the nutrition and cost panels, 
+          scroll it when it is long, and put it in a left column beside the instructions. */}
 
-            {recipe.ingredients.length === 0 ? (
-              <p>No ingredients were listed for this recipe.</p>
-            ) : (
-              <ul>
-               
-              {servings === recipe.servings
-                ? recipe.ingredients.map((one, position) => (
-                  <li key={position}>{one}</li>
-                ))
-                : (recipe.ingredientAmounts ?? []).map((one, position) => (
-                  <li key={position}>
-                    {scaledIngredientLine(one, servings, recipe.servings)}
-                  </li>
-              ))}
+        <div className="recipe-body-columns">
+          <div className="column-left">
+            <section className="detail-section ingredients-scroll" id="recipe-ingredients">
+              <h2>Ingredients</h2>
+              {recipe.ingredients.length === 0 ? (
+                <p>No ingredients were listed for this recipe.</p>
+              ) : (
+                <ul className="ingredients-list">
+                  {recipe.ingredients.map((line, index) => (
+                    <li key={`${line}-${index}`}>{line}</li>
+                  ))}
+                </ul>
+              )}
+            </section>
 
-              </ul>
+            {leftOpen.map((key) =>
+              key === 'nutrition' ? (
+                recipe.nutrition != null && (
+                  <section className="detail-section" id="nutrition-facts" key="nutrition">
+                    <h2>Nutrition Facts</h2>
+                    <p className="nutrition-note">Per serving</p>
+                    <ul className="nutrition-list">
+                      {NUTRITION_ROWS.map((row) => (
+                        <li key={row.field}>
+                          <span>{row.label}</span>
+                          <span>
+                            {recipe.nutrition[row.field]}{row.unit}
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  </section>
+                )
+              ) : (
+                <section className="detail-section" id="recipe-note" key="note">
+                  <h2>My Note</h2>
+                  {isFavorite ? (
+                    <RecipeNote key={note ?? ''} recipeId={recipe.id} note={note} />
+                  ) : (
+                    <p className="note-empty">Save this recipe to add a note.</p>
+                  )}
+                </section>
+              ),
             )}
-          </section>
+          </div>
 
-          {isShoppingOpen && (
+          <div className="column-right">
+            <section className="detail-section">
+              <h2>Instructions</h2>
+              {recipe.steps.length === 0 ? (
+                <p>No instructions were provided for this recipe.</p>
+              ) : (
+                <ol className="instructions-list">
+                  {recipe.steps.map((one, position) => (
+                    <li key={position}>{one}</li>
+                  ))}
+                </ol>
+              )}
+            </section>
+
+            {cost != null && (
+              <section className="detail-section" id="recipe-cost">
+                <h2>What I need to buy</h2>
+
+                <p className="cost-headline">
+                  About <strong>${cost.youNeed.toFixed(2)}</strong> of shopping
+                  {cost.youHave > 0 && (
+                    <> · ${cost.youHave.toFixed(2)} already in your kitchen</>
+                  )}
+                </p>
+
+                <ul className="cost-list">
+                  {cost.items.map((item) => (
+                    <li key={item.name} className={item.inPantry ? 'cost-have' : undefined}>
+                      <span className="cost-name">{item.name}</span>
+                      <span className="nutrition-amount">${item.price.toFixed(2)}</span>
+                      {item.inPantry && (
+                        <span className="cost-tag" role="img" aria-label="already in your kitchen">
+                          ✓
+                        </span>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+
+                <p className="cost-note">
+                  Prices are national averages, so treat them as a guide.
+                </p>
+              </section>
+            )}
+          </div>
+        </div>
+
+          {isShoppingOpen && recipe.allIngredients?.length > 0 && (
           <section className="detail-section" id="shopping-list">
-            <h2>Shopping List</h2>
-            {groupByAisle(recipe.allIngredients).map(([category, items]) => (
-                <div key={category}>
-                  <h3>{category}</h3>
-                  <ul className="shopping-items">
-                    {items.map((one, position) => (
-                      <li key={position}>{one.line}</li>
-                    ))}
-                  </ul>
-                </div>
+            <h2>Shopping list</h2>
+            {groupByAisle(recipe.allIngredients).map(([aisle, items]) => (
+              <div key={aisle}>
+                <h3>{aisle}</h3>
+                <ul className="ingredients-list">
+                  {items.map((item, index) => (
+                    <li key={`${item.name}-${index}`}>{item.line}</li>
+                  ))}
+                </ul>
+              </div>
             ))}
           </section>
           )}
 
-          <section className="detail-section">
-            <h2>Instructions</h2>
-            {recipe.steps.length === 0 ? (
-              <p>No instructions were provided for this recipe.</p>
-            ) : (
-              <ol>
-                {recipe.steps.map((one, position) => (
-                  <li key={position}>{one}</li>
-                ))}
-              </ol>
-            )}
-          </section>
         </>
       )}
     </main>

@@ -154,6 +154,20 @@ export default function HomePage() {
     putInAddress(next, false, true)
   }
 
+
+   /**
+   * Empty the whole pantry in one click.
+   *
+   * No confirmation step on purpose: a list is a few seconds to retype, and
+   * the point of this button is not having to remove each ingredient by hand.
+   * putInAddress also saves the empty list to the account, so a cleared
+   * pantry does not reappear the next time the page loads.
+   */
+  function handleClear() {
+    putInAddress([], false, true)
+  }
+
+
   /**
    * Remove an ingredient from the pantry.
    *
@@ -209,7 +223,9 @@ export default function HomePage() {
       {/* Show instructions before the user has added their first ingredient. */}
       {ingredients.length === 0 ? (
         <p>Nothing added yet. Type an ingredient above and press Add.</p>
+        
       ) : (
+         <>
         <ul className="ingredient-list">
           {ingredients.map((ingredient) => (
             <li key={ingredient}>
@@ -225,7 +241,19 @@ export default function HomePage() {
             </li>
           ))}
         </ul>
+
+        {/* Reads just "Clear", but a screen reader still hears what it clears. */}
+        <button
+          type="button"
+          className="button button-secondary clear-pantry"
+          aria-label="Clear pantry"
+          onClick={handleClear}
+        >
+          Clear
+        </button>
+        </>
       )}
+      
 
       <div className="button-group">
         {/* This reveals ResultsPage below the ingredients. It does not navigate

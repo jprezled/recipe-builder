@@ -112,19 +112,20 @@ class RecipeControllerTest {
                 45,
                 List.of("3 cloves of garlic (minced)"),
                 List.of("Start with boiling water in a large pot."),
-                new RecipeDetailDto.Diets(true, true, false, true),
-                1.96,
-                1.96,
-                new RecipeDetailDto.Nutrition(500.0, 10.0, 3.0, 80.0, 4.0, 15.0),
-                List.of(new ShoppingItemDto(
-                        "garlic",
-                        "3 cloves of garlic (minced)",
-                        "Produce")),
-                List.of())
+                // new RecipeDetailDto.Diets(true, true, false, true),
+                // 1.96,
+                // 1.96,
+                // new RecipeDetailDto.Nutrition(500.0, 10.0, 3.0, 80.0, 4.0, 15.0),
+                // List.of(new ShoppingItemDto(
+                //         "garlic",
+                //         "3 cloves of garlic (minced)",
+                //         "Produce")),
+                // List.of())
+                // old unused call for RecipeDetailDto
 
                 new RecipeDetailDto.Diets(true, true, false, true),
-                1.96,    // RB-193: dollars per serving
-                1.96,    // RB-193: total, one serving
+                        1.96,    // RB-193: dollars per serving
+                        1.96,    // RB-193: total, one serving
                 new RecipeDetailDto.Nutrition(
                         500.0,   // calories
                         10.0,    // fat
