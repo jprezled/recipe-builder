@@ -7,12 +7,14 @@ import { addFavorite, getFavorites, searchRecipes } from '../api/recipes'
 import { StrictMode } from 'react'
 import { getRestrictions, saveRestrictions } from '../api/accounts'
 import { getCollections } from '../api/collections'
+import { getRecipeRatings } from '../api/ratings'
 
 // Replace the duplicate recipes mock lines with these mocks.
 // These prevent tests from making real network requests.
 vi.mock('../api/recipes')
 vi.mock('../api/accounts')
 vi.mock('../api/collections')
+vi.mock('../api/ratings')
 
 // These sample recipe objects provide predictable data for card-rendering tests.
 const PASTA = {
@@ -61,6 +63,7 @@ describe('ResultsPage', () => {
     getRestrictions.mockResolvedValue({ diet: '', intolerances: '' })
     saveRestrictions.mockResolvedValue(undefined)
     getCollections.mockResolvedValue([])
+    getRecipeRatings.mockResolvedValue([])
   })
 
   // ---- RB-173: the restrictions travel in the address --------------------
@@ -631,5 +634,48 @@ describe('ResultsPage', () => {
 
     expect(await screen.findByText('Vegetarian · no dairy · no peanut'))
       .toBeInTheDocument()
+  })
+
+  // ---- RB-294: the shared average on every card --------------------------
+
+  it('asks for every card\'s rating in one request, not one per card', async () => {
+    searchRecipes.mockResolvedValue([PASTA, PARFAIT])
+    renderResults()
+
+    await screen.findByText('Garlic Chicken Pasta')
+
+    expect(getRecipeRatings).toHaveBeenCalledTimes(1)
+    expect(getRecipeRatings).toHaveBeenCalledWith([716429, 716433])
+  })
+
+  it('shows each card its own average, or "No rating"', async () => {
+    searchRecipes.mockResolvedValue([PASTA, PARFAIT])
+    getRecipeRatings.mockResolvedValue([
+      { id: 716429, average: 4.2, count: 18 },
+      { id: 716433, average: 0, count: 0 },
+    ])
+    renderResults()
+
+    expect(await screen.findByText('4.2 \u2605 (18 ratings)')).toBeInTheDocument()
+    expect(screen.getByText('No rating')).toBeInTheDocument()
+  })
+
+  it('still shows the recipes when the ratings cannot be loaded', async () => {
+    searchRecipes.mockResolvedValue([PASTA])
+    getRecipeRatings.mockRejectedValue(new Error('Could not load rating.'))
+    renderResults()
+
+    expect(await screen.findByText('Garlic Chicken Pasta')).toBeInTheDocument()
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+    expect(screen.queryByText(/No rating/)).not.toBeInTheDocument()
+  })
+
+  it('does not ask for ratings when the search found nothing', async () => {
+    searchRecipes.mockResolvedValue([])
+    renderResults()
+
+    await vi.waitFor(() => expect(searchRecipes).toHaveBeenCalled())
+
+    expect(getRecipeRatings).not.toHaveBeenCalled()
   })
 })

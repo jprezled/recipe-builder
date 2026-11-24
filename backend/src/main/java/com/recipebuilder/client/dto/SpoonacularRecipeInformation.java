@@ -62,7 +62,16 @@ public record SpoonacularRecipeInformation(
     public record Nutrition(List<Nutrient> nutrients) {
     }
 
+    /**
+     * RB-277: percentOfDailyNeeds was in every reply all along and was being
+     * dropped. A Double, not a double, so "they did not send one" stays null.
+     */
     @JsonIgnoreProperties(ignoreUnknown = true)
-    public record Nutrient(String name, double amount, String unit) {
+    public record Nutrient(String name, double amount, String unit, Double percentOfDailyNeeds) {
+
+        /** The old three-value form, kept so no existing call site breaks. */
+        public Nutrient(String name, double amount, String unit) {
+            this(name, amount, unit, null);
+        }
     }
 }
