@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { getRecipe } from '../api/recipes'
 import { alreadyHave, pantryWords } from '../lib/pantryMatch'
+import { getChecked, setChecked } from '../lib/shoppingChecklist'
 
 /**
  * RB-203: a recipe's shopping list, on a saved recipe.
@@ -38,6 +39,10 @@ export default function RecipeShoppingList({ recipeId, pantry, savedIngredients 
   const [errorMessage, setErrorMessage] = useState('')
   const [showAll, setShowAll] = useState(false)
 
+  // RB-319: the lines checked off - the same set the recipe page reads and
+  // writes, so a check made on either page shows on the other.
+  const [checkedLines, setCheckedLines] = useState(() => getChecked(recipeId))
+
   async function toggle() {
     if (isOpen) {
       setIsOpen(false)
@@ -45,6 +50,10 @@ export default function RecipeShoppingList({ recipeId, pantry, savedIngredients 
     }
 
     setIsOpen(true)
+
+    // RB-319: read again on every open, so a check made on the recipe page
+    // since this card first appeared is picked up.
+    setCheckedLines(getChecked(recipeId))
 
     // Already here - either stored with the recipe, or fetched once earlier.
     // Re-opening spends nothing either way.
@@ -62,6 +71,18 @@ export default function RecipeShoppingList({ recipeId, pantry, savedIngredients 
     } finally {
       setIsLoading(false)
     }
+  }
+
+  /** RB-319: checks or unchecks one line, then saves the new set. */
+  function toggleChecked(line) {
+    const next = new Set(checkedLines)
+    if (next.has(line)) {
+      next.delete(line)
+    } else {
+      next.add(line)
+    }
+    setCheckedLines(next)
+    setChecked(recipeId, next)
   }
 
   const owned = pantryWords(pantry)
@@ -123,7 +144,19 @@ export default function RecipeShoppingList({ recipeId, pantry, savedIngredients 
                       <h4>{category}</h4>
                       <ul>
                         {items.map((item, index) => (
-                          <li key={item.name + index}>{item.line}</li>
+                          <li
+                            key={item.name + index}
+                            className={checkedLines.has(item.line) ? 'shopping-checked' : undefined}
+                          >
+                            <label>
+                              <input
+                                type="checkbox"
+                                checked={checkedLines.has(item.line)}
+                                onChange={() => toggleChecked(item.line)}
+                              />{' '}
+                              {item.line}
+                            </label>
+                          </li>
                         ))}
                       </ul>
                     </div>
