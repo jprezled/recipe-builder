@@ -2,6 +2,8 @@ package com.recipebuilder.service;
 
 import com.recipebuilder.dto.SignUpRequest;
 import com.recipebuilder.dto.UserDto;
+import com.recipebuilder.exception.InvalidInputException;
+import com.recipebuilder.exception.NotSignedInException;
 import com.recipebuilder.exception.UsernameTakenException;
 import com.recipebuilder.repository.StoredUser;
 import com.recipebuilder.repository.UserRepository;
@@ -49,5 +51,72 @@ class UserServiceTest {
 
         assertThatThrownBy(() -> userService.signUp(request))
                 .isInstanceOf(UsernameTakenException.class);
+    }
+
+    // ---- RB-290: changing a password ---------------------------------------
+
+    private static final StoredUser SIGNED_IN =
+            new StoredUser(1L, "alice", "alice@test.com", "hashed_pw", "");
+
+    @Test
+    void changingAPasswordStoresTheNewHash() {
+        when(userRepository.findById(1L)).thenReturn(SIGNED_IN);
+        when(passwordHasher.matches("secret123", "hashed_pw")).thenReturn(true);
+        when(passwordHasher.hash("brandnew123")).thenReturn("new_hash");
+
+        userService.changePassword(1L, "secret123", "brandnew123");
+
+        Mockito.verify(userRepository).updatePassword(1L, "new_hash");
+    }
+
+    @Test
+    void theWrongCurrentPasswordIsRefusedAndNothingIsStored() {
+        when(userRepository.findById(1L)).thenReturn(SIGNED_IN);
+        when(passwordHasher.matches("wrong", "hashed_pw")).thenReturn(false);
+
+        assertThatThrownBy(() -> userService.changePassword(1L, "wrong", "brandnew123"))
+                .isInstanceOf(NotSignedInException.class)
+                .hasMessage("Incorrect password.");
+
+        Mockito.verify(userRepository, Mockito.never())
+                .updatePassword(Mockito.anyLong(), anyString());
+    }
+
+    /** The same 8-character rule sign-up uses, and the same sentence. */
+    @Test
+    void aNewPasswordUnderEightCharactersIsRefused() {
+        when(userRepository.findById(1L)).thenReturn(SIGNED_IN);
+        when(passwordHasher.matches("secret123", "hashed_pw")).thenReturn(true);
+
+        assertThatThrownBy(() -> userService.changePassword(1L, "secret123", "short"))
+                .isInstanceOf(InvalidInputException.class)
+                .hasMessage(UserService.PASSWORD_TOO_SHORT);
+
+        Mockito.verify(userRepository, Mockito.never())
+                .updatePassword(Mockito.anyLong(), anyString());
+    }
+
+    // ---- RB-290: deleting an account ---------------------------------------
+
+    @Test
+    void deletingAnAccountChecksThePasswordFirst() {
+        when(userRepository.findById(1L)).thenReturn(SIGNED_IN);
+        when(passwordHasher.matches("secret123", "hashed_pw")).thenReturn(true);
+
+        userService.deleteAccount(1L, "secret123");
+
+        Mockito.verify(userRepository).deleteById(1L);
+    }
+
+    @Test
+    void deletingWithTheWrongPasswordDeletesNothing() {
+        when(userRepository.findById(1L)).thenReturn(SIGNED_IN);
+        when(passwordHasher.matches("wrong", "hashed_pw")).thenReturn(false);
+
+        assertThatThrownBy(() -> userService.deleteAccount(1L, "wrong"))
+                .isInstanceOf(NotSignedInException.class)
+                .hasMessage("Incorrect password.");
+
+        Mockito.verify(userRepository, Mockito.never()).deleteById(Mockito.anyLong());
     }
 }

@@ -636,6 +636,51 @@ a.button {
   outline-offset: 1px;
 }
 
+/* The eye button and its input share one bordered box, so a password field
+   looks like a single control rather than a button bolted onto an input. */
+.account-password-wrapper {
+  display: flex;
+  align-items: center;
+  border: 1px solid rgba(12, 34, 64, 0.25);
+  border-radius: 0.4rem;
+  background: white;
+}
+
+.account-password-wrapper:focus-within {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 1px;
+}
+
+/* Overrides .account-field input's own border and width - this input sits
+   inside the wrapper's border instead of drawing its own. */
+.account-password-wrapper input {
+  flex: 1;
+  width: auto;
+  min-width: 0;
+  border: none;
+  background: transparent;
+}
+
+.account-password-wrapper input:focus-visible {
+  outline: none;
+}
+
+.account-password-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  padding: 0 0.6rem;
+  border: none;
+  background: none;
+  color: var(--color-heading);
+  cursor: pointer;
+}
+
+.account-password-toggle:hover {
+  color: var(--color-primary);
+}
+
 .account-hint {
   margin: 0;
   font-size: 0.85rem;
@@ -663,6 +708,73 @@ a.button {
 .account-button:disabled {
   opacity: 0.6;
   cursor: progress;
+}
+
+/* RB-290: the account page's second card is set apart, with space between
+   the two, and the delete card marked as the dangerous one by its red
+   border and heading rather than by looking like the password card. */
+.account-form + .account-form {
+  margin-top: 1.5rem;
+}
+
+.account-danger {
+  border: 1px solid rgb(150, 30, 30);
+}
+
+.account-danger h2 {
+  color: rgb(150, 30, 30);
+}
+
+.account-danger h2,
+.account-danger-text {
+  margin: 0;
+}
+
+/* The inner confirm form is not the card itself, so it needs the card's
+   column layout and gap of its own. */
+.account-danger-confirm {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.account-danger-actions {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.account-danger-actions .account-button {
+  flex: 1;
+}
+
+/* Outlined on the first press, solid red only on the confirming one. */
+.account-button-danger-outline {
+  align-self: flex-start;
+  background: white;
+  color: rgb(150, 30, 30);
+  border: 1px solid rgb(150, 30, 30);
+}
+
+.account-button-danger-outline:hover {
+  background: rgba(150, 30, 30, 0.08);
+}
+
+.account-button-danger {
+  background: rgb(150, 30, 30);
+}
+
+.account-button-danger:hover {
+  background: rgb(120, 20, 20);
+}
+
+.account-button-plain {
+  background: white;
+  color: var(--color-heading);
+  border: 1px solid rgba(12, 34, 64, 0.25);
+}
+
+.account-button-plain:hover {
+  background: #f1f4f3;
 }
 
 /* The backend's sentence, shown verbatim. Not red-on-white alone - the icon
