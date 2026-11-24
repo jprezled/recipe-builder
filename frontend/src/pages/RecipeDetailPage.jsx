@@ -4,6 +4,7 @@ import { getFavorites, getRecipe, getRecipeCost } from '../api/recipes'
 import { getCollections } from '../api/collections'
 import FavoriteButton from '../components/FavoriteButton'
 import RecipeNote from '../components/RecipeNote' 
+import { getChecked, setChecked } from '../lib/shoppingChecklist'
 
 /**
  * Shown when a failure arrives with no message we can display. The same
@@ -73,6 +74,8 @@ export default function RecipeDetailPage() {
   const [errorMessage, setErrorMessage] = useState('')
   const [isLoading, setIsLoading] = useState(true)
   const [isShoppingOpen, setIsShoppingOpen] = useState(false)
+  // RB-318: the shopping lines checked off, kept per recipe in localStorage.
+  const [checkedLines, setCheckedLines] = useState(() => new Set())
   // RB-271: the cook's note, read from the favorites reply the page already makes.
   const [note, setNote] = useState(null)
   const [isNoteOpen, setIsNoteOpen] = useState(false)
@@ -114,6 +117,8 @@ export default function RecipeDetailPage() {
 
         if (stillOnThisPage) {
           setRecipe(found)
+          // RB-318: this recipe's own checks, from this browser's storage.
+          setCheckedLines(getChecked(found.id))
           // RB-271: find, not some - the entry carries the cook's note, and
           // some() threw it away. No extra request: the note was always here.
           const alreadySaved = saved.find((one) => one.id === found.id)
@@ -138,6 +143,18 @@ export default function RecipeDetailPage() {
       stillOnThisPage = false
     }
   }, [id])
+
+  /** RB-318: checks or unchecks one shopping line, then saves the new set. */
+  function toggleChecked(line) {
+    const next = new Set(checkedLines)
+    if (next.has(line)) {
+      next.delete(line)
+    } else {
+      next.add(line)
+    }
+    setCheckedLines(next)
+    setChecked(recipe.id, next)
+  }
 
   /** RB-193: fetched on demand; a second press puts the panel away. */
   async function showCost() {
@@ -361,7 +378,19 @@ export default function RecipeDetailPage() {
                   <h3>{category}</h3>
                   <ul className="shopping-items">
                     {items.map((one, position) => (
-                      <li key={position}>{one.line}</li>
+                      <li
+                        key={position}
+                        className={checkedLines.has(one.line) ? 'shopping-checked' : undefined}
+                      >
+                        <label>
+                          <input
+                            type="checkbox"
+                            checked={checkedLines.has(one.line)}
+                            onChange={() => toggleChecked(one.line)}
+                          />{' '}
+                          {one.line}
+                        </label>
+                      </li>
                     ))}
                   </ul>
                 </div>

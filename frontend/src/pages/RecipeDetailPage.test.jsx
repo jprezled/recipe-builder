@@ -292,6 +292,11 @@ describe('RecipeDetailPage', () => {
     expect(screen.queryByRole('alert')).not.toBeInTheDocument()
   })
     describe('shopping list', () => {
+    // RB-318: checks live in localStorage, so every test starts with none.
+    beforeEach(() => {
+      localStorage.clear()
+    })
+
     /** The list under one category heading, so a line is checked in its group. */
     function groupUnder(category) {
       return within(screen.getByRole('heading', { name: category }).parentElement)
@@ -392,6 +397,44 @@ describe('RecipeDetailPage', () => {
       const group = groupUnder('constructor')
       expect(group.getByText('1 pinch of salt')).toBeInTheDocument()
       expect(group.getByText('1 pinch of pepper')).toBeInTheDocument()
+    })
+
+    // RB-318: checking items off. docs/shopping-checklist-contract.md.
+
+    // 8. A check is still there after the panel is closed and opened again.
+    it('keeps a check after the panel is closed and reopened', async () => {
+      renderDetail()
+      await openPanel()
+
+      await userEvent.click(screen.getByRole('checkbox', { name: '3 cloves of garlic (minced)' }))
+
+      const button = screen.getByRole('button', { name: /shopping list/i })
+      await userEvent.click(button)
+      await userEvent.click(button)
+
+      expect(screen.getByRole('checkbox', { name: '3 cloves of garlic (minced)' })).toBeChecked()
+      expect(screen.getByRole('checkbox', { name: '3 tablespoons olive oil' })).not.toBeChecked()
+    })
+
+    // 9. Each recipe keeps its own checks, and they outlive the page.
+    it('starts a different recipe from its own checks', async () => {
+      const first = renderDetail()
+      await openPanel()
+      await userEvent.click(screen.getByRole('checkbox', { name: '3 cloves of garlic (minced)' }))
+      first.unmount()
+
+      // A different recipe that happens to share the garlic line.
+      getRecipe.mockResolvedValue({ ...RECIPE, id: 715538 })
+      const second = renderDetail('715538')
+      await openPanel()
+      expect(screen.getByRole('checkbox', { name: '3 cloves of garlic (minced)' })).not.toBeChecked()
+      second.unmount()
+
+      // Back on the first recipe, its check was remembered.
+      getRecipe.mockResolvedValue(RECIPE)
+      renderDetail()
+      await openPanel()
+      expect(screen.getByRole('checkbox', { name: '3 cloves of garlic (minced)' })).toBeChecked()
     })
   })
 
