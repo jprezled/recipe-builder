@@ -261,54 +261,107 @@ class RecipeDetailServiceTest {
         verifyNoInteractions(client);
     }
 
-    @Test
-    void theSixNutritionFiguresArePickedOutByExactName() {
-        SpoonacularRecipeInformation.Nutrition nutrition =
-                new SpoonacularRecipeInformation.Nutrition(List.of(
-                        new SpoonacularRecipeInformation.Nutrient(
-                                "Fat", 13.424, "g"),
-                        new SpoonacularRecipeInformation.Nutrient(
-                                "Saturated Fat", 5.234, "g"),
-                        new SpoonacularRecipeInformation.Nutrient(
-                                "Net Carbohydrates", 60.0, "g"),
-                        new SpoonacularRecipeInformation.Nutrient(
-                                "Carbohydrates", 69.024, "g"),
-                        new SpoonacularRecipeInformation.Nutrient(
-                                "Calories", 591.126, "kcal"),
-                        new SpoonacularRecipeInformation.Nutrient(
-                                "Sugar", 2.544, "g"),
-                        new SpoonacularRecipeInformation.Nutrient(
-                                "Protein", 18.104, "g"),
-                        new SpoonacularRecipeInformation.Nutrient(
-                                "Sodium", 400.0, "mg")));
+        @Test
+    void theLabelRowsArePickedOutByExactNameInPrintedOrder() {
+        // Sent out of order on purpose, with Net Carbohydrates as a near-miss name.
+        RecipeDetailDto ours = detailWithNutrients(
+                new SpoonacularRecipeInformation.Nutrient("Protein", 18.104, "g", 36.21),
+                new SpoonacularRecipeInformation.Nutrient("Calories", 591.126, "kcal", 29.56),
+                new SpoonacularRecipeInformation.Nutrient("Net Carbohydrates", 60.0, "g", 21.82),
+                new SpoonacularRecipeInformation.Nutrient("Carbohydrates", 69.024, "g", 23.01),
+                new SpoonacularRecipeInformation.Nutrient("Sugar", 2.544, "g", 2.83),
+                new SpoonacularRecipeInformation.Nutrient("Saturated Fat", 5.234, "g", 32.71),
+                new SpoonacularRecipeInformation.Nutrient("Sodium", 400.0, "mg", 17.39),
+                new SpoonacularRecipeInformation.Nutrient("Fat", 13.424, "g", 20.65));
 
-        SpoonacularRecipeInformation recipe =
-                new SpoonacularRecipeInformation(
-                        660101L,
-                        "Simple Garlic Pasta",
-                        "https://img.spoonacular.com/recipes/660101-556x370.jpg",
-                        2,
-                        45,
-                        195.54,   // RB-193: price per serving, in cents
-                        true,
-                        true,
-                        false,
-                        true,
-                        List.of(),
-                        List.of(),
-                        nutrition);
+        assertThat(ours.nutrition().calories()).isEqualTo(591.13);
+        assertThat(ours.nutrition().rows())
+                .extracting(RecipeDetailDto.NutritionRow::label)
+                .containsExactly("Total Fat", "Saturated Fat", "Sodium",
+                        "Total Carbohydrate", "Total Sugars", "Protein");
+        assertThat(rowLabelled(ours, "Total Fat").amount()).isEqualTo(13.42);
+        assertThat(rowLabelled(ours, "Total Carbohydrate").amount()).isEqualTo(69.02);
+        assertThat(rowLabelled(ours, "Sodium").unit()).isEqualTo("mg");
+    }
+
+    @Test
+    void aRowIsMatchedByItsWholeNameNeverAPrefix() {
+        // Only Saturated Fat is sent. A startsWith/contains match would wrongly
+        // build a "Total Fat" row out of it.
+        RecipeDetailDto ours = detailWithNutrients(
+                new SpoonacularRecipeInformation.Nutrient("Saturated Fat", 5.234, "g", 32.71));
+
+        assertThat(ours.nutrition().rows())
+                .extracting(RecipeDetailDto.NutritionRow::label)
+                .containsExactly("Saturated Fat");
+        assertThat(rowLabelled(ours, "Saturated Fat").amount()).isEqualTo(5.23);
+    }
+
+    @Test
+    void theRowsALabelPrintsNoPercentForComeBackBlank() {
+        // Spoonacular sends a percentage on all four; the label prints only one.
+        RecipeDetailDto ours = detailWithNutrients(
+                new SpoonacularRecipeInformation.Nutrient("Fat", 13.424, "g", 20.65),
+                new SpoonacularRecipeInformation.Nutrient("Trans Fat", 0.1, "g", 1.0),
+                new SpoonacularRecipeInformation.Nutrient("Sugar", 2.544, "g", 2.83),
+                new SpoonacularRecipeInformation.Nutrient("Protein", 18.104, "g", 36.21));
+
+        assertThat(rowLabelled(ours, "Total Fat").percentDailyValue()).isEqualTo(20.65);
+        assertThat(rowLabelled(ours, "Trans Fat").percentDailyValue()).isNull();
+        assertThat(rowLabelled(ours, "Total Sugars").percentDailyValue()).isNull();
+        assertThat(rowLabelled(ours, "Protein").percentDailyValue()).isNull();
+    }
+
+    @Test
+    void rowsAreIndentedUnderTheirParentRow() {
+        RecipeDetailDto ours = detailWithNutrients(
+                new SpoonacularRecipeInformation.Nutrient("Fat", 13.424, "g", 20.65),
+                new SpoonacularRecipeInformation.Nutrient("Saturated Fat", 5.234, "g", 32.71),
+                new SpoonacularRecipeInformation.Nutrient("Carbohydrates", 69.024, "g", 23.01),
+                new SpoonacularRecipeInformation.Nutrient("Fiber", 3.1, "g", 12.4),
+                new SpoonacularRecipeInformation.Nutrient("Sugar", 2.544, "g", 2.83),
+                new SpoonacularRecipeInformation.Nutrient("Added Sugars", 1.0, "g", 2.0));
+
+        assertThat(rowLabelled(ours, "Total Fat").indent()).isEqualTo(0);
+        assertThat(rowLabelled(ours, "Saturated Fat").indent()).isEqualTo(1);
+        assertThat(rowLabelled(ours, "Total Carbohydrate").indent()).isEqualTo(0);
+        assertThat(rowLabelled(ours, "Dietary Fiber").indent()).isEqualTo(1);
+        assertThat(rowLabelled(ours, "Total Sugars").indent()).isEqualTo(1);
+        assertThat(rowLabelled(ours, "Includes Added Sugars").indent()).isEqualTo(2);
+    }
+
+    @Test
+    void aNutrientTheyDidNotSendIsLeftOffNotPrintedAsZero() {
+        // No Fiber in the reply.
+        RecipeDetailDto ours = detailWithNutrients(
+                new SpoonacularRecipeInformation.Nutrient("Carbohydrates", 69.024, "g", 23.01),
+                new SpoonacularRecipeInformation.Nutrient("Sugar", 2.544, "g", 2.83));
+
+        assertThat(ours.nutrition().rows())
+                .extracting(RecipeDetailDto.NutritionRow::label)
+                .containsExactly("Total Carbohydrate", "Total Sugars");
+    }
+
+    /** RB-277: runs a recipe carrying just these nutrients through the service. */
+    private RecipeDetailDto detailWithNutrients(SpoonacularRecipeInformation.Nutrient... nutrients) {
+        SpoonacularRecipeInformation recipe = new SpoonacularRecipeInformation(
+                660101L, "Simple Garlic Pasta",
+                "https://img.spoonacular.com/recipes/660101-556x370.jpg",
+                2, 45, 195.54, true, true, false, true,
+                List.of(), List.of(),
+                new SpoonacularRecipeInformation.Nutrition(List.of(nutrients)));
 
         when(client.getRecipe(660101L)).thenReturn(recipe);
 
-        RecipeDetailDto ours = service.getRecipe(660101L);
+        return service.getRecipe(660101L);
+    }
 
-        assertThat(ours.nutrition()).isNotNull();
-        assertThat(ours.nutrition().calories()).isEqualTo(591.13);
-        assertThat(ours.nutrition().fat()).isEqualTo(13.42);
-        assertThat(ours.nutrition().saturatedFat()).isEqualTo(5.23);
-        assertThat(ours.nutrition().carbohydrates()).isEqualTo(69.02);
-        assertThat(ours.nutrition().sugar()).isEqualTo(2.54);
-        assertThat(ours.nutrition().protein()).isEqualTo(18.1);
+    /** RB-277: the one row with this label; fails the test if there is none. */
+    private static RecipeDetailDto.NutritionRow rowLabelled(RecipeDetailDto ours, String label) {
+        return ours.nutrition().rows().stream()
+                .filter(row -> row.label().equals(label))
+                .findFirst()
+                .orElseThrow(() -> new AssertionError("no row labelled " + label));
     }
 
     @Test

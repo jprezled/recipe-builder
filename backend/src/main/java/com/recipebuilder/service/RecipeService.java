@@ -251,7 +251,29 @@ public class RecipeService {
         }
     }
 
-    /** Converts Spoonacular's nutrient list into our six figures. */
+    /**
+     * RB-277: one line of a printed nutrition label.
+     *
+     * theirName is Spoonacular's wording, label is the label's wording - they
+     * differ on four rows (docs/nutrition-daily-value-contract.md).
+     */
+    private record LabelLine(String theirName, String label, int indent, boolean showsPercent) {
+    }
+
+    /** The label's rows, in the order a printed label prints them. */
+    private static final List<LabelLine> LABEL_LINES = List.of(
+            new LabelLine("Fat",           "Total Fat",             0, true),
+            new LabelLine("Saturated Fat", "Saturated Fat",         1, true),
+            new LabelLine("Trans Fat",     "Trans Fat",             1, false),
+            new LabelLine("Cholesterol",   "Cholesterol",           0, true),
+            new LabelLine("Sodium",        "Sodium",                0, true),
+            new LabelLine("Carbohydrates", "Total Carbohydrate",    0, true),
+            new LabelLine("Fiber",         "Dietary Fiber",         1, true),
+            new LabelLine("Sugar",         "Total Sugars",          1, false),
+            new LabelLine("Added Sugars",  "Includes Added Sugars", 2, true),
+            new LabelLine("Protein",       "Protein",               0, false));
+
+    /** Converts Spoonacular's nutrient list into calories plus the label's rows. */
     private static RecipeDetailDto.Nutrition toNutrition(
             SpoonacularRecipeInformation.Nutrition theirs) {
 
@@ -259,26 +281,53 @@ public class RecipeService {
             return null;
         }
 
-        return new RecipeDetailDto.Nutrition(
-                amountOf(theirs, "Calories"),
-                amountOf(theirs, "Fat"),
-                amountOf(theirs, "Saturated Fat"),
-                amountOf(theirs, "Carbohydrates"),
-                amountOf(theirs, "Sugar"),
-                amountOf(theirs, "Protein"));
+        List<RecipeDetailDto.NutritionRow> rows = new ArrayList<>();
+
+        for (LabelLine line : LABEL_LINES) {
+            SpoonacularRecipeInformation.Nutrient nutrient = nutrientNamed(theirs, line.theirName());
+
+            if (nutrient == null) {
+                continue;   // they did not send it: leave the row off, not a zero
+            }
+
+            Double percent = null;
+            if (line.showsPercent() && nutrient.percentOfDailyNeeds() != null) {
+                percent = round2(nutrient.percentOfDailyNeeds());
+            }
+
+            rows.add(new RecipeDetailDto.NutritionRow(
+                    line.label(),
+                    round2(nutrient.amount()),
+                    nutrient.unit(),
+                    percent,
+                    line.indent()));
+        }
+
+        return new RecipeDetailDto.Nutrition(amountOf(theirs, "Calories"), rows);
     }
 
     /** Finds a nutrient by its exact name and rounds its amount. */
     private static double amountOf(
             SpoonacularRecipeInformation.Nutrition theirs, String name) {
 
+        SpoonacularRecipeInformation.Nutrient nutrient = nutrientNamed(theirs, name);
+        return nutrient == null ? 0 : round2(nutrient.amount());
+    }
+
+    /**
+     * Finds a nutrient by its EXACT name, or null when they did not send it.
+     * .equals(), never startsWith or contains: "Fat" must not land on "Saturated Fat".
+     */
+    private static SpoonacularRecipeInformation.Nutrient nutrientNamed(
+            SpoonacularRecipeInformation.Nutrition theirs, String name) {
+
         for (SpoonacularRecipeInformation.Nutrient nutrient : theirs.nutrients()) {
             if (name.equals(nutrient.name())) {
-                return round2(nutrient.amount());
+                return nutrient;
             }
         }
 
-        return 0;
+        return null;
     }
 
     /** Rounds an amount to two decimal places. */
