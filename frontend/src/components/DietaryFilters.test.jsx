@@ -20,12 +20,20 @@ afterEach(() => {
   cleanup()
 })
 
+/** RB-292: the filters start closed, so every test that needs a control opens them first. */
+async function openFilters(user) {
+  await user.click(screen.getByRole('button', { name: /Dietary Restrictions/ }))
+}
+
 // Group all tests for this component together.
 describe('DietaryFilters', () => {
-  it('displays all supported options with no restrictions selected', () => {
+  it('displays all supported options with no restrictions selected', async () => {
+    const user = userEvent.setup()
+
     // Mount the component without initial restrictions.
     // vi.fn() supplies a mock callback that records calls.
     render(<DietaryFilters onApply={vi.fn()} />)
+    await openFilters(user)
 
     // No preference should be selected by default.
     expect(
@@ -63,6 +71,7 @@ describe('DietaryFilters', () => {
     const onApply = vi.fn()
 
     render(<DietaryFilters onApply={onApply} />)
+    await openFilters(user)
 
     // Change the diet and select three exclusions.
     // await lets each interaction finish before the next statement.
@@ -86,6 +95,7 @@ describe('DietaryFilters', () => {
     const onApply = vi.fn()
 
     render(<DietaryFilters onApply={onApply} />)
+    await openFilters(user)
 
     // Select options whose API values contain spaces.
     await user.click(
@@ -112,7 +122,8 @@ describe('DietaryFilters', () => {
     )
   })
 
-  it('shows the current choices supplied by the parent page', () => {
+  it('shows the current choices supplied by the parent page', async () => {
+    const user = userEvent.setup()
     const onApply = vi.fn()
 
     // Mount with restrictions that are already applied.
@@ -123,6 +134,7 @@ describe('DietaryFilters', () => {
         onApply={onApply}
       />,
     )
+    await openFilters(user)
 
     // The supplied diet and exclusions should appear selected.
     expect(
@@ -148,6 +160,7 @@ describe('DietaryFilters', () => {
     const user = userEvent.setup()
 
     render(<DietaryFilters onApply={vi.fn()} />)
+    await openFilters(user)
 
     // Select one diet, then switch to another.
     await user.click(
@@ -179,6 +192,7 @@ describe('DietaryFilters', () => {
         onApply={onApply}
       />,
     )
+    await openFilters(user)
 
     // Clear the diet and uncheck both exclusions.
     await user.click(
@@ -196,5 +210,67 @@ describe('DietaryFilters', () => {
     // No exclusions are reported as an empty array.
     expect(onApply).toHaveBeenCalledTimes(1)
     expect(onApply).toHaveBeenCalledWith(null, [])
+  })
+
+  // ---- RB-292: collapsed behind a toggle ---------------------------------
+
+  it('starts closed, with only the toggle showing', () => {
+    render(<DietaryFilters onApply={vi.fn()} />)
+
+    const toggle = screen.getByRole('button', { name: /Dietary Restrictions/ })
+    expect(toggle).toHaveAttribute('aria-expanded', 'false')
+    expect(screen.queryByRole('radio')).not.toBeInTheDocument()
+    expect(screen.queryByRole('checkbox')).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Find recipes' })).not.toBeInTheDocument()
+  })
+
+  it('opens when the toggle is clicked, and closes when it is clicked again', async () => {
+    const user = userEvent.setup()
+    render(<DietaryFilters onApply={vi.fn()} />)
+
+    await openFilters(user)
+    expect(screen.getByRole('button', { name: /Dietary Restrictions/ }))
+      .toHaveAttribute('aria-expanded', 'true')
+    expect(screen.getByRole('radio', { name: 'Vegan' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Find recipes' })).toBeInTheDocument()
+
+    await openFilters(user)
+    expect(screen.queryByRole('radio')).not.toBeInTheDocument()
+  })
+
+  it('closes itself again after Find recipes, having reported the choices once', async () => {
+    const user = userEvent.setup()
+    const onApply = vi.fn()
+    render(<DietaryFilters onApply={onApply} />)
+
+    await openFilters(user)
+    await user.click(screen.getByRole('radio', { name: 'Vegetarian' }))
+    await user.click(screen.getByRole('button', { name: 'Find recipes' }))
+
+    expect(onApply).toHaveBeenCalledTimes(1)
+    expect(onApply).toHaveBeenCalledWith('vegetarian', [])
+    expect(screen.queryByRole('radio')).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /Dietary Restrictions/ }))
+      .toHaveAttribute('aria-expanded', 'false')
+  })
+
+  it('remembers the ticks while it is closed', async () => {
+    const user = userEvent.setup()
+    render(<DietaryFilters onApply={vi.fn()} />)
+
+    await openFilters(user)
+    await user.click(screen.getByRole('radio', { name: 'Vegan' }))
+    await user.click(screen.getByRole('checkbox', { name: 'Soy' }))
+    await openFilters(user)
+    await openFilters(user)
+
+    expect(screen.getByRole('radio', { name: 'Vegan' })).toBeChecked()
+    expect(screen.getByRole('checkbox', { name: 'Soy' })).toBeChecked()
+  })
+
+  it('has no separate heading repeating the toggle label', () => {
+    render(<DietaryFilters onApply={vi.fn()} />)
+
+    expect(screen.queryByRole('heading', { name: 'Dietary Restrictions' })).not.toBeInTheDocument()
   })
 })

@@ -102,7 +102,7 @@ export default function ResultsPage({
   const hasLoadedSaved = useRef(false)
 
   useEffect(() => {
-    if (hasLoadedSaved.current || diet || intolerances) {
+    if (embedded || hasLoadedSaved.current || diet || intolerances) {
       return
     }
     let stillOnThisPage = true
@@ -451,13 +451,17 @@ export default function ResultsPage({
           now write to the address too, and keying on those would remount the
           controls on every click and wipe the tick that caused it.
           `applied` changes only when the button is pressed. */}
-      <DietaryFilters
-        key={(applied.diet ?? '') + '|' + (applied.intolerances ?? '')}
-        selectedDiet={diet}
-        selectedIntolerances={intolerances ? intolerances.split(',') : []}
-        onApply={handleApplyFilters}
-        onChange={handleFilterChange}
-      />
+      {/* Embedded in the home page, the filters are set up there, in its button
+          row, before Generate Recipes - so there is no second copy here. */}
+      {!embedded && (
+        <DietaryFilters
+          key={(applied.diet ?? '') + '|' + (applied.intolerances ?? '')}
+          selectedDiet={diet}
+          selectedIntolerances={intolerances ? intolerances.split(',') : []}
+          onApply={handleApplyFilters}
+          onChange={handleFilterChange}
+        />
+      )}
 
       {(ingredientsChanged || filtersChanged) && (
         <p className="search-pending" role="status">
