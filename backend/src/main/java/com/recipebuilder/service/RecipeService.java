@@ -242,7 +242,7 @@ public class RecipeService {
         }
     }
 
-        /**
+    /**
      * RB-277: one line of a printed nutrition label.
      *
      * theirName is Spoonacular's wording, label is the label's wording - they

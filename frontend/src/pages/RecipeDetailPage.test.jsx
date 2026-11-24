@@ -33,7 +33,7 @@ const RECIPE = {
     { name: 'garlic', line: '3 cloves of garlic (minced)', aisle: 'Produce' },
     { name: 'olive oil', line: '3 tablespoons olive oil', aisle: 'Oil, Vinegar, Salad Dressing' },
   ],
-    // RB-277: calories on their own, then the label's rows in printed order.
+  // RB-277: calories on their own, then the label's rows in printed order.
   nutrition: {
     calories: 591,
     rows: [

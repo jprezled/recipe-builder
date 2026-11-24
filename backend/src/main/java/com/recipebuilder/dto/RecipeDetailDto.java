@@ -53,7 +53,7 @@ public record RecipeDetailDto(
             boolean dairyFree) {
     }
 
-         /**
+    /**
      * RB-277: calories on their own, then the label's rows in printed order.
      * A row Spoonacular did not send is left out of the list entirely.
      */

@@ -26,7 +26,6 @@ const DIET_LABELS = [
   { field: 'dairyFree', label: 'Dairy free' },
 ]
 
-
 /**
  * Groups ingredients by their aisle. A Map rather than a plain object because aisle names are free text from
  * Spoonacular - a name like "constructor" would collide with an inherited
@@ -320,7 +319,7 @@ export default function RecipeDetailPage() {
               <h2>Nutrition Facts</h2>
               <p className="nutrition-note">Per serving</p>
 
-                            {/* RB-277: calories lead in their own block, with no percentage. */}
+              {/* RB-277: calories lead in their own block, with no percentage. */}
               <p className="nutrition-calories">
                 <span>Calories</span>
                 <span>{recipe.nutrition.calories} kcal</span>
