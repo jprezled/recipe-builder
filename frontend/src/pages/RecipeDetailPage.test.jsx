@@ -33,13 +33,16 @@ const RECIPE = {
     { name: 'garlic', line: '3 cloves of garlic (minced)', aisle: 'Produce' },
     { name: 'olive oil', line: '3 tablespoons olive oil', aisle: 'Oil, Vinegar, Salad Dressing' },
   ],
+  // RB-277: calories on their own, then the label's rows in printed order.
   nutrition: {
     calories: 591,
-    fat: 13.42,
-    saturatedFat: 5.23,
-    carbohydrates: 69.02,
-    sugar: 2.54,
-    protein: 18.1,
+    rows: [
+      { label: 'Total Fat', amount: 13.42, unit: 'g', percentDailyValue: 20.65, indent: 0 },
+      { label: 'Saturated Fat', amount: 5.23, unit: 'g', percentDailyValue: 32.71, indent: 1 },
+      { label: 'Total Carbohydrate', amount: 69.02, unit: 'g', percentDailyValue: 23.01, indent: 0 },
+      { label: 'Total Sugars', amount: 2.54, unit: 'g', percentDailyValue: null, indent: 1 },
+      { label: 'Protein', amount: 18.1, unit: 'g', percentDailyValue: null, indent: 0 },
+    ],
   },
 }
 
@@ -502,6 +505,43 @@ describe('RecipeDetailPage', () => {
       screen.queryByRole('button', { name: 'Nutrition Facts' }),
     ).not.toBeInTheDocument()
     expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+  })
+
+  // RB-277: % Daily Value on the nutrition panel.
+
+  /** Opens the nutrition panel and returns the <li> for one label row. */
+  async function openNutritionRow(label) {
+    const user = userEvent.setup()
+    renderDetail()
+    await user.click(await screen.findByRole('button', { name: 'Nutrition Facts' }))
+    const panel = document.getElementById('nutrition-facts')
+    return within(panel).getByText(label).closest('li')
+  }
+
+  it('shows a row\'s % Daily Value when it has one', async () => {
+    const row = await openNutritionRow('Total Fat')
+
+    expect(within(row).getByText('21%')).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: '% Daily Value*' })).toBeInTheDocument()
+    expect(
+      screen.getByText('* Percent Daily Values are based on a 2,000 calorie diet.'),
+    ).toBeInTheDocument()
+  })
+
+  it('shows no percentage on a row whose percentDailyValue is null', async () => {
+    const row = await openNutritionRow('Protein')
+
+    expect(within(row).getByText('18.1g')).toBeInTheDocument()
+    expect(within(row).queryByText(/%/)).not.toBeInTheDocument()
+  })
+
+  it('indents each row by its indent level', async () => {
+    const parent = await openNutritionRow('Total Fat')
+    const panel = document.getElementById('nutrition-facts')
+    const child = within(panel).getByText('Saturated Fat').closest('li')
+
+    expect(parent).toHaveClass('nutrition-indent-0')
+    expect(child).toHaveClass('nutrition-indent-1')
   })
 
   // RB-269: the same note on both pages.

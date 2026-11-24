@@ -27,14 +27,6 @@ const DIET_LABELS = [
   { field: 'dairyFree', label: 'Dairy free' },
 ]
 
-const NUTRITION_ROWS = [
-  { field: 'calories', label: 'Calories', unit: ' kcal' },
-  { field: 'fat', label: 'Fat', unit: 'g' },
-  { field: 'saturatedFat', label: 'Saturated fat', unit: 'g' },
-  { field: 'carbohydrates', label: 'Carbohydrates', unit: 'g' },
-  { field: 'sugar', label: 'Sugar', unit: 'g' },
-  { field: 'protein', label: 'Protein', unit: 'g' },
-]
 /**
  * Groups ingredients by their aisle. A Map rather than a plain object because aisle names are free text from
  * Spoonacular - a name like "constructor" would collide with an inherited
@@ -344,16 +336,30 @@ export default function RecipeDetailPage() {
               <h2>Nutrition Facts</h2>
               <p className="nutrition-note">Per serving</p>
 
+              {/* RB-277: calories lead in their own block, with no percentage. */}
+              <p className="nutrition-calories">
+                <span>Calories</span>
+                <span>{recipe.nutrition.calories} kcal</span>
+              </p>
+
+              <h3 className="nutrition-dv-heading">% Daily Value*</h3>
+
               <ul className="nutrition-list">
-                {NUTRITION_ROWS.map((row) => (
-                  <li key={row.field}>
-                    <span>{row.label}</span>
-                    <span>
-                      {recipe.nutrition[row.field]}{row.unit}
+                {recipe.nutrition.rows.map((row) => (
+                  <li key={row.label} className={'nutrition-indent-' + row.indent}>
+                    <span className="nutrition-name">
+                      {row.label} <span>{row.amount}{row.unit}</span>
                     </span>
+                    {row.percentDailyValue != null && (
+                      <span>{Math.round(row.percentDailyValue)}%</span>
+                    )}
                   </li>
                 ))}
               </ul>
+
+              <p className="nutrition-footnote">
+                * Percent Daily Values are based on a 2,000 calorie diet.
+              </p>
             </section>
           )}
 

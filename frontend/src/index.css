@@ -1000,6 +1000,46 @@ a.button {
   padding: 7px 0;
 }
 
+/* RB-277: the label's calories block, % Daily Value heading, indents, footnote. */
+.nutrition-calories {
+  border-bottom: 4px solid #2a5c2a;
+  border-top: 4px solid #2a5c2a;
+  display: flex;
+  font-size: 1.15rem;
+  font-weight: 700;
+  justify-content: space-between;
+  margin: 0 0 0.3rem;
+  padding: 6px 0;
+}
+
+.nutrition-dv-heading {
+  font-size: 0.85rem;
+  margin: 0;
+  text-align: right;
+}
+
+.nutrition-name > span {
+  font-weight: 400;
+}
+
+.nutrition-indent-0 .nutrition-name {
+  font-weight: 600;
+}
+
+.nutrition-list li.nutrition-indent-1 {
+  padding-left: 1.25rem;
+}
+
+.nutrition-list li.nutrition-indent-2 {
+  padding-left: 2.5rem;
+}
+
+.nutrition-footnote {
+  color: #5a6b5a;
+  font-size: 0.8rem;
+  margin: 0.6rem 0 0;
+}
+
 .favorites-page .recipe-grid {
   align-items: start;
 }
