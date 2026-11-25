@@ -33,13 +33,22 @@ const RECIPE = {
     { name: 'garlic', line: '3 cloves of garlic (minced)', aisle: 'Produce' },
     { name: 'olive oil', line: '3 tablespoons olive oil', aisle: 'Oil, Vinegar, Salad Dressing' },
   ],
+  // RB-291: the same three lines as numbers, for the servings stepper.
+  ingredientAmounts: [
+    { name: 'dried chili pepper', amount: 2, unit: 'whole' },
+    { name: 'garlic', amount: 3, unit: 'cloves' },
+    { name: 'olive oil', amount: 3, unit: 'tablespoons' },
+  ],
+  // RB-277: calories on their own, then the label's rows in printed order.
   nutrition: {
     calories: 591,
-    fat: 13.42,
-    saturatedFat: 5.23,
-    carbohydrates: 69.02,
-    sugar: 2.54,
-    protein: 18.1,
+    rows: [
+      { label: 'Total Fat', amount: 13.42, unit: 'g', percentDailyValue: 20.65, indent: 0 },
+      { label: 'Saturated Fat', amount: 5.23, unit: 'g', percentDailyValue: 32.71, indent: 1 },
+      { label: 'Total Carbohydrate', amount: 69.02, unit: 'g', percentDailyValue: 23.01, indent: 0 },
+      { label: 'Total Sugars', amount: 2.54, unit: 'g', percentDailyValue: null, indent: 1 },
+      { label: 'Protein', amount: 18.1, unit: 'g', percentDailyValue: null, indent: 0 },
+    ],
   },
 }
 
@@ -135,6 +144,44 @@ describe('RecipeDetailPage', () => {
 
     expect(await screen.findByText('Start with boiling water in a large pot.')).toBeInTheDocument()
     expect(screen.getByText('While you are boiling, mince the garlic')).toBeInTheDocument()
+  })
+
+  // ---- RB-295: ingredients and instructions get the page's own list style,
+  // not the browser default, so they read as one design with the nutrition
+  // and cost panels above them.
+
+  it('gives the ingredients list its own class instead of the browser default bullet', async () => {
+    renderDetail()
+    await screen.findByText('3 tablespoons olive oil')
+
+    const list = screen.getByText('3 tablespoons olive oil').closest('ul')
+    expect(list).toHaveClass('ingredients-list')
+  })
+
+  it('gives the instructions list its own class instead of the browser default number', async () => {
+    renderDetail()
+    await screen.findByText('Start with boiling water in a large pot.')
+
+    const list = screen.getByText('Start with boiling water in a large pot.').closest('ol')
+    expect(list).toHaveClass('instructions-list')
+  })
+
+  it('still renders every step on a recipe with many of them', async () => {
+    const manySteps = Array.from({ length: 12 }, (_, i) => 'Step number ' + (i + 1))
+    getRecipe.mockResolvedValue({ ...RECIPE, steps: manySteps })
+    renderDetail()
+
+    expect(await screen.findByText('Step number 1')).toBeInTheDocument()
+    expect(screen.getByText('Step number 12')).toBeInTheDocument()
+  })
+
+  it('still renders every ingredient on a recipe with many of them', async () => {
+    const manyIngredients = Array.from({ length: 15 }, (_, i) => 'Ingredient ' + (i + 1))
+    getRecipe.mockResolvedValue({ ...RECIPE, ingredients: manyIngredients })
+    renderDetail()
+
+    expect(await screen.findByText('Ingredient 1')).toBeInTheDocument()
+    expect(screen.getByText('Ingredient 15')).toBeInTheDocument()
   })
 
   it('no longer shows the hardcoded mockup recipe', async () => {
@@ -292,6 +339,11 @@ describe('RecipeDetailPage', () => {
     expect(screen.queryByRole('alert')).not.toBeInTheDocument()
   })
     describe('shopping list', () => {
+    // RB-318: checks live in localStorage, so every test starts with none.
+    beforeEach(() => {
+      localStorage.clear()
+    })
+
     /** The list under one category heading, so a line is checked in its group. */
     function groupUnder(category) {
       return within(screen.getByRole('heading', { name: category }).parentElement)
@@ -393,6 +445,44 @@ describe('RecipeDetailPage', () => {
       expect(group.getByText('1 pinch of salt')).toBeInTheDocument()
       expect(group.getByText('1 pinch of pepper')).toBeInTheDocument()
     })
+
+    // RB-318: checking items off. docs/shopping-checklist-contract.md.
+
+    // 8. A check is still there after the panel is closed and opened again.
+    it('keeps a check after the panel is closed and reopened', async () => {
+      renderDetail()
+      await openPanel()
+
+      await userEvent.click(screen.getByRole('checkbox', { name: '3 cloves of garlic (minced)' }))
+
+      const button = screen.getByRole('button', { name: /shopping list/i })
+      await userEvent.click(button)
+      await userEvent.click(button)
+
+      expect(screen.getByRole('checkbox', { name: '3 cloves of garlic (minced)' })).toBeChecked()
+      expect(screen.getByRole('checkbox', { name: '3 tablespoons olive oil' })).not.toBeChecked()
+    })
+
+    // 9. Each recipe keeps its own checks, and they outlive the page.
+    it('starts a different recipe from its own checks', async () => {
+      const first = renderDetail()
+      await openPanel()
+      await userEvent.click(screen.getByRole('checkbox', { name: '3 cloves of garlic (minced)' }))
+      first.unmount()
+
+      // A different recipe that happens to share the garlic line.
+      getRecipe.mockResolvedValue({ ...RECIPE, id: 715538 })
+      const second = renderDetail('715538')
+      await openPanel()
+      expect(screen.getByRole('checkbox', { name: '3 cloves of garlic (minced)' })).not.toBeChecked()
+      second.unmount()
+
+      // Back on the first recipe, its check was remembered.
+      getRecipe.mockResolvedValue(RECIPE)
+      renderDetail()
+      await openPanel()
+      expect(screen.getByRole('checkbox', { name: '3 cloves of garlic (minced)' })).toBeChecked()
+    })
   })
 
   it('starts with nutrition closed', async () => {
@@ -461,6 +551,43 @@ describe('RecipeDetailPage', () => {
     expect(screen.queryByRole('alert')).not.toBeInTheDocument()
   })
 
+  // RB-277: % Daily Value on the nutrition panel.
+
+  /** Opens the nutrition panel and returns the <li> for one label row. */
+  async function openNutritionRow(label) {
+    const user = userEvent.setup()
+    renderDetail()
+    await user.click(await screen.findByRole('button', { name: 'Nutrition Facts' }))
+    const panel = document.getElementById('nutrition-facts')
+    return within(panel).getByText(label).closest('li')
+  }
+
+  it('shows a row\'s % Daily Value when it has one', async () => {
+    const row = await openNutritionRow('Total Fat')
+
+    expect(within(row).getByText('21%')).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: '% Daily Value*' })).toBeInTheDocument()
+    expect(
+      screen.getByText('* Percent Daily Values are based on a 2,000 calorie diet.'),
+    ).toBeInTheDocument()
+  })
+
+  it('shows no percentage on a row whose percentDailyValue is null', async () => {
+    const row = await openNutritionRow('Protein')
+
+    expect(within(row).getByText('18.1g')).toBeInTheDocument()
+    expect(within(row).queryByText(/%/)).not.toBeInTheDocument()
+  })
+
+  it('indents each row by its indent level', async () => {
+    const parent = await openNutritionRow('Total Fat')
+    const panel = document.getElementById('nutrition-facts')
+    const child = within(panel).getByText('Saturated Fat').closest('li')
+
+    expect(parent).toHaveClass('nutrition-indent-0')
+    expect(child).toHaveClass('nutrition-indent-1')
+  })
+
   // RB-269: the same note on both pages.
 
   it('starts with the note panel closed', async () => {
@@ -521,6 +648,89 @@ describe('RecipeDetailPage', () => {
 
     expect(getRecipe).toHaveBeenCalledTimes(1)
     expect(getFavorites).toHaveBeenCalledTimes(1)
+  })
+
+  // ---- RB-295: Nutrition Facts and My Note share one slot under Ingredients
+
+  it('both nutrition and the note can be open together, most recently opened first', async () => {
+    renderDetail()
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Nutrition Facts' }))
+    await userEvent.click(await screen.findByRole('button', { name: 'My note' }))
+
+    const headings = screen.getAllByRole('heading', { level: 2 })
+      .map((h) => h.textContent)
+      .filter((text) => text === 'Nutrition Facts' || text === 'My Note')
+
+    expect(headings).toEqual(['My Note', 'Nutrition Facts'])
+  })
+
+  it('re-opening nutrition after the note moves it back in front', async () => {
+    renderDetail()
+
+    await userEvent.click(await screen.findByRole('button', { name: 'My note' }))
+    await userEvent.click(await screen.findByRole('button', { name: 'Nutrition Facts' }))
+
+    const headings = screen.getAllByRole('heading', { level: 2 })
+      .map((h) => h.textContent)
+      .filter((text) => text === 'Nutrition Facts' || text === 'My Note')
+
+    expect(headings).toEqual(['Nutrition Facts', 'My Note'])
+  })
+
+  // ---- RB-299: scroll to and flash whatever was just opened ---------------
+
+  it('scrolls to a panel when it opens', async () => {
+    renderDetail()
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Nutrition Facts' }))
+
+    const panel = screen.getByRole('heading', { name: 'Nutrition Facts' }).closest('section')
+    expect(panel.scrollIntoView).toHaveBeenCalled()
+  })
+
+  it('flashes the panel that was just opened, and only that one', async () => {
+    renderDetail()
+
+    await userEvent.click(await screen.findByRole('button', { name: 'My note' }))
+
+    const notePanel = screen.getByRole('heading', { name: 'My Note' }).closest('section')
+    const ingredientsPanel = screen.getByRole('heading', { name: 'Ingredients' }).closest('section')
+
+    expect(notePanel).toHaveClass('flash-highlight')
+    expect(ingredientsPanel).not.toHaveClass('flash-highlight')
+  })
+
+  it('does not scroll or flash anything when a panel closes', async () => {
+    renderDetail()
+
+    const button = await screen.findByRole('button', { name: 'My note' })
+    await userEvent.click(button)
+
+    const notePanel = screen.getByRole('heading', { name: 'My Note' }).closest('section')
+    notePanel.scrollIntoView.mockClear()
+
+    await userEvent.click(button)
+
+    expect(notePanel.scrollIntoView).not.toHaveBeenCalled()
+  })
+
+  it('removes the flash after about a second and a half', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true })
+    try {
+      const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
+      renderDetail()
+
+      await user.click(await screen.findByRole('button', { name: 'My note' }))
+      const notePanel = screen.getByRole('heading', { name: 'My Note' }).closest('section')
+      expect(notePanel).toHaveClass('flash-highlight')
+
+      vi.advanceTimersByTime(1600)
+
+      expect(notePanel).not.toHaveClass('flash-highlight')
+    } finally {
+      vi.useRealTimers()
+    }
   })
 
   // ---- RB-193: the cost ---------------------------------------------------
@@ -592,29 +802,49 @@ describe('RecipeDetailPage', () => {
     })
   })
 
-  it('renders long ingredient and instruction lists', async () => {
-    const ingredients = Array.from(
-      { length: 40 },
-      (_, index) => `Ingredient ${index + 1}: ${'unusually-long-name-'.repeat(4)}`,
-    )
-    const steps = Array.from(
-      { length: 25 },
-      (_, index) => `Step ${index + 1}: ${'Prepare and combine ingredients. '.repeat(8)}`,
-    )
+  // ---- RB-291: scaling the recipe's servings -------------------------------
 
-    getRecipe.mockResolvedValue({ ...RECIPE, ingredients, steps })
+  it('starts the servings stepper at the recipe\'s own serving count', async () => {
     renderDetail()
 
-    expect(await screen.findByText(ingredients[0])).toBeInTheDocument()
-    expect(screen.getByText(ingredients[39])).toBeInTheDocument()
-    const instructionsPanel = screen.getByRole('heading', {
-      name: 'Instructions',
-    }).parentElement
-    const renderedSteps = within(instructionsPanel).getAllByRole('listitem')
-
-    expect(renderedSteps).toHaveLength(25)
-    expect(renderedSteps[0]).toHaveTextContent(/^Step 1:/)
-    expect(renderedSteps[24]).toHaveTextContent(/^Step 25:/)
+    expect(await screen.findByText('3 tablespoons olive oil')).toBeInTheDocument()
+    expect(screen.getByLabelText('Servings')).toHaveTextContent('1')
   })
 
+  it('scales every ingredient amount when servings are increased', async () => {
+    renderDetail()
+    await screen.findByText('3 cloves of garlic (minced)')
+
+    await userEvent.click(screen.getByRole('button', { name: 'More servings' }))
+
+    expect(await screen.findByText('6 cloves garlic')).toBeInTheDocument()
+    expect(screen.getByText('6 tablespoons olive oil')).toBeInTheDocument()
+    expect(screen.queryByText('3 cloves of garlic (minced)')).not.toBeInTheDocument()
+  })
+
+  it('restores the original phrase when servings return to the recipe\'s own count', async () => {
+    renderDetail()
+    await screen.findByText('3 cloves of garlic (minced)')
+
+    await userEvent.click(screen.getByRole('button', { name: 'More servings' }))
+    await screen.findByText('6 cloves garlic')
+    await userEvent.click(screen.getByRole('button', { name: 'Fewer servings' }))
+
+    expect(await screen.findByText('3 cloves of garlic (minced)')).toBeInTheDocument()
+  })
+
+  it('cannot take servings below 1', async () => {
+    renderDetail()
+    await screen.findByText('3 cloves of garlic (minced)')
+
+    expect(screen.getByRole('button', { name: 'Fewer servings' })).toBeDisabled()
+  })
+
+  it('cannot take servings above 20', async () => {
+    getRecipe.mockResolvedValue({ ...RECIPE, servings: 20 })
+    renderDetail()
+    await screen.findByLabelText('Servings')
+
+    expect(screen.getByRole('button', { name: 'More servings' })).toBeDisabled()
+  })
 })

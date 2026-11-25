@@ -1,11 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { StrictMode } from 'react'
-import { render, screen } from '@testing-library/react'
+import { act, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import HomePage from './HomePage'
 import { getFavorites, searchRecipes } from '../api/recipes'
-import { getPantry, savePantry } from '../api/accounts'
+import { getPantry, getRestrictions, savePantry, saveRestrictions } from '../api/accounts'
 
 // Peter's HomePage renders the real ResultsPage inside itself, and that page
 // does the searching. Stubbing the api layer keeps these tests about the
@@ -139,7 +139,7 @@ describe('HomePage', () => {
     expect(left[0]).toHaveTextContent('milk')
   })
 
-    // ---- Clear pantry: empty the whole list in one click -------------------
+  // ---- RB-295g: Clear pantry, the whole list in one click ----------------
 
   it('offers no Clear pantry button while the list is empty', () => {
     renderHome()
@@ -261,4 +261,77 @@ describe('HomePage', () => {
     })
   })
 
+  // ---- Dietary restrictions: set on the home page, before Generate -------
+
+  it('puts Generate Recipes in the middle, between the dietary toggle and View Favorites', () => {
+    renderHome('/?ingredients=eggs')
+
+    const toggle = screen.getByRole('button', { name: /Dietary Restrictions/ })
+    const generate = screen.getByRole('button', { name: 'Generate Recipes' })
+    const favorites = screen.getByRole('link', { name: 'View Favorites' })
+
+    expect(toggle.compareDocumentPosition(generate) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(generate.compareDocumentPosition(favorites) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+  })
+
+  it('searches with the ticked filters when Generate Recipes is pressed', async () => {
+    renderHome('/?ingredients=eggs')
+
+    await userEvent.click(screen.getByRole('button', { name: /Dietary Restrictions/ }))
+    await userEvent.click(screen.getByRole('radio', { name: 'Vegan' }))
+    await userEvent.click(screen.getByRole('checkbox', { name: 'Dairy' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Generate Recipes' }))
+
+    await vi.waitFor(() =>
+      expect(searchRecipes).toHaveBeenCalledWith('eggs', expect.objectContaining({
+        diet: 'vegan',
+        intolerances: 'dairy',
+      })),
+    )
+  })
+
+  it('does not search when the filters are applied, only saves and closes', async () => {
+    renderHome('/?ingredients=eggs')
+
+    await userEvent.click(screen.getByRole('button', { name: /Dietary Restrictions/ }))
+    await userEvent.click(screen.getByRole('radio', { name: 'Vegan' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Find recipes' }))
+
+    expect(saveRestrictions).toHaveBeenCalledWith('vegan', '')
+    expect(searchRecipes).not.toHaveBeenCalled()
+    expect(screen.queryByRole('radio')).not.toBeInTheDocument()
+  })
+
+  it('has only one dietary toggle once the results box is showing', async () => {
+    renderHome('/?ingredients=eggs&results=1')
+
+    expect(await screen.findByRole('heading', { name: 'Your Recipes' })).toBeInTheDocument()
+    expect(screen.getAllByRole('button', { name: /Dietary Restrictions/ })).toHaveLength(1)
+  })
+
+  it('takes the results away when a filter changes, since they were for the old filters', async () => {
+    renderHome('/?ingredients=eggs&results=1')
+    expect(await screen.findByRole('heading', { name: 'Your Recipes' })).toBeInTheDocument()
+
+    await userEvent.click(screen.getByRole('button', { name: /Dietary Restrictions/ }))
+    await userEvent.click(screen.getByRole('radio', { name: 'Vegan' }))
+
+    expect(screen.queryByRole('heading', { name: 'Your Recipes' })).not.toBeInTheDocument()
+  })
+
+  it('fills the panel from the cook\'s saved restrictions', async () => {
+    getRestrictions.mockResolvedValue({ diet: 'vegan', intolerances: 'dairy' })
+    renderHome('/?ingredients=eggs')
+
+    // Let the saved choices arrive and the panel rebuild itself, then open it
+    // once - opening it while they are still arriving would be undone by the
+    // rebuild.
+    await vi.waitFor(() => expect(getRestrictions).toHaveBeenCalled())
+    await act(async () => {})
+
+    await userEvent.click(screen.getByRole('button', { name: /Dietary Restrictions/ }))
+
+    expect(screen.getByRole('radio', { name: 'Vegan' })).toBeChecked()
+    expect(screen.getByRole('checkbox', { name: 'Dairy' })).toBeChecked()
+  })
 })

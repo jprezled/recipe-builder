@@ -24,6 +24,8 @@ import com.recipebuilder.client.SpoonacularClient;
 import com.recipebuilder.client.dto.SpoonacularRecipeInformation;
 import com.recipebuilder.client.dto.SpoonacularSearchResult;
 import com.recipebuilder.dto.DietaryRestrictions;
+import com.recipebuilder.dto.IngredientAmountDto;
+import com.recipebuilder.dto.RecipeDetailDto;
 import com.recipebuilder.dto.RecipeSummaryDto;
 import com.recipebuilder.exception.InvalidInputException;
 import com.recipebuilder.repository.FavoriteRepository;
@@ -334,6 +336,26 @@ class RecipeServiceTest {
         service.getRecipe(716429L);
 
          verify(favorites).fillInIngredients(eq(716429L), anyList());
+   }
+
+   // ---- RB-291: the numeric amount survives to the frontend ---------------
+
+   @Test
+   void recipeDetailCarriesTheStructuredIngredientAmounts() {
+        SpoonacularRecipeInformation theirs = mock(SpoonacularRecipeInformation.class);
+        when(theirs.id()).thenReturn(716429L);
+        when(theirs.extendedIngredients()).thenReturn(List.of(
+                new SpoonacularRecipeInformation.ExtendedIngredient(
+                        "garlic", "3 cloves of garlic (minced)", "Produce", 3.0, "cloves"),
+                new SpoonacularRecipeInformation.ExtendedIngredient(
+                        "olive oil", "3 tablespoons olive oil", "Oil, Vinegar, Salad Dressing", 3.0, "tablespoons")));
+        when(client.getRecipe(716429L)).thenReturn(theirs);
+
+        RecipeDetailDto detail = service.getRecipe(716429L);
+
+        assertThat(detail.ingredientAmounts()).containsExactly(
+                new IngredientAmountDto("garlic", 3.0, "cloves"),
+                new IngredientAmountDto("olive oil", 3.0, "tablespoons"));
    }
 
    /** Not fatal: a database that is down must not stop a recipe page drawing. */

@@ -183,3 +183,32 @@ export async function savePantry(pantry) {
     body: pantry,
   })
 }
+
+/**
+ * RB-290: changes the signed-in cook's password.
+ *
+ * @throws {Error} with the backend's own sentence - "Incorrect password."
+ *                 for a wrong current password, the 8-character rule for a
+ *                 new one that is too short
+ */
+export async function changePassword(currentPassword, newPassword) {
+  await send('/api/users/password', {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ currentPassword, newPassword }),
+  })
+}
+
+/**
+ * RB-290: deletes the signed-in cook's account and everything in it.
+ *
+ * The backend invalidates the session, so there is nothing to sign out of
+ * afterwards - the caller only has to stop showing a signed-in page.
+ */
+export async function deleteAccount(currentPassword) {
+  await send('/api/users/me', {
+    method: 'DELETE',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ currentPassword }),
+  })
+}

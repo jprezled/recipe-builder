@@ -185,9 +185,13 @@ input[type="text"] {
   font-size: 1.1rem;
 }
 
-.detail-page .button-group { 
+.detail-page .button-group {
+  flex-wrap: nowrap;
   justify-content: flex-start;
-  margin-top: 1rem;
+  margin-top: 0.75rem;
+  /* One row, as asked - a narrow screen scrolls sideways within the row
+     rather than wrapping the buttons onto a second line. */
+  overflow-x: auto;
 }
 
 .detail-section { 
@@ -406,6 +410,30 @@ a.button {
 
 /* ---------- Dietary filter controls ---------- */
 
+/* RB-292: the "Dietary Restrictions" toggle, matching .nutrition-toggle. The
+   card styling below now sits on the panel that opens, not the whole form, so
+   a closed filter leaves no empty card behind. */
+.dietary-filters-toggle {
+  background-color: #ffffff;
+  border: 1px solid #2a5c2a;
+  border-radius: 6px;
+  color: #2a5c2a;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 600;
+  margin: 1rem 0;
+  padding: 10px 18px;
+}
+
+.dietary-filters-toggle:hover {
+  background-color: #f0f6f0;
+}
+
+.dietary-filters-toggle:focus-visible {
+  outline: 2px solid #2a5c2a;
+  outline-offset: 2px;
+}
+
 /* Match the filter panel to the existing green theme.
    Keep its contents left-aligned inside the centered results page. */
 .dietary-filters {
@@ -415,11 +443,6 @@ a.button {
   background-color: var(--color-card);
   border: 1px solid var(--color-primary-dark);
   border-radius: 10px;
-}
-
-/* Remove the large top margin inherited from the shared h2 rule. */
-.dietary-filters h2 {
-  margin: 0 0 1rem;
 }
 
 /* Arrange options in rows and wrap them when space is limited.
@@ -617,6 +640,51 @@ a.button {
   outline-offset: 1px;
 }
 
+/* The eye button and its input share one bordered box, so a password field
+   looks like a single control rather than a button bolted onto an input. */
+.account-password-wrapper {
+  display: flex;
+  align-items: center;
+  border: 1px solid rgba(12, 34, 64, 0.25);
+  border-radius: 0.4rem;
+  background: white;
+}
+
+.account-password-wrapper:focus-within {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 1px;
+}
+
+/* Overrides .account-field input's own border and width - this input sits
+   inside the wrapper's border instead of drawing its own. */
+.account-password-wrapper input {
+  flex: 1;
+  width: auto;
+  min-width: 0;
+  border: none;
+  background: transparent;
+}
+
+.account-password-wrapper input:focus-visible {
+  outline: none;
+}
+
+.account-password-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  padding: 0 0.6rem;
+  border: none;
+  background: none;
+  color: var(--color-heading);
+  cursor: pointer;
+}
+
+.account-password-toggle:hover {
+  color: var(--color-primary);
+}
+
 .account-hint {
   margin: 0;
   font-size: 0.85rem;
@@ -644,6 +712,73 @@ a.button {
 .account-button:disabled {
   opacity: 0.6;
   cursor: progress;
+}
+
+/* RB-290: the account page's second card is set apart, with space between
+   the two, and the delete card marked as the dangerous one by its red
+   border and heading rather than by looking like the password card. */
+.account-form + .account-form {
+  margin-top: 1.5rem;
+}
+
+.account-danger {
+  border: 1px solid rgb(150, 30, 30);
+}
+
+.account-danger h2 {
+  color: rgb(150, 30, 30);
+}
+
+.account-danger h2,
+.account-danger-text {
+  margin: 0;
+}
+
+/* The inner confirm form is not the card itself, so it needs the card's
+   column layout and gap of its own. */
+.account-danger-confirm {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.account-danger-actions {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.account-danger-actions .account-button {
+  flex: 1;
+}
+
+/* Outlined on the first press, solid red only on the confirming one. */
+.account-button-danger-outline {
+  align-self: flex-start;
+  background: white;
+  color: rgb(150, 30, 30);
+  border: 1px solid rgb(150, 30, 30);
+}
+
+.account-button-danger-outline:hover {
+  background: rgba(150, 30, 30, 0.08);
+}
+
+.account-button-danger {
+  background: rgb(150, 30, 30);
+}
+
+.account-button-danger:hover {
+  background: rgb(120, 20, 20);
+}
+
+.account-button-plain {
+  background: white;
+  color: var(--color-heading);
+  border: 1px solid rgba(12, 34, 64, 0.25);
+}
+
+.account-button-plain:hover {
+  background: #f1f4f3;
 }
 
 /* The backend's sentence, shown verbatim. Not red-on-white alone - the icon
@@ -1000,6 +1135,46 @@ a.button {
   padding: 7px 0;
 }
 
+/* RB-277: the label's calories block, % Daily Value heading, indents, footnote. */
+.nutrition-calories {
+  border-bottom: 4px solid #2a5c2a;
+  border-top: 4px solid #2a5c2a;
+  display: flex;
+  font-size: 1.15rem;
+  font-weight: 700;
+  justify-content: space-between;
+  margin: 0 0 0.3rem;
+  padding: 6px 0;
+}
+
+.nutrition-dv-heading {
+  font-size: 0.85rem;
+  margin: 0;
+  text-align: right;
+}
+
+.nutrition-name > span {
+  font-weight: 400;
+}
+
+.nutrition-indent-0 .nutrition-name {
+  font-weight: 600;
+}
+
+.nutrition-list li.nutrition-indent-1 {
+  padding-left: 1.25rem;
+}
+
+.nutrition-list li.nutrition-indent-2 {
+  padding-left: 2.5rem;
+}
+
+.nutrition-footnote {
+  color: #5a6b5a;
+  font-size: 0.8rem;
+  margin: 0.6rem 0 0;
+}
+
 .favorites-page .recipe-grid {
   align-items: start;
 }
@@ -1200,6 +1375,162 @@ a.button {
   outline-offset: 3px;
 }
 
+/* RB-320: a checked shopping line reads as done at a glance - struck through
+   and dimmed, the same look as the cost panel's "already have" lines.
+   The class is set by both the recipe page and the Favorites page. */
+.shopping-checked label {
+  color: #7a8a7a;
+  text-decoration: line-through;
+}
+
+/* Clicking the words ticks the box too, so they should look clickable. */
+.shopping-items label,
+.shopping-list label {
+  cursor: pointer;
+}
+
+/* ---------- Recipe rating popover: RB-297d ---------- */
+
+.recipe-rating {
+  position: relative;
+  display: inline-block;
+}
+
+.recipe-rating-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.recipe-rating-yours {
+  font-size: 0.875rem;
+  opacity: 0.85;
+}
+
+.recipe-rating-popover {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: 25;
+  min-width: 240px;
+  padding: 0.75rem 0.9rem;
+  background: white;
+  border: 1px solid #b9c9c4;
+  border-radius: 8px;
+  box-shadow: 0 6px 18px rgb(0 0 0 / 16%);
+}
+
+.recipe-rating-prompt {
+  margin: 0 0 0.5rem;
+  font-size: 0.9rem;
+}
+
+.recipe-rating-stars {
+  display: inline-flex;
+  gap: 0.25rem;
+}
+
+.star-btn {
+  background: transparent;
+  border: none;
+  padding: 0.2rem 0.3rem;
+  font-size: 1.4rem;
+  line-height: 1;
+  cursor: pointer;
+  color: #cbd5e1;
+}
+
+.star-btn-lit {
+  color: #eab308;
+}
+
+.star-btn:focus-visible {
+  outline: 2px solid var(--color-heading);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+.recipe-rating-notice {
+  margin: 0.5rem 0 0;
+  font-size: 0.85rem;
+  color: #991b1b;
+}
+
+.recipe-card-rating {
+  margin: 0.25rem 0 0.5rem;
+  font-size: 0.9rem;
+}
+
+/* The dietary filters in the home page's button row: the toggle is one more
+   button in the row, and its panel drops down over what is below, lined up
+   with its left edge, rather than pushing the other buttons apart. */
+.button-group .dietary-filters-form {
+  position: relative;
+}
+
+/* The home page's three buttons share one width and height, whatever their
+   labels say. The filter toggle fills its form, which is sized here too. */
+/* One row, always: they share the space equally and each stops growing at
+   12rem, rather than wrapping onto a second line when the page is narrow. */
+.home-buttons {
+  flex-wrap: nowrap;
+}
+
+.home-action,
+.button-group .dietary-filters-form {
+  flex: 1 1 0;
+  max-width: 12rem;
+  min-width: 0;
+}
+
+.home-action,
+.button-group .dietary-filters-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 3rem;
+  padding: 0.5rem 1rem;
+  line-height: 1.2;
+  text-align: center;
+  text-decoration: none;
+}
+
+.button-group .dietary-filters-toggle {
+  width: 100%;
+}
+
+.button-group .dietary-filters-toggle {
+  margin: 0;
+  padding: 12px 20px;
+  /* The same lettering as Generate Recipes: .button sets no font of its own,
+     so this goes back to the browser's button font, then the same size. */
+  font: revert;
+  font-size: 1rem;
+  /* The "Recipe Builder" heading's teal as the fill, white letters like the
+     other two buttons. */
+  color: white;
+  background-color: var(--color-title);
+  border: 2px solid var(--color-title);
+}
+
+.button-group .dietary-filters-toggle:hover {
+  background-color: var(--color-primary-dark);
+  border-color: var(--color-primary-dark);
+}
+
+.button-group .dietary-filters {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  z-index: 10;
+  width: min(90vw, 480px);
+  margin: 0.5rem 0 0;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.15);
+  /* Opaque, unlike --color-card: this panel drops down over the page, so a
+     see-through card let whatever sat underneath show through the options.
+     The same colour --color-card makes against the page background. */
+  background-color: rgb(218, 235, 231);
+}
 
 /* RB-291: the servings stepper above the ingredients list. */
 .servings-stepper {
@@ -1238,6 +1569,54 @@ a.button {
   font-variant-numeric: tabular-nums;
 }
 
+/* A thin single-line rectangle, above the dropdown row rather than one more
+   button inside it. white-space: nowrap keeps "Remove from Favorites" on
+   one line instead of wrapping into a taller, square-ish button. Half
+   width rather than full - roughly the span of the row's middle two
+   buttons below it, not the whole row. */
+.favorite-row {
+  margin-top: 1rem;
+  text-align: center;
+}
+
+.favorite-row .button {
+  display: inline-block;
+  width: 50%;
+  padding: 8px 20px;
+  white-space: nowrap;
+}
+
+/* Centered, and below the button row rather than inside it - see the
+   comment in RecipeDetailPage.jsx next to where this renders. Bold and a
+   touch larger than the plain .detail-cost rule, and pushed further down
+   so it doesn't read as part of the button row above it. */
+.detail-page .detail-cost {
+  text-align: center;
+  margin-top: 1.75rem;
+  font-size: 1.1rem;
+  font-weight: bold;
+
+/* RB-299: a brief red glow around a panel that was just opened, so a cook's
+   eye lands on the right section after the page scrolls to it. box-shadow
+   rather than border - it draws the same outline without adding to the
+   panel's size, which would otherwise nudge the scroll position it is
+   trying to land on. */
+@keyframes flash-highlight {
+  0% { box-shadow: 0 0 0 3px #d64545; }
+  100% { box-shadow: 0 0 0 3px transparent; }
+}
+
+.detail-section.flash-highlight {
+  animation: flash-highlight 1.6s ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .detail-section.flash-highlight {
+    animation: none;
+    box-shadow: 0 0 0 3px #d64545;
+  }
+}
+
 /* RB-291/RB-295: ingredients, nutrition and the note on the left; instructions
    and the shopping cost on the right. Grouped into column wrappers rather
    than left as direct grid children, so each column stacks its own panels
@@ -1257,17 +1636,6 @@ a.button {
   gap: 1.5rem;
 }
 
-.recipe-body-columns > .column-left,
-.recipe-body-columns > .column-right {
-  min-width: 0;
-}
-
-@media (max-width: 700px) {
-  .recipe-body-columns {
-    grid-template-columns: minmax(0, 1fr);
-  }
-}
-
 .recipe-body-columns .detail-section {
   margin-top: 0;
 }
@@ -1278,6 +1646,16 @@ a.button {
 .ingredients-scroll {
   max-height: 420px;
   overflow-y: auto;
+}
+
+@media (max-width: 600px) {
+  .recipe-body-columns {
+    grid-template-columns: 1fr;
+  }
+
+  .ingredients-scroll {
+    max-height: none;
+  }
 }
 
 /* RB-295: the ingredients list, bordered rows like .nutrition-list and
@@ -1295,17 +1673,8 @@ a.button {
   margin-bottom: 0;
 }
 
-.ingredients-list li,
-.instructions-list li {
-  overflow-wrap: anywhere;
-}
-
 .ingredients-list li:last-child {
   border-bottom: none;
-}
-
-.detail-section li {
-  margin-bottom: 0.4rem;
 }
 
 /* RB-295: the instructions list. The numbering stays - it is meaningful,
@@ -1339,72 +1708,6 @@ a.button {
   width: 1.5rem;
   height: 1.5rem;
   border-radius: 50%;
-  background-color: var(--color-primary);
-  color: white;
-  font-size: 0.8rem;
-  font-weight: 600;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.detail-page .button-group {
-  flex-wrap: nowrap;
-  justify-content: flex-start;
-  margin-top: 0.75rem;
-  /* One row, as asked - a narrow screen scrolls sideways within the row
-     rather than wrapping the buttons onto a second line. */
-  overflow-x: auto;
-}
-
-/* A thin single-line rectangle, above the dropdown row rather than one more
-   button inside it. white-space: nowrap keeps "Remove from Favorites" on
-   one line instead of wrapping into a taller, square-ish button. Half
-   width rather than full - roughly the span of the row's middle two
-   buttons below it, not the whole row. */
-.favorite-row {
-  margin-top: 1rem;
-  text-align: center;
-}
-
-.favorite-row .button {
-  display: inline-block;
-  width: 50%;
-  padding: 8px 20px;
-  white-space: nowrap;
-}
-
-/* Centered, and below the button row rather than inside it - see the
-   comment in RecipeDetailPage.jsx next to where this renders. Bold and a
-   touch larger than the plain .detail-cost rule, and pushed further down
-   so it doesn't read as part of the button row above it. */
-.detail-page .detail-cost {
-  text-align: center;
-  margin-top: 1.75rem;
-  font-size: 1.1rem;
-  font-weight: bold;
-}
-
-/* RB-299: a brief red glow around a panel that was just opened, so a cook's
-   eye lands on the right section after the page scrolls to it. box-shadow
-   rather than border - it draws the same outline without adding to the
-   panel's size, which would otherwise nudge the scroll position it is
-   trying to land on. */
-@keyframes flash-highlight {
-  0% { box-shadow: 0 0 0 3px #d64545; }
-  100% { box-shadow: 0 0 0 3px transparent; }
-}
-
-.detail-section.flash-highlight {
-  animation: flash-highlight 1.6s ease-out;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .detail-section.flash-highlight {
-    animation: none;
-    box-shadow: 0 0 0 3px #d64545;
-  }
-}
 
 /* Empties the pantry list. Set well apart from the last ingredient so it is
    not mistaken for one of them, and from the buttons below it. */

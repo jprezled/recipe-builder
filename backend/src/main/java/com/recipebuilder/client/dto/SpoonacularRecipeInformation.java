@@ -40,17 +40,16 @@ public record SpoonacularRecipeInformation(
     * this page. The name is what gets matched against the cook's pantry, and
     * the aisle is the supermarket section the list groups by. Both were
     * already arriving in this reply and being dropped.
-    * Now modified for RB-291
     */
     @JsonIgnoreProperties(ignoreUnknown = true)
     public record ExtendedIngredient(String name, String original, String aisle,
-        double amount, String unit) {
+            double amount, String unit) {
 
-    /** The shape this record had before RB-291, for the call sites that
-     *  don't need a scalable amount. */
-    public ExtendedIngredient(String name, String original, String aisle) {
-        this(name, original, aisle, 0, null);
-    }
+        /** The shape this record had before RB-291, for the call sites that
+         *  don't need a scalable amount. */
+        public ExtendedIngredient(String name, String original, String aisle) {
+            this(name, original, aisle, 0, null);
+        }
     }
 
     /**
@@ -70,7 +69,16 @@ public record SpoonacularRecipeInformation(
     public record Nutrition(List<Nutrient> nutrients) {
     }
 
+    /**
+     * RB-277: percentOfDailyNeeds was in every reply all along and was being
+     * dropped. A Double, not a double, so "they did not send one" stays null.
+     */
     @JsonIgnoreProperties(ignoreUnknown = true)
-    public record Nutrient(String name, double amount, String unit) {
+    public record Nutrient(String name, double amount, String unit, Double percentOfDailyNeeds) {
+
+        /** The old three-value form, kept so no existing call site breaks. */
+        public Nutrient(String name, double amount, String unit) {
+            this(name, amount, unit, null);
+        }
     }
 }

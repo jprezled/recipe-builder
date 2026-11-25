@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { signUp } from '../api/accounts'
+import PasswordField from '../components/PasswordField'
 
 /**
  * Create an account.
@@ -76,16 +77,13 @@ export default function SignUpPage() {
           />
         </div>
 
-        <div className="account-field">
-          <label htmlFor="signup-password">Password</label>
-          <input
-            id="signup-password"
-            type="password"
-            value={password}
-            onChange={(event) => setPassword(event.target.value)}
-          />
-          <p className="account-hint">At least 8 characters.</p>
-        </div>
+        <PasswordField
+          id="signup-password"
+          label="Password"
+          value={password}
+          onChange={(event) => setPassword(event.target.value)}
+          hint="At least 8 characters."
+        />
 
         <button type="submit" className="account-button" disabled={isSending}>
           Sign up

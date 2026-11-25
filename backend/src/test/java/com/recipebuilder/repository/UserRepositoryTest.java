@@ -94,4 +94,39 @@ class UserRepositoryTest {
                 "SELECT password_hash FROM users WHERE username = 'sam'", String.class);
         assertThat(inTheDatabase).isEqualTo(scramble);
     }
+
+    // ---- RB-290 ------------------------------------------------------------
+
+    @Test
+    void aChangedPasswordReplacesTheStoredHash() {
+        StoredUser sam = repository.insert("sam", "sam@example.com", "old-hash");
+
+        repository.updatePassword(sam.id(), "new-hash");
+
+        assertThat(repository.findById(sam.id()).passwordHash()).isEqualTo("new-hash");
+    }
+
+    @Test
+    void aDeletedAccountIsGone() {
+        StoredUser sam = repository.insert("sam", "sam@example.com", "hash-1");
+
+        repository.deleteById(sam.id());
+
+        assertThat(repository.findById(sam.id())).isNull();
+        assertThat(repository.findByUsername("sam")).isNull();
+    }
+
+    /** pantry_items has no foreign key, so nothing cascades it away. */
+    @Test
+    void deletingAnAccountTakesItsPantryWithIt() {
+        StoredUser sam = repository.insert("sam", "sam@example.com", "hash-1");
+        db.update("INSERT INTO pantry_items (user_id, pantry) VALUES (?, ?)", sam.id(), "eggs");
+
+        repository.deleteById(sam.id());
+
+        Integer left = db.queryForObject(
+                "SELECT COUNT(*) FROM pantry_items WHERE user_id = ?", Integer.class, sam.id());
+        assertThat(left).isZero();
+    }
 }
+

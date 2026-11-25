@@ -5,6 +5,7 @@ import org.springframework.stereotype.Service;
 import com.recipebuilder.dto.SignUpRequest;
 import com.recipebuilder.dto.UserDto;
 import com.recipebuilder.exception.InvalidInputException;
+import com.recipebuilder.exception.NotSignedInException;
 import com.recipebuilder.repository.StoredUser;
 import com.recipebuilder.repository.UserRepository;
 
@@ -27,6 +28,8 @@ public class UserService {
             "That username is too long. Please use 50 characters or fewer.";
     public static final String EMAIL_TOO_LONG =
             "That email address is too long. Please use 255 characters or fewer.";
+    /** RB-290. The agreed sentence - see docs/error-shape.md. */
+    public static final String WRONG_PASSWORD = "Incorrect password.";
     public static final String PANTRY_TOO_LONG =
             "That pantry description is too long. Please use 255 characters or fewer.";
 
@@ -118,5 +121,51 @@ public class UserService {
         }
 
         users.updatePantry(userId, pantry);
+    }
+
+    /**
+     * RB-290: replaces this cook's password.
+     *
+     * The current password is checked first and the new one is held to the
+     * same 8-character rule sign-up uses, so the two ways of setting a
+     * password cannot drift apart.
+     */
+    public void changePassword(long userId, String currentPassword, String newPassword) {
+        refusePassword(userId, currentPassword);
+
+        String wanted = newPassword == null ? "" : newPassword;
+
+        if (wanted.length() < SHORTEST_PASSWORD) {
+            throw new InvalidInputException(PASSWORD_TOO_SHORT);
+        }
+
+        users.updatePassword(userId, hasher.hash(wanted));
+    }
+
+    /**
+     * RB-290: deletes this cook's account and everything belonging only to it.
+     *
+     * The password is checked even though the session already proves who the
+     * cook is - a session left open on a shared laptop is the ordinary case
+     * this protects against, and nothing brings a deleted account back.
+     */
+    public void deleteAccount(long userId, String currentPassword) {
+        refusePassword(userId, currentPassword);
+        users.deleteById(userId);
+    }
+
+    /**
+     * Throws unless the password given is this cook's current one.
+     *
+     * NOT the vaguer "Incorrect username or password." - that sentence exists
+     * so sign-in cannot leak which usernames are registered, and here the
+     * cook is already signed in. docs/error-shape.md.
+     */
+    private void refusePassword(long userId, String password) {
+        StoredUser user = users.findById(userId);
+
+        if (user == null || !hasher.matches(password == null ? "" : password, user.passwordHash())) {
+            throw new NotSignedInException(WRONG_PASSWORD);
+        }
     }
 }

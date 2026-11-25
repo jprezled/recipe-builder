@@ -5,6 +5,7 @@ import FavoritesPage from './pages/FavoritesPage'
 import RecipeDetailPage from './pages/RecipeDetailPage'
 import SignInPage from './pages/SignInPage'
 import SignUpPage from './pages/SignUpPage'
+import AccountPage from './pages/AccountPage'
 import NavigationBar from './components/NavigationBar'
 
 /**
@@ -39,6 +40,9 @@ export default function App() {
             the query string the other routes pass around. */}
         <Route path="/signin" element={<SignInPage />} />
         <Route path="/signup" element={<SignUpPage />} />
+
+        {/* RB-290: changing a password and deleting an account. */}
+        <Route path="/account" element={<AccountPage />} />
 
         {/* Later sprints: /budget and /health go here. Nothing else has to
             change to add them - that is the point of a route table. */}

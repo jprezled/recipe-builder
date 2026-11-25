@@ -3,6 +3,7 @@ import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import RecipeShoppingList from './RecipeShoppingList'
 import { getRecipe } from '../api/recipes'
+import { getChecked, setChecked } from '../lib/shoppingChecklist'
 
 vi.mock('../api/recipes')
 
@@ -30,6 +31,8 @@ describe('RecipeShoppingList', () => {
   beforeEach(() => {
     vi.resetAllMocks()
     getRecipe.mockResolvedValue({ allIngredients: ALL_INGREDIENTS })
+    // RB-319: checks live in localStorage, so every test starts with none.
+    localStorage.clear()
   })
 
   // RED 1a: the cost rule. Ten favourites on screen must not be ten points.
@@ -132,5 +135,28 @@ describe('RecipeShoppingList', () => {
 
     expect(screen.getByText('2 large carrots')).toBeInTheDocument()
     expect(getRecipe).not.toHaveBeenCalled()
+  })
+
+  // RB-319: the same checks as the recipe page. The detail page saves through
+  // the same shoppingChecklist module, so writing with it here stands in for
+  // a check made over there. docs/shopping-checklist-contract.md.
+
+  it('shows a check made on the detail page as checked here', async () => {
+    setChecked(660101, new Set(['3 cloves of garlic (minced)']))
+    renderList({ savedIngredients: ALL_INGREDIENTS })
+
+    await userEvent.click(toggle())
+
+    expect(screen.getByRole('checkbox', { name: '3 cloves of garlic (minced)' })).toBeChecked()
+    expect(screen.getByRole('checkbox', { name: '2 large carrots' })).not.toBeChecked()
+  })
+
+  it('saves a check made here where the detail page reads it', async () => {
+    renderList({ savedIngredients: ALL_INGREDIENTS })
+
+    await userEvent.click(toggle())
+    await userEvent.click(screen.getByRole('checkbox', { name: '3 cloves of garlic (minced)' }))
+
+    expect(getChecked(660101)).toEqual(new Set(['3 cloves of garlic (minced)']))
   })
 })

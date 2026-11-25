@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { signIn } from '../api/accounts'
+import PasswordField from '../components/PasswordField'
 
 /**
  * Sign in to an existing account.
@@ -60,15 +61,12 @@ export default function SignInPage() {
           />
         </div>
 
-        <div className="account-field">
-          <label htmlFor="signin-password">Password</label>
-          <input
-            id="signin-password"
-            type="password"
-            value={password}
-            onChange={(event) => setPassword(event.target.value)}
-          />
-        </div>
+        <PasswordField
+          id="signin-password"
+          label="Password"
+          value={password}
+          onChange={(event) => setPassword(event.target.value)}
+        />
 
         <button type="submit" className="account-button" disabled={isSending}>
           Sign in
