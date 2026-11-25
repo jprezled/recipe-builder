@@ -1532,9 +1532,9 @@ a.button {
 }
 
 /* PR #69: the open panel drops down over the page, lined up with the row's
-   left edge, rather than pushing the page down. Opaque, unlike --color-card,
-   so whatever sits underneath does not show through the options - the same
-   colour --color-card makes against the page background. */
+   left edge, rather than pushing the page down. Opaque light grey with a
+   deeper shadow rather than the app's green, so it reads as a layer floating
+   above the page instead of one more card on it. */
 .button-group.home-buttons .dietary-filters {
   position: absolute;
   top: 100%;
@@ -1542,11 +1542,14 @@ a.button {
   z-index: 10;
   width: min(90vw, 480px);
   margin: 0.5rem 0 0;
-  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.15);
-  background-color: rgb(218, 235, 231);
+  background-color: #f2f3f5;
+  border-color: #c9ced6;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.22), 0 2px 6px rgba(0, 0, 0, 0.12);
 }
-/* Results page: Dietary Restrictions and Find recipes sit on one row. */
+/* Results page: Dietary Restrictions and Find recipes sit on one row. The
+   open panel below is positioned against this row. */
 .results-page .dietary-filters-form {
+  position: relative;
   display: flex;
   flex-wrap: wrap;
   align-items: center;
@@ -1554,9 +1557,21 @@ a.button {
   gap: 0.75rem;
 }
 
+/* Drops down over the page, like the home page's panel, rather than pushing
+   the sort control and the recipes down. Centred under the toggle row. The
+   same light grey and shadow as the home page's panel, so the filters stand
+   apart from the rest of the page. */
 .results-page .dietary-filters-form .dietary-filters {
-  flex-basis: 100%;
-  width: 100%;
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 10;
+  width: min(90vw, 640px);
+  margin: 0.5rem 0 0;
+  background-color: #f2f3f5;
+  border-color: #c9ced6;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.22), 0 2px 6px rgba(0, 0, 0, 0.12);
 }
 
 /* RB-291: the servings stepper above the ingredients list. */
