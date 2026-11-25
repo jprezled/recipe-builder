@@ -146,6 +146,44 @@ describe('RecipeDetailPage', () => {
     expect(screen.getByText('While you are boiling, mince the garlic')).toBeInTheDocument()
   })
 
+  // ---- RB-295: ingredients and instructions get the page's own list style,
+  // not the browser default, so they read as one design with the nutrition
+  // and cost panels above them.
+
+  it('gives the ingredients list its own class instead of the browser default bullet', async () => {
+    renderDetail()
+    await screen.findByText('3 tablespoons olive oil')
+
+    const list = screen.getByText('3 tablespoons olive oil').closest('ul')
+    expect(list).toHaveClass('ingredients-list')
+  })
+
+  it('gives the instructions list its own class instead of the browser default number', async () => {
+    renderDetail()
+    await screen.findByText('Start with boiling water in a large pot.')
+
+    const list = screen.getByText('Start with boiling water in a large pot.').closest('ol')
+    expect(list).toHaveClass('instructions-list')
+  })
+
+  it('still renders every step on a recipe with many of them', async () => {
+    const manySteps = Array.from({ length: 12 }, (_, i) => 'Step number ' + (i + 1))
+    getRecipe.mockResolvedValue({ ...RECIPE, steps: manySteps })
+    renderDetail()
+
+    expect(await screen.findByText('Step number 1')).toBeInTheDocument()
+    expect(screen.getByText('Step number 12')).toBeInTheDocument()
+  })
+
+  it('still renders every ingredient on a recipe with many of them', async () => {
+    const manyIngredients = Array.from({ length: 15 }, (_, i) => 'Ingredient ' + (i + 1))
+    getRecipe.mockResolvedValue({ ...RECIPE, ingredients: manyIngredients })
+    renderDetail()
+
+    expect(await screen.findByText('Ingredient 1')).toBeInTheDocument()
+    expect(screen.getByText('Ingredient 15')).toBeInTheDocument()
+  })
+
   it('no longer shows the hardcoded mockup recipe', async () => {
     renderDetail()
     await screen.findByText('Simple Garlic Pasta')
@@ -610,6 +648,89 @@ describe('RecipeDetailPage', () => {
 
     expect(getRecipe).toHaveBeenCalledTimes(1)
     expect(getFavorites).toHaveBeenCalledTimes(1)
+  })
+
+  // ---- RB-295: Nutrition Facts and My Note share one slot under Ingredients
+
+  it('both nutrition and the note can be open together, most recently opened first', async () => {
+    renderDetail()
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Nutrition Facts' }))
+    await userEvent.click(await screen.findByRole('button', { name: 'My note' }))
+
+    const headings = screen.getAllByRole('heading', { level: 2 })
+      .map((h) => h.textContent)
+      .filter((text) => text === 'Nutrition Facts' || text === 'My Note')
+
+    expect(headings).toEqual(['My Note', 'Nutrition Facts'])
+  })
+
+  it('re-opening nutrition after the note moves it back in front', async () => {
+    renderDetail()
+
+    await userEvent.click(await screen.findByRole('button', { name: 'My note' }))
+    await userEvent.click(await screen.findByRole('button', { name: 'Nutrition Facts' }))
+
+    const headings = screen.getAllByRole('heading', { level: 2 })
+      .map((h) => h.textContent)
+      .filter((text) => text === 'Nutrition Facts' || text === 'My Note')
+
+    expect(headings).toEqual(['Nutrition Facts', 'My Note'])
+  })
+
+  // ---- RB-299: scroll to and flash whatever was just opened ---------------
+
+  it('scrolls to a panel when it opens', async () => {
+    renderDetail()
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Nutrition Facts' }))
+
+    const panel = screen.getByRole('heading', { name: 'Nutrition Facts' }).closest('section')
+    expect(panel.scrollIntoView).toHaveBeenCalled()
+  })
+
+  it('flashes the panel that was just opened, and only that one', async () => {
+    renderDetail()
+
+    await userEvent.click(await screen.findByRole('button', { name: 'My note' }))
+
+    const notePanel = screen.getByRole('heading', { name: 'My Note' }).closest('section')
+    const ingredientsPanel = screen.getByRole('heading', { name: 'Ingredients' }).closest('section')
+
+    expect(notePanel).toHaveClass('flash-highlight')
+    expect(ingredientsPanel).not.toHaveClass('flash-highlight')
+  })
+
+  it('does not scroll or flash anything when a panel closes', async () => {
+    renderDetail()
+
+    const button = await screen.findByRole('button', { name: 'My note' })
+    await userEvent.click(button)
+
+    const notePanel = screen.getByRole('heading', { name: 'My Note' }).closest('section')
+    notePanel.scrollIntoView.mockClear()
+
+    await userEvent.click(button)
+
+    expect(notePanel.scrollIntoView).not.toHaveBeenCalled()
+  })
+
+  it('removes the flash after about a second and a half', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true })
+    try {
+      const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
+      renderDetail()
+
+      await user.click(await screen.findByRole('button', { name: 'My note' }))
+      const notePanel = screen.getByRole('heading', { name: 'My Note' }).closest('section')
+      expect(notePanel).toHaveClass('flash-highlight')
+
+      vi.advanceTimersByTime(1600)
+
+      expect(notePanel).not.toHaveClass('flash-highlight')
+    } finally {
+      vi.useRealTimers()
+    }
   })
 
   // ---- RB-193: the cost ---------------------------------------------------

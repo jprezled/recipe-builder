@@ -185,9 +185,13 @@ input[type="text"] {
   font-size: 1.1rem;
 }
 
-.detail-page .button-group { 
+.detail-page .button-group {
+  flex-wrap: nowrap;
   justify-content: flex-start;
-  margin-top: 1rem;
+  margin-top: 0.75rem;
+  /* One row, as asked - a narrow screen scrolls sideways within the row
+     rather than wrapping the buttons onto a second line. */
+  overflow-x: auto;
 }
 
 .detail-section { 
@@ -1564,3 +1568,151 @@ a.button {
   font-weight: 600;
   font-variant-numeric: tabular-nums;
 }
+
+/* A thin single-line rectangle, above the dropdown row rather than one more
+   button inside it. white-space: nowrap keeps "Remove from Favorites" on
+   one line instead of wrapping into a taller, square-ish button. Half
+   width rather than full - roughly the span of the row's middle two
+   buttons below it, not the whole row. */
+.favorite-row {
+  margin-top: 1rem;
+  text-align: center;
+}
+
+.favorite-row .button {
+  display: inline-block;
+  width: 50%;
+  padding: 8px 20px;
+  white-space: nowrap;
+}
+
+/* Centered, and below the button row rather than inside it - see the
+   comment in RecipeDetailPage.jsx next to where this renders. Bold and a
+   touch larger than the plain .detail-cost rule, and pushed further down
+   so it doesn't read as part of the button row above it. */
+.detail-page .detail-cost {
+  text-align: center;
+  margin-top: 1.75rem;
+  font-size: 1.1rem;
+  font-weight: bold;
+
+/* RB-299: a brief red glow around a panel that was just opened, so a cook's
+   eye lands on the right section after the page scrolls to it. box-shadow
+   rather than border - it draws the same outline without adding to the
+   panel's size, which would otherwise nudge the scroll position it is
+   trying to land on. */
+@keyframes flash-highlight {
+  0% { box-shadow: 0 0 0 3px #d64545; }
+  100% { box-shadow: 0 0 0 3px transparent; }
+}
+
+.detail-section.flash-highlight {
+  animation: flash-highlight 1.6s ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .detail-section.flash-highlight {
+    animation: none;
+    box-shadow: 0 0 0 3px #d64545;
+  }
+}
+
+/* RB-291/RB-295: ingredients, nutrition and the note on the left; instructions
+   and the shopping cost on the right. Grouped into column wrappers rather
+   than left as direct grid children, so each column stacks its own panels
+   instead of the grid alternating them left-right in document order. */
+.recipe-body-columns {
+  display: grid;
+  grid-template-columns: minmax(220px, 320px) 1fr;
+  gap: 1.5rem;
+  margin-top: 1.5rem;
+  align-items: start;
+}
+
+.column-left,
+.column-right {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.recipe-body-columns .detail-section {
+  margin-top: 0;
+}
+
+/* Capped and scrollable, rather than growing with the list, so the
+   ingredients column never ends up taller than the instructions beside it
+   on a recipe with a long shopping list and only a few steps. */
+.ingredients-scroll {
+  max-height: 420px;
+  overflow-y: auto;
+}
+
+@media (max-width: 600px) {
+  .recipe-body-columns {
+    grid-template-columns: 1fr;
+  }
+
+  .ingredients-scroll {
+    max-height: none;
+  }
+}
+
+/* RB-295: the ingredients list, bordered rows like .nutrition-list and
+   .cost-list above it - the browser's default bullet was the one list on
+   the page still in a different style from the other two panels. */
+.ingredients-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.ingredients-list li {
+  border-bottom: 1px solid #e3ebe3;
+  padding: 7px 0;
+  margin-bottom: 0;
+}
+
+.ingredients-list li:last-child {
+  border-bottom: none;
+}
+
+/* RB-295: the instructions list. The numbering stays - it is meaningful,
+   unlike the ingredients' bullet - but each step gets the same row border
+   as the other lists, so a long recipe reads as seven distinct steps
+   instead of one paragraph with numbers in it. */
+.instructions-list {
+  list-style: none;
+  counter-reset: step;
+  margin: 0;
+  padding: 0;
+}
+
+.instructions-list li {
+  counter-increment: step;
+  border-bottom: 1px solid #e3ebe3;
+  padding: 10px 0 10px 2.1rem;
+  margin-bottom: 0;
+  position: relative;
+}
+
+.instructions-list li:last-child {
+  border-bottom: none;
+}
+
+.instructions-list li::before {
+  content: counter(step);
+  position: absolute;
+  left: 0;
+  top: 9px;
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: 50%;
+
+/* Empties the pantry list. Set well apart from the last ingredient so it is
+   not mistaken for one of them, and from the buttons below it. */
+.clear-pantry {
+  display: block;
+  margin: 2rem auto 0;
+}
+

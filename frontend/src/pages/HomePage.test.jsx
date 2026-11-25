@@ -139,6 +139,41 @@ describe('HomePage', () => {
     expect(left[0]).toHaveTextContent('milk')
   })
 
+  // ---- RB-295g: Clear pantry, the whole list in one click ----------------
+
+  it('offers no Clear pantry button while the list is empty', () => {
+    renderHome()
+    expect(screen.queryByRole('button', { name: 'Clear pantry' })).not.toBeInTheDocument()
+  })
+
+  it('empties the whole list in one click', async () => {
+    renderHome('/?ingredients=eggs,milk,flour')
+
+    await userEvent.click(screen.getByRole('button', { name: 'Clear pantry' }))
+
+    expect(screen.queryByRole('listitem')).not.toBeInTheDocument()
+    expect(screen.getByText(/Nothing added yet/)).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Clear pantry' })).not.toBeInTheDocument()
+  })
+
+  it('saves the empty pantry to the account so it does not come back', async () => {
+    renderHome('/?ingredients=eggs,milk')
+
+    await userEvent.click(screen.getByRole('button', { name: 'Clear pantry' }))
+
+    expect(savePantry).toHaveBeenCalledWith('')
+  })
+
+  it('takes the results box away, since it was for the old list', async () => {
+    renderHome('/?ingredients=eggs&results=1')
+    expect(await screen.findByRole('heading', { name: 'Your Recipes' })).toBeInTheDocument()
+
+    await userEvent.click(screen.getByRole('button', { name: 'Clear pantry' }))
+
+    expect(screen.queryByRole('heading', { name: 'Your Recipes' })).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Generate Recipes' })).toBeDisabled()
+  })
+
   it('cannot generate recipes with an empty list', () => {
     renderHome()
     expect(screen.getByRole('button', { name: 'Generate Recipes' })).toBeDisabled()
