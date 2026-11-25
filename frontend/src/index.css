@@ -1473,6 +1473,8 @@ a.button {
 .button-group.home-buttons {
   align-items: center;
   gap: 0.6rem;
+  /* The open panel below is positioned against this row. */
+  position: relative;
 }
 
 /* Shared size and text for all three. */
@@ -1536,10 +1538,19 @@ a.button {
   display: contents;
 }
 
-/* An open panel takes a full line under the buttons. */
+/* PR #69: the open panel drops down over the page, lined up with the row's
+   left edge, rather than pushing the page down. Opaque, unlike --color-card,
+   so whatever sits underneath does not show through the options - the same
+   colour --color-card makes against the page background. */
 .button-group.home-buttons .dietary-filters {
-  flex-basis: 100%;
-  width: 100%;
+  position: absolute;
+  top: 100%;
+  left: 0;
+  z-index: 10;
+  width: min(90vw, 480px);
+  margin: 0.5rem 0 0;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.15);
+  background-color: rgb(218, 235, 231);
 }
 /* Results page: Dietary Restrictions and Find recipes sit on one row. */
 .results-page .dietary-filters-form {
