@@ -1595,6 +1595,7 @@ a.button {
   margin-top: 1.75rem;
   font-size: 1.1rem;
   font-weight: bold;
+}
 
 /* RB-299: a brief red glow around a panel that was just opened, so a cook's
    eye lands on the right section after the page scrolls to it. box-shadow
@@ -1708,6 +1709,14 @@ a.button {
   width: 1.5rem;
   height: 1.5rem;
   border-radius: 50%;
+  background-color: var(--color-primary);
+  color: white;
+  font-size: 0.8rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
 
 /* Empties the pantry list. Set well apart from the last ingredient so it is
    not mistaken for one of them, and from the buttons below it. */
@@ -1715,4 +1724,3 @@ a.button {
   display: block;
   margin: 2rem auto 0;
 }
-
