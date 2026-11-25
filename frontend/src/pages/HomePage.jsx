@@ -32,6 +32,10 @@ export default function HomePage() {
   // destroyed on the way out and the list comes back empty.
   const [searchParams, setSearchParams] = useSearchParams()
 
+  // RB-292: bumped by Generate Recipes to close the dietary panel after it
+  // saves the filters.
+  const [filterCloseSignal, setFilterCloseSignal] = useState(0)
+
   const ingredients = splitList(searchParams.get('ingredients'))
 
   // The pantry and the saved restrictions both load into the address when the
@@ -182,13 +186,6 @@ export default function HomePage() {
   function handleFilterChange(chosenDiet, chosenIntolerances) {
     putFiltersInAddress(chosenDiet, chosenIntolerances)
   }
-
-  /** Find recipes: saved to the account. The search itself is Generate Recipes. */
-  function handleApplyFilters(chosenDiet, chosenIntolerances) {
-    saveRestrictions(chosenDiet, chosenIntolerances.join(',')).catch(() => {})
-    putFiltersInAddress(chosenDiet, chosenIntolerances)
-  }
-
   /**
    * Write the pantry list into the address.
    *
@@ -369,16 +366,22 @@ export default function HomePage() {
           selectedIntolerances={
             searchParams.get('intolerances') ? searchParams.get('intolerances').split(',') : []
           }
-          onApply={handleApplyFilters}
           onChange={handleFilterChange}
+          closeSignal={filterCloseSignal}
         />
-
         {/* This reveals ResultsPage below the ingredients. It does not navigate
             away; the embedded ResultsPage will start its recipe search. */}
         <button
           type="button"
           className="button home-action"
-          onClick={() => putInAddress(ingredients, true, false)}
+          onClick={() => {
+            putInAddress(ingredients, true, false)
+            saveRestrictions(
+              searchParams.get('diet'),
+              searchParams.get('intolerances') ?? '',
+            ).catch(() => {})
+            setFilterCloseSignal((count) => count + 1)
+          }}
           disabled={ingredients.length === 0}
         >
           Generate Recipes

@@ -289,16 +289,14 @@ describe('HomePage', () => {
       })),
     )
   })
-
-  it('does not search when the filters are applied, only saves and closes', async () => {
+  it('saves the filters and closes the panel when Generate Recipes is pressed', async () => {
     renderHome('/?ingredients=eggs')
 
     await userEvent.click(screen.getByRole('button', { name: /Dietary Restrictions/ }))
     await userEvent.click(screen.getByRole('radio', { name: 'Vegan' }))
-    await userEvent.click(screen.getByRole('button', { name: 'Find recipes' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Generate Recipes' }))
 
     expect(saveRestrictions).toHaveBeenCalledWith('vegan', '')
-    expect(searchRecipes).not.toHaveBeenCalled()
     expect(screen.queryByRole('radio')).not.toBeInTheDocument()
   })
 
