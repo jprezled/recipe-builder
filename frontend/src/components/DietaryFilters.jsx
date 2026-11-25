@@ -7,7 +7,7 @@ It does not call Spoonacular or perform recipe searches itself.
 
 // useState holds the user's pending choices.
 // useId generates a unique name for this component's radio group.
-import { useId, useState } from 'react'
+import { useEffect, useId, useState } from 'react'
 
 // Labels are displayed to the user.
 // Values match the dietary filter contract and are reported to the parent.
@@ -43,10 +43,15 @@ export default function DietaryFilters({
   selectedIntolerances = [],
   onApply,
   onChange,
+  applyBeside = false,
+  closeSignal = 0,
 }) {
   // RB-292: closed until the cook opens it. Kept here, not in the parent -
   // this is the only panel and the only reader of the flag.
   const [isOpen, setIsOpen] = useState(false)
+  useEffect(() => {
+    setIsOpen(false)
+  }, [closeSignal])
   const panelId = useId()
 
   // All diet radio buttons share this name so they form one group.
@@ -106,7 +111,7 @@ export default function DietaryFilters({
     // Report the pending choices to the parent exactly once per submission.
     // Convert "No preference" from an empty string to null.
     // Pass a copy of the exclusions array.
-    onApply(diet || null, [...intolerances])
+    onApply?.(diet || null, [...intolerances])
 
     // Tidy up once the cook has applied. The ticks stay: this only closes the
     // panel, and the state above is not lost with it.
@@ -127,6 +132,15 @@ export default function DietaryFilters({
       >
         Dietary Restrictions <span aria-hidden="true">{isOpen ? '▲' : '▼'}</span>
       </button>
+
+      {/* Visible without opening the panel, so the cook can apply straight away.
+          Submitting calls handleApply; changing a radio button or checkbox
+          does not. */}
+      {applyBeside && (
+        <button type="submit" className="button">
+          Find recipes
+        </button>
+      )}
 
       {/* The class name provides a hook for styles in index.css. */}
       {isOpen && (
@@ -180,12 +194,6 @@ export default function DietaryFilters({
               </label>
             ))}
           </fieldset>
-
-          {/* Submitting calls handleApply.
-              Changing a radio button or checkbox does not call it. */}
-          <button type="submit" className="button">
-            Find recipes
-          </button>
         </div>
       )}
     </form>

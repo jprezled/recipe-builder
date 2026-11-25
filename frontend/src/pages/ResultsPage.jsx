@@ -460,6 +460,7 @@ export default function ResultsPage({
           selectedIntolerances={intolerances ? intolerances.split(',') : []}
           onApply={handleApplyFilters}
           onChange={handleFilterChange}
+          applyBeside
         />
       )}
 
