@@ -650,6 +650,31 @@ describe('RecipeDetailPage', () => {
     expect(getFavorites).toHaveBeenCalledTimes(1)
   })
 
+  it('renders long ingredient and instruction lists', async () => {
+    const ingredients = Array.from(
+      { length: 40 },
+      (_, index) => `Ingredient ${index + 1}: ${'unusually-long-name-'.repeat(4)}`,
+    )
+    const steps = Array.from(
+      { length: 25 },
+      (_, index) => `Step ${index + 1}: ${'Prepare and combine ingredients. '.repeat(8)}`,
+    )
+
+    getRecipe.mockResolvedValue({ ...RECIPE, ingredients, steps })
+    renderDetail()
+
+    expect(await screen.findByText(ingredients[0])).toBeInTheDocument()
+    expect(screen.getByText(ingredients[39])).toBeInTheDocument()
+    const instructionsPanel = screen.getByRole('heading', {
+      name: 'Instructions',
+    }).parentElement
+    const renderedSteps = within(instructionsPanel).getAllByRole('listitem')
+
+    expect(renderedSteps).toHaveLength(25)
+    expect(renderedSteps[0]).toHaveTextContent(/^Step 1:/)
+    expect(renderedSteps[24]).toHaveTextContent(/^Step 25:/)
+  })
+
   // ---- RB-295: Nutrition Facts and My Note share one slot under Ingredients
 
   it('both nutrition and the note can be open together, most recently opened first', async () => {

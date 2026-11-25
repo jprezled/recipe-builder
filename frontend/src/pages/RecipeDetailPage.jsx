@@ -549,11 +549,11 @@ export default function RecipeDetailPage() {
 
           {isShoppingOpen && (
           <section className="detail-section" id="shopping-list">
-            <h2>Shopping List</h2>
+            <h2>Shopping list</h2>
             {groupByAisle(recipe.allIngredients).map(([category, items]) => (
                 <div key={category}>
                   <h3>{category}</h3>
-                  <ul className="shopping-items">
+                  <ul className="shopping-items ingredients-list">
                     {items.map((one, position) => (
                       <li
                         key={position}

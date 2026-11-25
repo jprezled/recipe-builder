@@ -1672,9 +1672,17 @@ a.button {
   overflow-y: auto;
 }
 
-@media (max-width: 600px) {
+/* Peter's RB-295 additions: min-width: 0 lets a grid column shrink below its
+   longest word, so a long ingredient cannot push the page wider than the
+   screen. */
+.recipe-body-columns > .column-left,
+.recipe-body-columns > .column-right {
+  min-width: 0;
+}
+
+@media (max-width: 700px) {
   .recipe-body-columns {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .ingredients-scroll {
@@ -1699,6 +1707,12 @@ a.button {
 
 .ingredients-list li:last-child {
   border-bottom: none;
+}
+
+/* A very long word or URL wraps inside its row instead of running out of it. */
+.ingredients-list li,
+.instructions-list li {
+  overflow-wrap: anywhere;
 }
 
 /* RB-295: the instructions list. The numbering stays - it is meaningful,
