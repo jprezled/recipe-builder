@@ -1,0 +1,40 @@
+' Shared look for every diagram: classic black-and-white UML, as in the
+' "Taxonomy of UML Diagrams" figure - white boxes, thin black outlines,
+' straight right-angle lines, no colour, no shadows, square corners.
+' Each diagram pulls this in with: !include style.iuml
+
+skinparam monochrome true
+skinparam backgroundColor white
+skinparam shadowing false
+skinparam roundCorner 0
+skinparam linetype ortho
+skinparam nodesep 70
+skinparam ranksep 70
+skinparam defaultFontName Arial
+skinparam defaultFontSize 12
+skinparam titleFontSize 18
+skinparam titleFontStyle plain
+skinparam ArrowColor black
+skinparam ArrowThickness 1
+skinparam legendBackgroundColor white
+skinparam legendBorderColor black
+skinparam noteBackgroundColor white
+skinparam noteBorderColor black
+skinparam packageStyle rectangle
+
+' White fills everywhere, like the example - monochrome alone leaves a light grey.
+skinparam classBackgroundColor white
+skinparam usecaseBackgroundColor white
+skinparam actorBackgroundColor white
+skinparam componentBackgroundColor white
+skinparam interfaceBackgroundColor white
+skinparam nodeBackgroundColor white
+skinparam artifactBackgroundColor white
+skinparam databaseBackgroundColor white
+skinparam cloudBackgroundColor white
+skinparam packageBackgroundColor white
+skinparam rectangleBackgroundColor white
+skinparam stateBackgroundColor white
+skinparam activityBackgroundColor white
+skinparam partitionBackgroundColor white
+skinparam swimlaneBackgroundColor white

@@ -1,0 +1,52 @@
+@startuml component
+!include style.iuml
+title Recipe Builder - Component Diagram
+
+skinparam componentStyle uml2
+
+package "Web browser" {
+  component "React frontend (Vite build)" as Frontend {
+    component "Pages\n(Home, Results, Recipe Detail,\nFavorites, Sign In/Up, Account)" as Pages
+    component "UI components\n(DietaryFilters, RecipeCard,\nRecipeRating, PasswordField, ...)" as Components
+    component "API client\n(src/api: recipes, accounts,\ncollections, ratings)" as ApiClient
+    component "Local storage helper\n(lib/shoppingChecklist)" as Checklist
+  }
+}
+
+component "Spring Boot backend" as Backend {
+  portin "REST /api/*" as RestPort
+  component "Controllers" as Controllers
+  component "Services" as Services
+  component "Caffeine cache\n(recipe searches, details,\nprices, suggestions)" as Cache
+  component "Repositories\n(JdbcTemplate)" as Repositories
+  component "SpoonacularClient\n(RestTemplate)" as Client
+  component "GlobalExceptionHandler\n(one error shape)" as Errors
+}
+
+database "PostgreSQL" as DB
+cloud "Spoonacular API" as Spoon
+
+Pages --> Components
+Pages --> ApiClient
+Pages --> Checklist
+ApiClient --> RestPort : HTTP JSON\n(relative /api paths)
+RestPort - Controllers
+Controllers --> Services
+Services --> Cache
+Services --> Repositories
+Services --> Client
+Controllers ..> Errors : failures mapped by
+Repositories --> DB : JDBC
+Client --> Spoon : HTTPS + API key
+
+legend right
+  |= Symbol |= Meaning |
+  | box with the component icon | a component: a replaceable part with one job |
+  | small square on a box's edge | a port: the doorway other parts come in through |
+  | cylinder | a database |
+  | cloud | a service outside our app |
+  | outer box with a name | a group of components |
+  | solid arrow | calls or depends on |
+  | dashed arrow | a looser link, here "failures are handled by" |
+endlegend
+@enduml

@@ -1,0 +1,70 @@
+@startuml analysis-class
+!include style.iuml
+skinparam nodesep 110
+skinparam ranksep 110
+title Recipe Builder - Analysis-Level Class Diagram
+hide empty members
+hide circle
+skinparam classAttributeIconSize 0
+
+class User
+class Pantry
+class Ingredient
+class DietaryPreference
+class RecipeSearch
+class RecipeMatch
+class Recipe
+class NutritionFacts
+class NutritionRow
+class ShoppingItem
+class ShoppingChecklist
+class CostBreakdown
+class Favorite
+class Note
+class Collection
+class Rating
+class RatingSummary
+
+
+' The cook and what they keep
+User "1" -- "1" Pantry : keeps >
+Pantry "1" o-- "0..*" Ingredient : contains >
+User "1" -- "0..1" DietaryPreference : saves >
+
+' Searching
+RecipeSearch "1" --> "1" Pantry : uses >
+RecipeSearch "1" --> "0..1" DietaryPreference : filtered by >
+RecipeSearch "1" *-- "0..*" RecipeMatch : produces >
+RecipeMatch "0..*" --> "1" Recipe : refers to >
+
+' A recipe's details
+Recipe "1" *-- "0..1" NutritionFacts
+NutritionFacts "1" *-- "1..*" NutritionRow
+Recipe "1" *-- "1..*" ShoppingItem : needs >
+ShoppingChecklist "0..*" --> "1" Recipe : ticks items of >
+Recipe "1" -- "0..1" CostBreakdown : priced by >
+CostBreakdown "0..*" --> "1" Pantry : compared with >
+
+' Saving and rating
+User "1" *-- "0..*" Favorite : saves >
+Favorite "0..*" --> "1" Recipe
+Favorite "1" *-- "0..1" Note
+User "1" *-- "0..*" Collection : owns >
+Collection "0..1" o-- "0..*" Favorite : groups >
+User "1" -- "0..*" Rating : gives >
+Rating "0..*" --> "1" Recipe : rates >
+Recipe "1" -- "1" RatingSummary : average of ratings >
+
+legend right
+  |= Symbol |= Meaning |
+  | Box | a concept in the app (not a Java class) |
+  | Plain line | the two concepts are related; the label says how |
+  | Arrow head | the direction to read the label, e.g. RecipeMatch "refers to" Recipe |
+  | Filled diamond | composition: the part cannot exist without the whole (deleting a favorite deletes its note) |
+  | Hollow diamond | aggregation: the parts can exist on their own (deleting a collection keeps its favorites) |
+  | 1 | exactly one |
+  | 0..1 | none or one |
+  | 0..* | any number, including none |
+  | 1..* | at least one |
+endlegend
+@enduml

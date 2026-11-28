@@ -1,0 +1,59 @@
+@startuml package
+!include style.iuml
+title Recipe Builder - Package Diagram
+
+package "frontend/src" as FE {
+  package pages
+  package components
+  package api
+  package lib
+}
+
+package "com.recipebuilder" as BE {
+  package controller
+  package service
+  package repository
+  package model
+  package client {
+    package "client.dto" as clientdto
+  }
+  package dto
+  package exception
+}
+
+database "database/migrations\n(V1-V10 SQL)" as Migrations
+
+pages ..> components : <<import>>
+pages ..> api : <<import>>
+pages ..> lib : <<import>>
+components ..> api : <<import>>
+components ..> lib : <<import>>
+
+api ..> controller : HTTP /api
+
+controller ..> service : <<use>>
+controller ..> dto : <<use>>
+controller ..> exception : <<use>>
+service ..> repository : <<use>>
+service ..> client : <<use>>
+service ..> dto : <<use>>
+service ..> exception : <<use>>
+service ..> model : <<use>>
+repository ..> model : <<use>>
+repository ..> dto : <<use>>
+repository ..> exception : <<use>>
+client ..> clientdto : <<use>>
+client ..> exception : <<use>>
+client ..> dto : <<use>>
+repository ..> Migrations : schema defined by
+
+legend right
+  |= Symbol |= Meaning |
+  | folder | a package: a folder of related code |
+  | folder inside a folder | a sub-package |
+  | cylinder | the database migrations (SQL files) |
+  | dashed arrow <<import>> | frontend code imports code from that folder |
+  | dashed arrow <<use>> | backend classes use classes from that package |
+  | dashed arrow "HTTP /api" | the frontend calls the backend over the web |
+endlegend
+@enduml

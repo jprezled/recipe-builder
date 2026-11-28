@@ -1,0 +1,275 @@
+@startuml design-class
+!include style.iuml
+skinparam nodesep 110
+skinparam ranksep 110
+title Recipe Builder - Design-Level Class Diagram (backend)
+left to right direction
+skinparam classAttributeIconSize 0
+hide empty members
+hide circle
+
+package controller {
+  class RecipeController {
+    - service : RecipeService
+    + search(ingredients : String, diet : String, intolerances : String, sort : String) : List<RecipeSummaryDto>
+    + one(id : long) : RecipeDetailDto
+    + cost(id : long, ingredients : String) : RecipeCostDto
+  }
+  class FavoriteController {
+    - service : FavoriteService
+    + list(http) : List<FavoriteDto>
+    + add(recipe : FavoriteRequest, http) : void
+    + remove(id : long, http) : void
+    + note(id : long, note : String, http) : void
+    + collection(id : long, collectionId : String, http) : void
+  }
+  class CollectionController {
+    - service : CollectionService
+    + list(http) : List<CollectionDto>
+    + create(request : CollectionRequest, http) : CollectionDto
+    + rename(id : long, request : CollectionRequest, http) : void
+    + delete(id : long, http) : void
+  }
+  class RatingController {
+    - service : RatingService
+    + get(id : long, http) : RatingDto
+    + submit(id : long, body : RatingRequest, http) : RatingDto
+    + summaries(ids : String) : List<RatingSummaryDto>
+  }
+  class UserController {
+    - service : UserService
+    + signUp(request : SignUpRequest) : UserDto
+    + changePassword(body : ChangePasswordRequest, http) : void
+    + deleteAccount(body : DeleteAccountRequest, http) : void
+  }
+  class SessionController {
+    - service : SessionService
+    + signIn(body : SignInRequest, request) : UserDto
+    + signOut(request) : ResponseEntity<Void>
+    + whoAmI(request) : UserDto
+  }
+  class PantryController {
+    - service : UserService
+    + get(http) : String
+    + save(pantry : String, http) : void
+  }
+  class RestrictionsController {
+    - service : RestrictionsPreferenceService
+    + get(http) : SavedRestrictionsDto
+    + save(choices : SavedRestrictionsDto, http) : void
+  }
+  class IngredientSuggestionController {
+    - service : IngredientSuggestionService
+    + suggest(query : String) : List<IngredientSuggestionDto>
+  }
+}
+
+package service {
+  class RecipeService {
+    - client : SpoonacularClient
+    - favorites : FavoriteRepository
+    + searchByIngredients(ingredients : String, choices : DietaryRestrictions, sort : String) : List<RecipeSummaryDto> <<cached>>
+    + getRecipe(id : long) : RecipeDetailDto <<cached>>
+    + getRecipeCost(id : long, pantry : String) : RecipeCostDto
+    + cachedPriceBreakdown(id : long) : SpoonacularPriceBreakdown <<cached>>
+  }
+  class FavoriteService {
+    - repository : FavoriteRepository
+    - collections : CollectionRepository
+    - recipes : RecipeService
+    + add(userId : long, recipe : FavoriteRequest) : void
+    + list(userId : long) : List<FavoriteDto>
+    + remove(userId : long, spoonacularId : long) : void
+    + saveNote(userId : long, spoonacularId : long, note : String) : void
+    + moveToCollection(userId : long, spoonacularId : long, collectionId : Long) : void
+  }
+  class CollectionService {
+    - repository : CollectionRepository
+    + list(userId : long) : List<CollectionDto>
+    + create(userId : long, name : String) : CollectionDto
+    + rename(userId : long, collectionId : long, name : String) : void
+    + delete(userId : long, collectionId : long) : void
+  }
+  class RatingService {
+    - ratings : RatingRepository
+    + submit(userId : long, recipeId : long, rating : int) : RatingDto
+    + get(userId : Long, recipeId : long) : RatingDto
+    + summaries(recipeIds : List<Long>) : List<RatingSummaryDto>
+  }
+  class UserService {
+    + {static} WRONG_PASSWORD : String
+    - users : UserRepository
+    - hasher : PasswordHasher
+    + signUp(request : SignUpRequest) : UserDto
+    + getPantry(userId : Long) : String
+    + updatePantry(userId : Long, rawPantry : String) : void
+    + changePassword(userId : long, currentPassword : String, newPassword : String) : void
+    + deleteAccount(userId : long, currentPassword : String) : void
+  }
+  class SessionService {
+    + {static} NOT_SIGNED_IN : String
+    - users : UserRepository
+    - hasher : PasswordHasher
+    + signIn(username : String, password : String) : UserDto
+  }
+  class RestrictionsPreferenceService {
+    - repository : UserRepository
+    + get(userId : long) : SavedRestrictionsDto
+    + save(userId : long, diet : String, intolerances : String) : void
+  }
+  class IngredientSuggestionService {
+    - client : SpoonacularClient
+    + suggest(query : String) : List<IngredientSuggestionDto> <<cached>>
+    + cleanQuery(query : String) : String
+  }
+  class PasswordHasher {
+    + hash(plainPassword : String) : String
+    + matches(plainPassword : String, storedHash : String) : boolean
+  }
+}
+
+package repository {
+  class FavoriteRepository {
+    - db : JdbcTemplate
+    + save(userId : long, recipe : FavoriteRequest, ingredients : List<ShoppingItemDto>) : void
+    + findForUser(userId : long) : List<FavoriteDto>
+    + saveNote(userId : long, spoonacularId : long, note : String) : int
+    + remove(userId : long, spoonacularId : long) : void
+    + moveToCollection(userId : long, spoonacularId : long, collectionId : Long) : int
+    + fillInIngredients(spoonacularId : long, ingredients : List<ShoppingItemDto>) : int
+  }
+  class CollectionRepository {
+    - db : JdbcTemplate
+    + findForUser(userId : long) : List<CollectionDto>
+    + create(userId : long, name : String) : CollectionDto
+    + rename(userId : long, collectionId : long, name : String) : int
+    + delete(userId : long, collectionId : long) : int
+    + isOwnedBy(userId : long, collectionId : long) : boolean
+  }
+  class RatingRepository {
+    - db : JdbcTemplate
+    + upsert(userId : long, spoonacularId : long, rating : int) : void
+    + aggregateFor(spoonacularId : long) : RatingSummaryDto
+    + yourRating(userId : long, spoonacularId : long) : Integer
+    + aggregatesFor(spoonacularIds : List<Long>) : List<RatingSummaryDto>
+  }
+  class UserRepository {
+    - db : JdbcTemplate
+    + findByUsername(username : String) : StoredUser
+    + findById(userId : Long) : StoredUser
+    + insert(username : String, email : String, passwordHash : String) : StoredUser
+    + updatePantry(userId : Long, pantry : String) : void
+    + updatePassword(userId : long, passwordHash : String) : void
+    + deleteById(userId : long) : void
+    + findDiet(userId : long) : String
+    + findIntolerances(userId : long) : String
+    + saveRestrictions(userId : long, diet : String, intolerances : String) : void
+  }
+  class StoredUser <<record>> {
+    + id : long
+    + username : String
+    + email : String
+    + passwordHash : String
+    + pantry : String
+  }
+}
+
+package client {
+  class SpoonacularClient {
+    - restTemplate : RestTemplate
+    - baseUrl : String
+    - apiKey : String
+    + searchByIngredients(ingredients : String, diet : String, intolerances : String, sort : String) : List<SpoonacularSearchResult>
+    + getRecipe(id : long) : SpoonacularRecipeInformation
+    + suggestIngredients(query : String) : List<SpoonacularIngredientSuggestion>
+    + getPriceBreakdown(id : long) : SpoonacularPriceBreakdown
+  }
+}
+
+package dto {
+  class RecipeSummaryDto <<record>> {
+    + id : long
+    + title : String
+    + imageUrl : String
+    + ingredientsYouHave : int
+    + ingredientsYouNeed : int
+    + matchPercent : int
+  }
+  class RecipeDetailDto <<record>> {
+    + id : long
+    + title : String
+    + imageUrl : String
+    + servings : int
+    + readyInMinutes : int
+    + ingredients : List<String>
+    + steps : List<String>
+    + diets : Diets
+    + costPerServing : double
+    + costTotal : double
+    + nutrition : Nutrition
+    + allIngredients : List<ShoppingItemDto>
+    + ingredientAmounts : List<IngredientAmountDto>
+  }
+  class FavoriteDto <<record>> {
+    + id : long
+    + title : String
+    + imageUrl : String
+    + ingredients : List<ShoppingItemDto>
+    + note : String
+    + collectionId : Long
+  }
+  class RatingDto <<record>> {
+    + average : double
+    + count : int
+    + yourRating : Integer
+  }
+  class UserDto <<record>> {
+    + id : long
+    + username : String
+  }
+}
+
+RecipeController --> RecipeService
+FavoriteController --> FavoriteService
+CollectionController --> CollectionService
+RatingController --> RatingService
+UserController --> UserService
+PantryController --> UserService
+SessionController --> SessionService
+RestrictionsController --> RestrictionsPreferenceService
+IngredientSuggestionController --> IngredientSuggestionService
+
+RecipeService --> SpoonacularClient
+RecipeService --> FavoriteRepository
+IngredientSuggestionService --> SpoonacularClient
+FavoriteService --> FavoriteRepository
+FavoriteService --> CollectionRepository
+FavoriteService --> RecipeService
+CollectionService --> CollectionRepository
+RatingService --> RatingRepository
+UserService --> UserRepository
+UserService --> PasswordHasher
+SessionService --> UserRepository
+SessionService --> PasswordHasher
+RestrictionsPreferenceService --> UserRepository
+
+UserRepository ..> StoredUser : creates
+RecipeService ..> RecipeSummaryDto : creates
+RecipeService ..> RecipeDetailDto : creates
+FavoriteRepository ..> FavoriteDto : creates
+RatingService ..> RatingDto : creates
+UserService ..> UserDto : creates
+
+legend right
+  |= Symbol |= Meaning |
+  | Box | a Java class: name, then fields, then methods |
+  | Outer box with a name | a package (folder) of classes |
+  | + / - | public / private |
+  | name : Type | a field or parameter and its type; a method ends with : ReturnType |
+  | underlined | static: belongs to the class itself, not to each object |
+  | <<record>> | a class that only carries data |
+  | <<cached>> | the answer is remembered, so a repeat costs no Spoonacular quota |
+  | solid arrow | uses: the class at the tail calls the class at the head |
+  | dashed arrow "creates" | builds that data object and hands it back |
+endlegend
+@enduml
