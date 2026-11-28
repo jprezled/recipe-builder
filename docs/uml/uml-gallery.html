@@ -1,0 +1,188 @@
+<title>Recipe Builder UML Images</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;600&family=IBM+Plex+Mono:wght@400&display=swap">
+<style>
+  /* Layout: one column of diagram rows, each a large preview plus its file links; a full-screen viewer for zooming. */
+  :root {
+    --bg: #f5f6f7;
+    --surface: #ffffff;
+    --fg: #16191c;
+    --muted: #5b636b;
+    --line: #d6dadf;
+    --accent: #1f5f8b;
+    --sans: "IBM Plex Sans", "Helvetica Neue", Arial, sans-serif;
+    --mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #111416; --surface: #1b1f23; --fg: #e8eaec; --muted: #9aa3ab; --line: #323a41; --accent: #7cb6df;
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #111416; --surface: #1b1f23; --fg: #e8eaec; --muted: #9aa3ab; --line: #323a41; --accent: #7cb6df;
+    color-scheme: dark;
+  }
+  body { background: var(--bg); color: var(--fg); font-family: var(--sans); font-size: 15px; line-height: 1.55; }
+  .wrap {
+    max-width: 1080px; margin: 0 auto;
+    padding-block: 40px 64px;
+    padding-left: max(16px, env(safe-area-inset-left, 0px));
+    padding-right: max(16px, env(safe-area-inset-right, 0px));
+    display: grid; gap: 32px;
+  }
+  h1 { font-size: 1.9rem; font-weight: 600; margin: 0; text-wrap: balance; }
+  h2 { font-size: 1.2rem; font-weight: 600; margin: 0; text-wrap: balance; }
+  p { margin: 0; max-width: 68ch; }
+  .intro { display: grid; gap: 12px; }
+  .tips { display: grid; gap: 6px; padding: 16px 18px; border: 1px solid var(--line); background: var(--surface); }
+  .tips strong { font-weight: 600; }
+  .tips ul { margin: 0; padding-left: 1.2em; display: grid; gap: 4px; }
+  .list { display: grid; gap: 28px; }
+  .diagram { display: grid; gap: 12px; padding-top: 24px; border-top: 1px solid var(--line); }
+  .head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 8px 16px; }
+  .num { font-family: var(--mono); color: var(--muted); font-size: 0.85rem; margin-right: 8px; }
+  .size { font-family: var(--mono); color: var(--muted); font-size: 0.8rem; font-variant-numeric: tabular-nums; }
+  .preview {
+    display: block; width: 100%; padding: 16px; border: 1px solid var(--line);
+    background: #ffffff; cursor: zoom-in; overflow: hidden;
+  }
+  .preview img { display: block; margin: 0 auto; max-height: 520px; width: auto; max-width: 100%; }
+  .preview:focus-visible, .btn:focus-visible, .vbtn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .actions { display: flex; flex-wrap: wrap; gap: 8px; }
+  .btn {
+    font: inherit; font-size: 0.9rem; color: var(--accent); background: var(--surface);
+    border: 1px solid var(--line); padding: 6px 12px; text-decoration: none; cursor: pointer;
+  }
+  .btn:hover { border-color: var(--accent); }
+  .note { color: var(--muted); font-size: 0.9rem; }
+
+  .viewer { position: fixed; inset: 0; z-index: 50; background: rgba(10, 12, 14, 0.92); display: grid; grid-template-rows: auto 1fr; }
+  .vbar {
+    display: flex; flex-wrap: wrap; align-items: center; gap: 8px;
+    padding: calc(10px + env(safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-right, 0px)) 10px max(16px, env(safe-area-inset-left, 0px));
+    color: #ffffff;
+  }
+  .vtitle { flex: 1 1 auto; min-width: 0; font-weight: 600; }
+  .vbtn { font: inherit; font-size: 0.9rem; color: #ffffff; background: transparent; border: 1px solid rgba(255,255,255,0.4); padding: 5px 11px; cursor: pointer; }
+  .vbtn:hover { border-color: #ffffff; }
+  .vzoom { font-family: var(--mono); font-size: 0.85rem; min-width: 4.5ch; text-align: center; color: #ffffff; }
+  .vstage { overflow: auto; padding-bottom: env(safe-area-inset-bottom, 0px); }
+  .vstage img { display: block; margin: 0 auto; background: #ffffff; max-width: none; }
+  @media (prefers-reduced-motion: no-preference) { .btn, .vbtn { transition: border-color 0.15s; } }
+</style>
+
+<div class="wrap">
+  <header class="intro">
+    <h1>Recipe Builder UML Images</h1>
+    <p>Full-resolution copies of the eight sprint 5 diagrams, for slides and for redrawing in a diagram tool. Click a diagram to open it full screen and zoom in.</p>
+    <div class="tips">
+      <strong>Which file to use</strong>
+      <ul>
+        <li><strong>SVG for PowerPoint.</strong> It stays sharp at any size. In PowerPoint, Insert → Pictures, choose the .svg. Right-click it → Convert to Shape to edit boxes and text.</li>
+        <li><strong>PNG for Google Slides, Docs or anywhere SVG isn't accepted.</strong> It is 200 dpi, so it stays sharp when shrunk to fit a slide.</li>
+        <li>The SVG and PNG files are in the repo, in <code>docs/uml/images/</code>. Drag them from there into your slides.</li>
+      </ul>
+    </div>
+  </header>
+
+  <main class="list" id="list"></main>
+</div>
+
+<div class="viewer" id="viewer" hidden>
+  <div class="vbar">
+    <span class="vtitle" id="vtitle"></span>
+    <button class="vbtn" id="zout" type="button" aria-label="Zoom out">−</button>
+    <span class="vzoom" id="vzoom">Fit</span>
+    <button class="vbtn" id="zin" type="button" aria-label="Zoom in">+</button>
+    <button class="vbtn" id="zfit" type="button">Fit</button>
+    <button class="vbtn" id="vclose" type="button">Close</button>
+  </div>
+  <div class="vstage" id="vstage"><img id="vimg" alt=""></div>
+</div>
+
+<script>
+  const diagrams = [
+    { n: 1, file: "use-case", name: "Use case diagram", w: 6005, h: 1374, note: "Very wide: on a slide, give it the full width." },
+    { n: 2, file: "analysis-class", name: "Analysis class diagram", w: 2422, h: 2299 },
+    { n: 3, file: "design-class", name: "Design class diagram", w: 5783, h: 6224, note: "The largest one. Zoom in to read it, or split it across two slides." },
+    { n: 4, file: "activity", name: "Activity diagram", w: 3192, h: 4834, note: "Tall: fits a slide best as a portrait image beside the text." },
+    { n: 5, file: "state", name: "State diagram", w: 2186, h: 2793 },
+    { n: 6, file: "component", name: "Component diagram", w: 1672, h: 2344 },
+    { n: 7, file: "package", name: "Package diagram", w: 1757, h: 2074 },
+    { n: 8, file: "deployment", name: "Deployment diagram", w: 2626, h: 2662 }
+  ];
+
+  const list = document.getElementById("list");
+  diagrams.forEach(function (d) {
+    const section = document.createElement("section");
+    section.className = "diagram";
+    section.innerHTML =
+      '<div class="head"><h2><span class="num">' + d.n + '</span>' + d.name + '</h2>' +
+      '<span class="size">PNG ' + d.w + ' × ' + d.h + ' px</span></div>' +
+      '<button class="preview" type="button" aria-label="Open ' + d.name + ' full screen">' +
+      '<img src="images/' + d.file + '.svg" alt="' + d.name + '" loading="lazy"></button>' +
+      '<div class="actions">' +
+      '<button class="btn" type="button" data-open>Open full screen</button>' +
+      '</div>' +
+      (d.note ? '<p class="note">' + d.note + '</p>' : "");
+    section.querySelector(".preview").addEventListener("click", function () { openViewer(d); });
+    section.querySelector("[data-open]").addEventListener("click", function () { openViewer(d); });
+    list.appendChild(section);
+  });
+
+  const viewer = document.getElementById("viewer");
+  const stage = document.getElementById("vstage");
+  const vimg = document.getElementById("vimg");
+  const vzoom = document.getElementById("vzoom");
+  let current = null;
+  let scale = null; // null means fit to the window
+
+  // The PNGs are 200 dpi, so 100% here means the diagram's natural size (PNG width / 2.08).
+  function naturalWidth(d) { return Math.round(d.w / 2.0833); }
+
+  function fitScale(d) {
+    const sw = stage.clientWidth - 32;
+    const sh = stage.clientHeight - 32;
+    return Math.min(sw / naturalWidth(d), sh / (d.h / 2.0833), 1.5);
+  }
+
+  function render() {
+    const s = scale === null ? fitScale(current) : scale;
+    vimg.style.width = Math.round(naturalWidth(current) * s) + "px";
+    vzoom.textContent = scale === null ? "Fit" : Math.round(s * 100) + "%";
+  }
+
+  function openViewer(d) {
+    current = d;
+    scale = null;
+    vimg.src = "images/" + d.file + ".svg";
+    vimg.alt = d.name;
+    document.getElementById("vtitle").textContent = d.n + ". " + d.name;
+    viewer.hidden = false;
+    render();
+    document.getElementById("vclose").focus();
+  }
+
+  function closeViewer() { viewer.hidden = true; current = null; }
+
+  function zoom(factor) {
+    const s = scale === null ? fitScale(current) : scale;
+    scale = Math.max(0.1, Math.min(6, s * factor));
+    render();
+  }
+
+  document.getElementById("zin").addEventListener("click", function () { zoom(1.25); });
+  document.getElementById("zout").addEventListener("click", function () { zoom(0.8); });
+  document.getElementById("zfit").addEventListener("click", function () { scale = null; render(); });
+  document.getElementById("vclose").addEventListener("click", closeViewer);
+  window.addEventListener("resize", function () { if (current) render(); });
+  document.addEventListener("keydown", function (e) {
+    if (!current) return;
+    if (e.key === "Escape") closeViewer();
+    if (e.key === "+" || e.key === "=") zoom(1.25);
+    if (e.key === "-") zoom(0.8);
+    if (e.key === "0") { scale = null; render(); }
+  });
+</script>

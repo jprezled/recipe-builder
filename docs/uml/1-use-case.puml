@@ -1,0 +1,84 @@
+@startuml use-case
+!include style.iuml
+title Recipe Builder - Use Case Diagram
+skinparam packageStyle rectangle
+
+actor "Guest Cook" as Guest
+actor "Registered Cook" as Cook
+actor "Spoonacular API" as Spoon <<external system>>
+
+Cook -|> Guest
+
+rectangle "Recipe Builder" {
+
+  rectangle "Anyone (guest or signed in)" {
+    usecase "Enter pantry ingredients" as UC_Pantry
+    usecase "Get ingredient\nsuggestions" as UC_Suggest
+    usecase "Clear pantry" as UC_Clear
+    usecase "Set dietary restrictions" as UC_Diet
+    usecase "Search recipes\nby ingredients" as UC_Search
+    usecase "Sort results" as UC_Sort
+    usecase "View recipe details" as UC_Detail
+    usecase "Scale servings" as UC_Scale
+    usecase "View nutrition facts" as UC_Nutrition
+    usecase "View shopping list" as UC_Shopping
+    usecase "Check off\nshopping items" as UC_Check
+    usecase "See what I need to buy" as UC_Cost
+    usecase "View ratings" as UC_ViewRating
+    usecase "Sign up" as UC_SignUp
+    usecase "Sign in" as UC_SignIn
+  }
+
+  rectangle "Signed-in cooks only" {
+    usecase "Sign out" as UC_SignOut
+    usecase "Save / remove favorite" as UC_Fav
+    usecase "Write a note" as UC_Note
+    usecase "Organize collections" as UC_Collections
+    usecase "Rate a recipe" as UC_Rate
+    usecase "Change password" as UC_Password
+    usecase "Delete account" as UC_Delete
+  }
+}
+
+' Solid lines: an actor takes part in a use case
+Guest -- UC_Pantry
+Guest -- UC_Diet
+Guest -- UC_Search
+Guest -- UC_Detail
+Guest -- UC_ViewRating
+Guest -- UC_SignUp
+Guest -- UC_SignIn
+
+Cook -- UC_SignOut
+Cook -- UC_Fav
+Cook -- UC_Note
+Cook -- UC_Collections
+Cook -- UC_Rate
+Cook -- UC_Password
+Cook -- UC_Delete
+
+UC_Search -- Spoon
+UC_Detail -- Spoon
+UC_Suggest -- Spoon
+UC_Cost -- Spoon
+
+' Dotted arrows: an optional extra, pointing at the use case it adds to.
+UC_Suggest .up.> UC_Pantry : <<extend>>
+UC_Clear .up.> UC_Pantry : <<extend>>
+UC_Sort .up.> UC_Search : <<extend>>
+UC_Scale .up.> UC_Detail : <<extend>>
+UC_Nutrition .up.> UC_Detail : <<extend>>
+UC_Shopping .up.> UC_Detail : <<extend>>
+UC_Cost .up.> UC_Detail : <<extend>>
+UC_Check .up.> UC_Shopping : <<extend>>
+
+note "When signed in, the pantry and dietary\nrestrictions are saved to the account\nautomatically." as AutoSave
+AutoSave .. UC_Pantry
+
+legend right
+  |= Line |= Meaning |
+  | solid line | the actor takes part in this use case |
+  | dotted arrow <<extend>> | an optional extra; it points at the use case it adds to |
+  | line with a hollow triangle | "is a kind of": a Registered Cook can do everything a Guest can |
+endlegend
+@enduml

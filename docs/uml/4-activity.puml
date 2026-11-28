@@ -1,0 +1,88 @@
+@startuml activity
+!include style.iuml
+title Recipe Builder - System-Level Activity Diagram\n"Find a recipe from what I have"
+
+|Cook|
+start
+:Open the home page;
+|Recipe Builder|
+if (Signed in?) then (yes)
+  :Load saved pantry and\ndietary restrictions;
+else (no)
+endif
+|Cook|
+repeat
+  :Type an ingredient;
+  |Recipe Builder|
+  :Suggest matching ingredient names;
+  |Cook|
+  :Add the ingredient to the pantry;
+  |Recipe Builder|
+  if (Signed in?) then (yes)
+    :Save the pantry to the account;
+  endif
+  |Cook|
+repeat while (More ingredients?) is (yes)
+-> no;
+if (Set dietary restrictions?) then (yes)
+  :Open Dietary Restrictions,\ntick diet and exclusions;
+  :Press Find recipes;
+  |Recipe Builder|
+  if (Signed in?) then (yes)
+    :Save restrictions to the account;
+  endif
+  |Cook|
+endif
+:Press Generate Recipes;
+|Recipe Builder|
+if (Same search cached?) then (yes)
+  :Read results from the cache;
+else (no)
+  |Spoonacular|
+  :Search recipes by ingredients\nand restrictions;
+  |Recipe Builder|
+  :Cache the results;
+endif
+if (Spoonacular failed or quota used up?) then (yes)
+  :Show a readable error message;
+  stop
+endif
+if (Any recipes found?) then (no)
+  :Show "No recipes found";
+  stop
+endif
+:Show result cards with match %\nand average ratings;
+|Cook|
+:Open a recipe;
+|Recipe Builder|
+:Show ingredients, steps, servings stepper\nand panel buttons;
+|Cook|
+fork
+  :Scale servings;
+fork again
+  :Open Nutrition Facts / Shopping list;
+fork again
+  :Ask what I need to buy;
+  |Spoonacular|
+  :Price breakdown;
+  |Cook|
+fork again
+  if (Signed in?) then (yes)
+    :Save to favorites, write a note,\nor rate the recipe;
+  else (no)
+    :Prompted to sign in;
+  endif
+end fork
+stop
+
+legend right
+  |= Symbol |= Meaning |
+  | filled circle | start |
+  | circle with a ring | end |
+  | box | one action |
+  | diamond | a decision, with a yes and a no path |
+  | thick bar | fork: the actions below can happen in any order |
+  | arrow looping back | repeat, e.g. adding more ingredients |
+  | column | swimlane: who does each step |
+endlegend
+@enduml

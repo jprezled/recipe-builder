@@ -1,0 +1,52 @@
+@startuml state
+!include style.iuml
+skinparam nodesep 110
+skinparam ranksep 110
+title Recipe Builder - System-Level State Diagram
+
+[*] --> SignedOut
+
+state SignedOut : favorites, notes, ratings\nand account changes refused (401)
+state SignedIn : pantry and restrictions\nsaved to the account
+state AccountDeleted
+
+SignedOut --> SignedIn : sign in / sign up\n[valid credentials]
+SignedOut --> SignedOut : sign in\n[wrong credentials] / show error
+SignedIn --> SignedOut : sign out
+SignedIn --> AccountDeleted : delete account\n[correct password]
+AccountDeleted --> [*]
+
+state "Recipe search" as Search {
+  [*] --> EmptyPantry
+  EmptyPantry --> PantryReady : add ingredient
+  PantryReady --> EmptyPantry : remove last ingredient /\nclear pantry
+  PantryReady --> PantryReady : add / remove ingredient,\nchange filters
+  PantryReady --> Searching : Generate Recipes
+  Searching --> ShowingResults : results found
+  Searching --> NoResults : nothing matched
+  Searching --> SearchFailed : Spoonacular error /\nquota reached
+  ShowingResults --> ResultsStale : ingredients or filters changed
+  ResultsStale --> Searching : Find recipes
+  ShowingResults --> Searching : change sort order
+  NoResults --> PantryReady : edit ingredients or filters
+  SearchFailed --> Searching : try again
+  ShowingResults --> ViewingRecipe : open a recipe
+  ViewingRecipe --> ShowingResults : back
+}
+
+note right of Search
+  Runs alongside the sign-in states:
+  a guest and a signed-in cook
+  search the same way.
+end note
+
+legend right
+  |= Symbol |= Meaning |
+  | filled circle | where it starts |
+  | circle with a ring | where it ends |
+  | box | a state: a situation the app is in |
+  | big box holding states | a group of states that belong together |
+  | arrow | a change of state, labelled with the event that causes it |
+  | [ ... ] on an arrow | a condition that must be true for the change |
+endlegend
+@enduml

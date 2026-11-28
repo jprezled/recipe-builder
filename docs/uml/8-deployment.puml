@@ -1,0 +1,61 @@
+@startuml deployment
+!include style.iuml
+title Recipe Builder - Deployment Diagram (AWS)
+
+node "Cook's device" <<device>> {
+  node "Web browser" <<execution environment>> {
+    artifact "React app\n(HTML, JS, CSS)" as App
+  }
+}
+
+cloud "Amazon Route 53" as R53 {
+  artifact "Registered domain\n+ hosted zone\nA record -> Elastic IP" as Record
+}
+
+node "AWS Region" <<cloud>> {
+  node "VPC" {
+    node "Amazon EC2 instance" <<virtual machine>> as EC2 {
+      component "Elastic IP\n(fixed public address)" as EIP
+      node "Web server\n(nginx - to confirm with Jose)" <<execution environment>> as Web {
+        artifact "frontend build\n(dist/)" as Dist
+      }
+      node "JVM (Java 17)" <<execution environment>> {
+        artifact "recipe-builder.jar\n(Spring Boot)" as Jar
+        artifact "/etc/recipe-builder.env\n(API key, DB password)" as Env
+      }
+    }
+    node "Amazon RDS\n(managed PostgreSQL)" <<database server>> as RDS {
+      database "recipe_builder_db\n(V1-V10, V3 skipped)" as DB
+    }
+  }
+}
+
+cloud "Spoonacular API\n(api.spoonacular.com)" as Spoon
+
+App --> R53 : DNS lookup
+App --> EIP : HTTPS 443 (HTTP until\nLet's Encrypt is set up)
+EIP --> Web
+Web --> Jar : /api proxied to :8080
+Jar --> DB : JDBC :5432
+Jar --> Spoon : HTTPS
+Jar ..> Env : reads at startup
+
+note bottom of EC2
+  Set up by Jose: the app runs on an EC2
+  virtual machine, the database on Amazon RDS,
+  and the domain is registered with Route 53.
+  Still to confirm: instance type, region, nginx
+  vs. Spring Boot serving the frontend, HTTPS.
+end note
+
+legend right
+  |= Symbol |= Meaning |
+  | 3D box | a node: a machine or place where software runs |
+  | node inside a node | an execution environment, e.g. the JVM on the server |
+  | page icon | an artifact: a deployed file, e.g. the backend jar |
+  | cylinder | a database |
+  | cloud | an outside service |
+  | solid arrow | a network connection, labelled with what travels over it |
+  | dashed arrow | reads at startup |
+endlegend
+@enduml
